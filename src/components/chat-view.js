@@ -290,7 +290,7 @@ export class ChatView extends LitElement {
 
   _clearAll() {
     hapticMedium();
-    this.dispatchEvent(new CustomEvent('clear-category', { detail: 'chat' }));
+    this.dispatchEvent(new CustomEvent('clear-category', { detail: 'chat', bubbles: true, composed: true }));
   }
 
   render() {

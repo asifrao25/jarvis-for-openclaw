@@ -56,12 +56,22 @@ export class MessageItem extends LitElement {
       margin: 6px 16px 6px 56px;
       border-radius: 18px 18px 4px 18px;
       color: white;
+      width: fit-content;
+      max-width: calc(100% - 72px);
+    }
+    .swipe-container.user-msg {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
     }
     .msg.assistant {
-      margin: 6px 56px 6px 0;
+      margin: 6px auto 6px 0;
+      margin-right: 56px;
       background: rgba(255, 255, 255, 0.04);
       border-radius: 4px 18px 18px 18px;
       border: 1px solid rgba(255, 255, 255, 0.04);
+      width: fit-content;
+      max-width: calc(100% - 72px);
     }
     .msg.alert {
       border-left: 3px solid #ef4444;
@@ -115,13 +125,13 @@ export class MessageItem extends LitElement {
 
     @media (min-width: 768px) {
       .msg { padding: 14px 20px; }
-      .msg.user { margin-left: 120px; margin-right: 20px; }
-      .msg.assistant { margin-right: 120px; }
+      .msg.user { margin-left: 120px; max-width: calc(100% - 140px); }
+      .msg.assistant { margin-right: 120px; max-width: calc(100% - 140px); }
       .text { font-size: 15px; }
     }
     @media (min-width: 1024px) {
-      .msg.user { margin-left: 200px; margin-right: 24px; }
-      .msg.assistant { margin-right: 200px; }
+      .msg.user { margin-left: 200px; max-width: calc(100% - 224px); }
+      .msg.assistant { margin-right: 200px; max-width: calc(100% - 224px); }
     }
   `;
 
@@ -217,8 +227,10 @@ export class MessageItem extends LitElement {
 
     const swipeStyle = this._swipeX < 0 ? `transform: translateX(${this._swipeX}px)` : '';
 
+    const containerClasses = this.role === 'user' ? 'swipe-container user-msg' : 'swipe-container';
+
     return html`
-      <div class="swipe-container">
+      <div class=${containerClasses}>
         ${this._swipeX < -10 ? html`
           <div class="delete-bg">
             <svg viewBox="0 0 24 24"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>

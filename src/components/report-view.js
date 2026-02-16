@@ -193,7 +193,7 @@ export class ReportView extends LitElement {
 
   _clearAll() {
     hapticMedium();
-    this.dispatchEvent(new CustomEvent('clear-category', { detail: 'report' }));
+    this.dispatchEvent(new CustomEvent('clear-category', { detail: 'report', bubbles: true, composed: true }));
   }
 
   render() {

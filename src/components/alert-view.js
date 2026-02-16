@@ -193,7 +193,7 @@ export class AlertView extends LitElement {
 
   _clearAll() {
     hapticMedium();
-    this.dispatchEvent(new CustomEvent('clear-category', { detail: 'alert' }));
+    this.dispatchEvent(new CustomEvent('clear-category', { detail: 'alert', bubbles: true, composed: true }));
   }
 
   render() {
