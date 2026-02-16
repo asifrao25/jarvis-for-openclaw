@@ -1,0 +1,80 @@
+import config from './config.js';
+
+export default class EventBuffer {
+  constructor() {
+    this.buffer = [];
+    this.nextSeq = 1;
+    this.clientReplayCounts = new Map();
+  }
+
+  addEvent(event) {
+    const bufferSeq = this.nextSeq++;
+    const timestamp = Date.now();
+    const gatewaySeq = (typeof event.seq === 'number') ? event.seq : bufferSeq;
+
+    const bufferedEvent = {
+      seq: gatewaySeq,
+      bufferSeq,
+      timestamp,
+      type: event.type,
+      event: event.event,
+      payload: event.payload,
+    };
+
+    this.buffer.push(bufferedEvent);
+    this._cleanup();
+    return gatewaySeq;
+  }
+
+  getEventsSince(lastSeq, clientId) {
+    if (!this._checkRateLimit(clientId)) {
+      console.log(`[EventBuffer] Rate limit exceeded for ${clientId}`);
+      return [];
+    }
+
+    const missed = this.buffer.filter(e => e.seq > lastSeq);
+    this._updateRateLimit(clientId, missed.length);
+    return missed;
+  }
+
+  _cleanup() {
+    const cutoff = Date.now() - config.maxAgeMs;
+    let filtered = this.buffer.filter(e => e.timestamp >= cutoff);
+    if (filtered.length > config.maxEvents) {
+      filtered = filtered.slice(-config.maxEvents);
+    }
+    this.buffer = filtered;
+  }
+
+  _checkRateLimit(clientId) {
+    const now = Date.now();
+    const data = this.clientReplayCounts.get(clientId);
+    if (!data) return true;
+    if (now - data.windowStart > config.rateLimitWindowMs) return true;
+    return data.count < config.maxReplayPerMinute;
+  }
+
+  _updateRateLimit(clientId, eventCount) {
+    const now = Date.now();
+    let data = this.clientReplayCounts.get(clientId);
+    if (!data || now - data.windowStart > config.rateLimitWindowMs) {
+      data = { windowStart: now, count: eventCount };
+    } else {
+      data.count += eventCount;
+    }
+    this.clientReplayCounts.set(clientId, data);
+  }
+
+  clearRateLimit(clientId) {
+    this.clientReplayCounts.delete(clientId);
+  }
+
+  getStats() {
+    return {
+      totalEvents: this.buffer.length,
+      oldestSeq: this.buffer.length > 0 ? this.buffer[0].seq : 0,
+      newestSeq: this.buffer.length > 0 ? this.buffer[this.buffer.length - 1].seq : 0,
+      nextSeq: this.nextSeq,
+    };
+  }
+}
