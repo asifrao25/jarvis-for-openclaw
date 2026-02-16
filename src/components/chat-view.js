@@ -336,6 +336,7 @@ export class ChatView extends LitElement {
             .category=${m.category}
             .streaming=${m.streaming || false}
             .msgId=${m.id || null}
+            .status=${m.status || null}
           ></message-item>
         `)}
         ${this.thinking ? html`<stream-indicator mode="thinking"></stream-indicator>` : ''}

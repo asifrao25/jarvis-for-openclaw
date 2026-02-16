@@ -107,8 +107,25 @@ export class MessageItem extends LitElement {
       font-size: 11px;
       color: #475569;
       margin-top: 6px;
+      display: flex;
+      align-items: center;
+      gap: 4px;
     }
-    .msg.user .time { color: rgba(255, 255, 255, 0.6); }
+    .msg.user .time { color: rgba(255, 255, 255, 0.6); justify-content: flex-end; }
+
+    .ticks {
+      display: inline-flex;
+      align-items: center;
+      font-size: 14px;
+      line-height: 1;
+    }
+    .ticks.sending { opacity: 0.5; }
+    .ticks.received { color: #ef4444; opacity: 1; }
+    .ticks.failed { color: #ef4444; opacity: 1; }
+    .ticks svg { width: 16px; height: 12px; }
+    .ticks.received svg { fill: #ef4444; }
+    .ticks.sending svg { fill: rgba(255, 255, 255, 0.6); }
+    .ticks.failed svg { fill: #ef4444; }
 
     .streaming .text {
       opacity: 0.85;
@@ -142,6 +159,7 @@ export class MessageItem extends LitElement {
     category: { type: String },
     streaming: { type: Boolean },
     msgId: { type: Number },
+    status: { type: String },
     _swipeX: { type: Number, state: true },
     _swiping: { type: Boolean, state: true },
     _removing: { type: Boolean, state: true },
@@ -155,6 +173,7 @@ export class MessageItem extends LitElement {
     this.category = 'chat';
     this.streaming = false;
     this.msgId = null;
+    this.status = null;
     this._swipeX = 0;
     this._swiping = false;
     this._removing = false;
@@ -211,6 +230,28 @@ export class MessageItem extends LitElement {
     }, { passive: true });
   }
 
+  _renderTicks() {
+    // Clock icon for sending
+    if (this.status === 'sending') {
+      return html`<span class="ticks sending">
+        <svg viewBox="0 0 24 24"><path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67z"/></svg>
+      </span>`;
+    }
+    // Double check for received (gateway acknowledged)
+    if (this.status === 'received') {
+      return html`<span class="ticks received">
+        <svg viewBox="0 0 24 24"><path d="M18 7l-1.41-1.41-6.34 6.34 1.41 1.41L18 7zm4.24-1.41L11.66 16.17 7.48 12l-1.41 1.41L11.66 19l12-12-1.42-1.41zM.41 13.41L6 19l1.41-1.41L1.83 12 .41 13.41z"/></svg>
+      </span>`;
+    }
+    // X for failed
+    if (this.status === 'failed') {
+      return html`<span class="ticks failed">
+        <svg viewBox="0 0 24 24"><path d="M12 2C6.47 2 2 6.47 2 12s4.47 10 10 10 10-4.47 10-10S17.53 2 12 2zm5 13.59L15.59 17 12 13.41 8.41 17 7 15.59 10.59 12 7 8.41 8.41 7 12 10.59 15.59 7 17 8.41 13.41 12 17 15.59z"/></svg>
+      </span>`;
+    }
+    return '';
+  }
+
   _formatTime(ts) {
     if (!ts) return '';
     const d = new Date(ts);
@@ -241,7 +282,10 @@ export class MessageItem extends LitElement {
             <div class="role">${this.category === 'alert' ? 'Alert' : this.category === 'report' ? 'Report' : 'Jarvis'}</div>
           ` : ''}
           <div class="text">${this.text}</div>
-          ${this.timestamp ? html`<div class="time">${this._formatTime(this.timestamp)}</div>` : ''}
+          ${this.timestamp ? html`<div class="time">
+            <span>${this._formatTime(this.timestamp)}</span>
+            ${this.role === 'user' && this.status ? this._renderTicks() : ''}
+          </div>` : ''}
         </div>
       </div>
     `;
