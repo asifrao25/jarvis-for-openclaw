@@ -15,12 +15,18 @@ export default class PushManager {
   }
 
   registerSubscription(clientId, subscription) {
+    // Remove any existing subscriptions with the same endpoint (same browser/device)
+    for (const [existingId, existingSub] of this.subscriptions) {
+      if (existingSub.endpoint === subscription.endpoint) {
+        this.subscriptions.delete(existingId);
+      }
+    }
     this.subscriptions.set(clientId, {
       ...subscription,
       registeredAt: new Date().toISOString(),
     });
     this._saveSubscriptions();
-    console.log('[Push] Registered subscription for', clientId);
+    console.log('[Push] Registered subscription for', clientId, `(${this.subscriptions.size} total)`);
   }
 
   async sendToAll(notification) {

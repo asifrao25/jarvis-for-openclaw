@@ -254,9 +254,27 @@ export class AppShell extends LitElement {
   }
 
   _handleMessage(msg) {
-    // Handle chat.send response — confirms message was received
+    // Handle chat.send response — confirms message was received by gateway
     if (msg.type === 'res' && msg.ok && msg.payload?.status === 'started') {
       this.thinking = true;
+      // Mark the most recent sending user message as "received"
+      const lastSending = this.messages.findLastIndex(m => m.role === 'user' && m.status === 'sending');
+      if (lastSending !== -1) {
+        const updated = [...this.messages];
+        updated[lastSending] = { ...updated[lastSending], status: 'received', runId: msg.payload?.runId };
+        this.messages = updated;
+      }
+      return;
+    }
+
+    // Handle error response — mark message as failed
+    if (msg.type === 'res' && !msg.ok) {
+      const lastSending = this.messages.findLastIndex(m => m.role === 'user' && (m.status === 'sending' || m.status === 'received'));
+      if (lastSending !== -1) {
+        const updated = [...this.messages];
+        updated[lastSending] = { ...updated[lastSending], status: 'failed' };
+        this.messages = updated;
+      }
       return;
     }
 
@@ -334,12 +352,13 @@ export class AppShell extends LitElement {
 
   _onSendMessage(e) {
     const text = e.detail;
-    this.messages = [...this.messages, {
+    const requestId = wsClient.sendChat(text);
+    const userMsg = {
       role: 'user', text, category: 'chat', timestamp: Date.now(),
-    }];
-    addMessage({ role: 'user', text, category: 'chat', timestamp: Date.now() })
-      .catch(err => console.error('Failed to store message:', err));
-    wsClient.sendChat(text);
+      requestId, status: 'sending',
+    };
+    this.messages = [...this.messages, userMsg];
+    addMessage(userMsg).catch(err => console.error('Failed to store message:', err));
     hapticMedium();
   }
 
