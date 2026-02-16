@@ -1,6 +1,5 @@
 import { LitElement, html, css } from 'lit';
 import { hapticMedium, hapticLight } from '../services/haptics.js';
-import './message-item.js';
 
 export class ReportView extends LitElement {
   static styles = css`
@@ -64,16 +63,86 @@ export class ReportView extends LitElement {
     }
     .clear-btn:active { opacity: 0.7; transform: scale(0.96); }
 
-    .messages {
+    .entries {
       flex: 1;
       overflow-y: auto;
       -webkit-overflow-scrolling: touch;
-      padding: 12px 0;
+      padding: 8px 16px;
       overscroll-behavior-y: contain;
     }
-    .messages::-webkit-scrollbar { width: 4px; }
-    .messages::-webkit-scrollbar-track { background: transparent; }
-    .messages::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 2px; }
+    .entries::-webkit-scrollbar { width: 4px; }
+    .entries::-webkit-scrollbar-track { background: transparent; }
+    .entries::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 2px; }
+
+    .entry {
+      margin: 4px 0;
+      border-radius: 12px;
+      background: rgba(59, 130, 246, 0.06);
+      border: 1px solid rgba(59, 130, 246, 0.1);
+      overflow: hidden;
+      transition: background 0.15s;
+    }
+    .entry-header {
+      display: flex;
+      align-items: center;
+      padding: 12px 14px;
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+      touch-action: manipulation;
+      user-select: none;
+      -webkit-user-select: none;
+      gap: 10px;
+    }
+    .entry-header:active { background: rgba(59, 130, 246, 0.1); }
+    .entry-icon {
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      background: rgba(59, 130, 246, 0.12);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+    .entry-icon svg { width: 16px; height: 16px; fill: #3b82f6; }
+    .entry-info {
+      flex: 1;
+      min-width: 0;
+    }
+    .entry-title {
+      font-size: 14px;
+      font-weight: 500;
+      color: #e2e8f0;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .entry-time {
+      font-size: 11px;
+      color: #64748b;
+      margin-top: 2px;
+    }
+    .entry-chevron {
+      width: 20px;
+      height: 20px;
+      flex-shrink: 0;
+      transition: transform 0.2s ease;
+    }
+    .entry-chevron svg { width: 20px; height: 20px; fill: #475569; }
+    .entry.expanded .entry-chevron { transform: rotate(180deg); }
+
+    .entry-body {
+      display: none;
+      padding: 0 14px 14px;
+    }
+    .entry.expanded .entry-body { display: block; }
+    .entry-text {
+      font-size: 14px;
+      line-height: 1.6;
+      color: #cbd5e1;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
 
     .empty {
       display: flex;
@@ -125,6 +194,7 @@ export class ReportView extends LitElement {
     _pullState: { type: String, state: true },
     _pullHeight: { type: Number, state: true },
     _showScrollBtn: { type: Boolean, state: true },
+    _expanded: { type: Object, state: true },
   };
 
   constructor() {
@@ -135,10 +205,11 @@ export class ReportView extends LitElement {
     this._touchStartY = 0;
     this._pulling = false;
     this._showScrollBtn = false;
+    this._expanded = {};
   }
 
   firstUpdated() {
-    const el = this.shadowRoot.querySelector('.messages');
+    const el = this.shadowRoot.querySelector('.entries');
     if (!el) return;
 
     el.addEventListener('scroll', () => {
@@ -186,7 +257,7 @@ export class ReportView extends LitElement {
   _scrollToBottom() {
     hapticLight();
     requestAnimationFrame(() => {
-      const el = this.shadowRoot.querySelector('.messages');
+      const el = this.shadowRoot.querySelector('.entries');
       if (el) el.scrollTop = el.scrollHeight;
     });
   }
@@ -194,6 +265,32 @@ export class ReportView extends LitElement {
   _clearAll() {
     hapticMedium();
     this.dispatchEvent(new CustomEvent('clear-category', { detail: 'report', bubbles: true, composed: true }));
+  }
+
+  _toggle(key) {
+    hapticLight();
+    this._expanded = { ...this._expanded, [key]: !this._expanded[key] };
+  }
+
+  _getSummary(text) {
+    // Strip [REPORT] prefix, take first line as title
+    const stripped = text.replace(/^\[REPORT\]\s*/, '');
+    const firstLine = stripped.split('\n')[0].trim();
+    return firstLine.length > 80 ? firstLine.substring(0, 77) + '...' : firstLine;
+  }
+
+  _getBody(text) {
+    return text.replace(/^\[REPORT\]\s*/, '');
+  }
+
+  _formatTime(ts) {
+    if (!ts) return '';
+    const d = new Date(ts);
+    const now = new Date();
+    const time = d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+    if (d.toDateString() === now.toDateString()) return time;
+    const date = d.toLocaleDateString([], { month: 'short', day: 'numeric' });
+    return `${date}, ${time}`;
   }
 
   render() {
@@ -219,7 +316,7 @@ export class ReportView extends LitElement {
           <button class="clear-btn" @click=${this._clearAll}>Clear All</button>
         </div>
       ` : ''}
-      <div class="messages">
+      <div class="entries">
         ${reports.length === 0 ? html`
           <div class="empty">
             <div class="empty-icon">
@@ -229,15 +326,29 @@ export class ReportView extends LitElement {
             <div class="empty-hint">Status reports will appear here</div>
           </div>
         ` : ''}
-        ${reports.map(m => html`
-          <message-item
-            .role=${m.role}
-            .text=${m.text}
-            .timestamp=${m.timestamp}
-            category="report"
-            .msgId=${m.id || null}
-          ></message-item>
-        `)}
+        ${reports.map((m, i) => {
+          const key = m.id || m.timestamp || i;
+          const expanded = this._expanded[key];
+          return html`
+            <div class="entry ${expanded ? 'expanded' : ''}">
+              <div class="entry-header" @click=${() => this._toggle(key)}>
+                <div class="entry-icon">
+                  <svg viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/></svg>
+                </div>
+                <div class="entry-info">
+                  <div class="entry-title">${this._getSummary(m.text)}</div>
+                  <div class="entry-time">${this._formatTime(m.timestamp)}</div>
+                </div>
+                <div class="entry-chevron">
+                  <svg viewBox="0 0 24 24"><path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6 1.41-1.41z"/></svg>
+                </div>
+              </div>
+              <div class="entry-body">
+                <div class="entry-text">${this._getBody(m.text)}</div>
+              </div>
+            </div>
+          `;
+        })}
       </div>
       ${this._showScrollBtn ? html`
         <button class="scroll-bottom" @click=${this._scrollToBottom}>
