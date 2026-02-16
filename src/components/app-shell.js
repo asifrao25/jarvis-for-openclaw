@@ -11,8 +11,8 @@ import './report-view.js';
 import './nav-bar.js';
 
 function categorize(text) {
-  if (text.includes('[ALERT]')) return 'alert';
-  if (text.includes('[REPORT]')) return 'report';
+  if (text.startsWith('[ALERT]')) return 'alert';
+  if (text.startsWith('[REPORT]')) return 'report';
   return 'chat';
 }
 
