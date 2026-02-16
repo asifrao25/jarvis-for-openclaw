@@ -1,7 +1,10 @@
 // Service Worker for Jarvis PWA
 
-const CACHE_NAME = 'openclaw-pwa-v13';
+const CACHE_NAME = 'openclaw-pwa-v14';
 const SHELL_FILES = ['/pwa/', '/pwa/index.html'];
+
+// Badge count tracker
+let badgeCount = 0;
 
 // Install: cache app shell
 self.addEventListener('install', (event) => {
@@ -50,9 +53,12 @@ self.addEventListener('push', (event) => {
       const hasForeground = clients.some(c => c.visibilityState === 'visible');
       if (hasForeground) return;
 
-      // Set app badge count
+      // Increment and set app badge count
+      badgeCount++;
       if (self.navigator && self.navigator.setAppBadge) {
-        try { await self.navigator.setAppBadge(); } catch {}
+        try { await self.navigator.setAppBadge(badgeCount); } catch (e) {
+          console.log('[SW] setAppBadge failed:', e);
+        }
       }
 
       return self.registration.showNotification(data.title, {
@@ -74,6 +80,7 @@ self.addEventListener('notificationclick', (event) => {
   event.waitUntil(
     (async () => {
       // Clear badge
+      badgeCount = 0;
       if (self.navigator && self.navigator.clearAppBadge) {
         try { await self.navigator.clearAppBadge(); } catch {}
       }
@@ -92,6 +99,7 @@ self.addEventListener('notificationclick', (event) => {
 // Clear badge when PWA becomes visible
 self.addEventListener('message', (event) => {
   if (event.data === 'clear-badge') {
+    badgeCount = 0;
     if (self.navigator && self.navigator.clearAppBadge) {
       self.navigator.clearAppBadge().catch(() => {});
     }

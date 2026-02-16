@@ -43,6 +43,27 @@ export class ReportView extends LitElement {
     .pull-arrow { margin-right: 8px; transition: transform 0.2s; font-size: 16px; }
     .pull-arrow.ready { transform: rotate(180deg); }
 
+    .clear-bar {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      padding: 6px 16px;
+    }
+    .clear-btn {
+      background: none;
+      border: 1px solid rgba(59, 130, 246, 0.2);
+      color: #3b82f6;
+      font-size: 12px;
+      font-weight: 500;
+      font-family: inherit;
+      padding: 5px 12px;
+      border-radius: 14px;
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+      touch-action: manipulation;
+    }
+    .clear-btn:active { opacity: 0.7; transform: scale(0.96); }
+
     .messages {
       flex: 1;
       overflow-y: auto;
@@ -75,12 +96,35 @@ export class ReportView extends LitElement {
     .empty-icon svg { width: 28px; height: 28px; fill: #3b82f6; opacity: 0.4; }
     .empty-text { font-size: 15px; font-weight: 500; }
     .empty-hint { font-size: 13px; color: #334155; }
+
+    .scroll-bottom {
+      position: absolute;
+      bottom: 16px;
+      right: 16px;
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background: rgba(59, 130, 246, 0.9);
+      border: none;
+      color: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+      z-index: 20;
+      -webkit-tap-highlight-color: transparent;
+      touch-action: manipulation;
+    }
+    .scroll-bottom:active { transform: scale(0.9); }
+    .scroll-bottom svg { width: 22px; height: 22px; fill: white; }
   `;
 
   static properties = {
     messages: { type: Array },
     _pullState: { type: String, state: true },
     _pullHeight: { type: Number, state: true },
+    _showScrollBtn: { type: Boolean, state: true },
   };
 
   constructor() {
@@ -90,11 +134,17 @@ export class ReportView extends LitElement {
     this._pullHeight = 0;
     this._touchStartY = 0;
     this._pulling = false;
+    this._showScrollBtn = false;
   }
 
   firstUpdated() {
     const el = this.shadowRoot.querySelector('.messages');
     if (!el) return;
+
+    el.addEventListener('scroll', () => {
+      const distFromBottom = el.scrollHeight - el.scrollTop - el.clientHeight;
+      this._showScrollBtn = distFromBottom > 150;
+    }, { passive: true });
 
     el.addEventListener('touchstart', (e) => {
       if (el.scrollTop <= 0) {
@@ -133,6 +183,19 @@ export class ReportView extends LitElement {
     }, { passive: true });
   }
 
+  _scrollToBottom() {
+    hapticLight();
+    requestAnimationFrame(() => {
+      const el = this.shadowRoot.querySelector('.messages');
+      if (el) el.scrollTop = el.scrollHeight;
+    });
+  }
+
+  _clearAll() {
+    hapticMedium();
+    this.dispatchEvent(new CustomEvent('clear-category', { detail: 'report' }));
+  }
+
   render() {
     const reports = this.messages.filter(m => m.category === 'report');
 
@@ -151,6 +214,11 @@ export class ReportView extends LitElement {
           <span>${this._pullState === 'ready' ? 'Release to refresh' : 'Pull to refresh'}</span>
         `}
       </div>
+      ${reports.length > 0 ? html`
+        <div class="clear-bar">
+          <button class="clear-btn" @click=${this._clearAll}>Clear All</button>
+        </div>
+      ` : ''}
       <div class="messages">
         ${reports.length === 0 ? html`
           <div class="empty">
@@ -167,9 +235,15 @@ export class ReportView extends LitElement {
             .text=${m.text}
             .timestamp=${m.timestamp}
             category="report"
+            .msgId=${m.id || null}
           ></message-item>
         `)}
       </div>
+      ${this._showScrollBtn ? html`
+        <button class="scroll-bottom" @click=${this._scrollToBottom}>
+          <svg viewBox="0 0 24 24"><path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6 1.41-1.41z"/></svg>
+        </button>
+      ` : ''}
     `;
   }
 }
