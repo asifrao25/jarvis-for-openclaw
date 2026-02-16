@@ -2,7 +2,7 @@ import { LitElement, html, css } from 'lit';
 import { wsClient } from '../services/ws-client.js';
 import { getAuth, saveAuth, clearAuth } from '../services/auth.js';
 import { registerPush, resyncPush } from '../services/push-registration.js';
-import { addMessage, getLatest } from '../services/message-store.js';
+import { addMessage, getLatest, deleteMessage, clearByCategory, clearAll } from '../services/message-store.js';
 import { hapticLight, hapticMedium, hapticSuccess, hapticError } from '../services/haptics.js';
 import './login-screen.js';
 import './chat-view.js';
@@ -348,6 +348,34 @@ export class AppShell extends LitElement {
     hapticMedium();
   }
 
+  async _onDeleteMessage(e) {
+    const { id, timestamp } = e.detail;
+    // Remove from in-memory list
+    this.messages = this.messages.filter(m => {
+      if (id && m.id === id) return false;
+      if (timestamp && m.timestamp === timestamp && !m.id) return false;
+      return true;
+    });
+    // Remove from IndexedDB if it has an id
+    if (id) {
+      await deleteMessage(id).catch(err => console.error('Failed to delete message:', err));
+    }
+    hapticLight();
+  }
+
+  async _onClearCategory(e) {
+    const category = e.detail;
+    if (category === 'chat') {
+      // Clear chat + user messages
+      this.messages = this.messages.filter(m => m.category !== 'chat' && m.role !== 'user');
+      await clearAll().catch(err => console.error('Failed to clear:', err));
+    } else {
+      this.messages = this.messages.filter(m => m.category !== category);
+      await clearByCategory(category).catch(err => console.error('Failed to clear:', err));
+    }
+    hapticMedium();
+  }
+
   async _enablePush() {
     hapticLight();
     this.pushLoading = true;
@@ -404,14 +432,14 @@ export class AppShell extends LitElement {
       ` : ''}
       <header>
         <div class="header-left">
-          <div class="header-logo">OC</div>
-          <h1>OpenClaw</h1>
+          <div class="header-logo">J</div>
+          <h1>Jarvis</h1>
         </div>
         <span class="status ${this.connected ? 'connected' : 'disconnected'}">
           ${this.connected ? 'Connected' : 'Offline'}
         </span>
       </header>
-      <div class="content">
+      <div class="content" @delete-message=${this._onDeleteMessage} @clear-category=${this._onClearCategory}>
         ${this.view === 'chat' ? html`
           <chat-view
             .messages=${this.messages}

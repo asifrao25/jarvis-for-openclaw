@@ -93,6 +93,50 @@ export class ChatView extends LitElement {
     .empty-text { font-size: 15px; font-weight: 500; }
     .empty-hint { font-size: 13px; color: #334155; }
 
+    .clear-bar {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      padding: 6px 16px;
+    }
+    .clear-btn {
+      background: none;
+      border: 1px solid rgba(239, 68, 68, 0.2);
+      color: #ef4444;
+      font-size: 12px;
+      font-weight: 500;
+      font-family: inherit;
+      padding: 5px 12px;
+      border-radius: 14px;
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+      touch-action: manipulation;
+    }
+    .clear-btn:active { opacity: 0.7; transform: scale(0.96); }
+
+    .scroll-bottom {
+      position: absolute;
+      bottom: 70px;
+      right: 16px;
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background: rgba(59, 130, 246, 0.9);
+      border: none;
+      color: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+      z-index: 20;
+      transition: opacity 0.2s, transform 0.2s;
+      -webkit-tap-highlight-color: transparent;
+      touch-action: manipulation;
+    }
+    .scroll-bottom:active { transform: scale(0.9); }
+    .scroll-bottom svg { width: 22px; height: 22px; fill: white; }
+
     .input-bar {
       display: flex;
       gap: 10px;
@@ -116,7 +160,7 @@ export class ChatView extends LitElement {
     }
     input::placeholder { color: #475569; }
     input:focus { border-color: rgba(59, 130, 246, 0.4); }
-    button {
+    .send-btn {
       background: linear-gradient(135deg, #3b82f6, #6366f1);
       color: white;
       border: none;
@@ -131,8 +175,8 @@ export class ChatView extends LitElement {
       -webkit-tap-highlight-color: transparent;
       touch-action: manipulation;
     }
-    button:active { transform: scale(0.96); opacity: 0.9; }
-    button:disabled { opacity: 0.4; }
+    .send-btn:active { transform: scale(0.96); opacity: 0.9; }
+    .send-btn:disabled { opacity: 0.4; }
 
     @media (min-width: 768px) {
       .input-bar {
@@ -150,6 +194,7 @@ export class ChatView extends LitElement {
     streaming: { type: Boolean },
     _pullState: { type: String, state: true },
     _pullHeight: { type: Number, state: true },
+    _showScrollBtn: { type: Boolean, state: true },
   };
 
   constructor() {
@@ -157,21 +202,30 @@ export class ChatView extends LitElement {
     this.messages = [];
     this.thinking = false;
     this.streaming = false;
-    this._pullState = 'idle'; // idle | pulling | ready | refreshing
+    this._pullState = 'idle';
     this._pullHeight = 0;
     this._touchStartY = 0;
     this._pulling = false;
+    this._showScrollBtn = false;
   }
 
   updated(changed) {
     if (changed.has('messages')) {
-      this._scrollToBottom();
+      if (!this._showScrollBtn) {
+        this._scrollToBottom();
+      }
     }
   }
 
   firstUpdated() {
     const el = this.shadowRoot.querySelector('.messages');
     if (!el) return;
+
+    // Scroll position tracking for scroll-to-bottom button
+    el.addEventListener('scroll', () => {
+      const distFromBottom = el.scrollHeight - el.scrollTop - el.clientHeight;
+      this._showScrollBtn = distFromBottom > 150;
+    }, { passive: true });
 
     el.addEventListener('touchstart', (e) => {
       if (el.scrollTop <= 0) {
@@ -219,6 +273,11 @@ export class ChatView extends LitElement {
     });
   }
 
+  _onScrollBottom() {
+    hapticLight();
+    this._scrollToBottom();
+  }
+
   _send(e) {
     e.preventDefault();
     const input = this.shadowRoot.querySelector('input');
@@ -227,6 +286,11 @@ export class ChatView extends LitElement {
     input.value = '';
     hapticMedium();
     this.dispatchEvent(new CustomEvent('send-message', { detail: text }));
+  }
+
+  _clearAll() {
+    hapticMedium();
+    this.dispatchEvent(new CustomEvent('clear-category', { detail: 'chat' }));
   }
 
   render() {
@@ -249,6 +313,11 @@ export class ChatView extends LitElement {
           <span>${this._pullState === 'ready' ? 'Release to refresh' : 'Pull to refresh'}</span>
         `}
       </div>
+      ${chatMessages.length > 0 ? html`
+        <div class="clear-bar">
+          <button class="clear-btn" @click=${this._clearAll}>Clear All</button>
+        </div>
+      ` : ''}
       <div class="messages">
         ${chatMessages.length === 0 ? html`
           <div class="empty">
@@ -266,14 +335,20 @@ export class ChatView extends LitElement {
             .timestamp=${m.timestamp}
             .category=${m.category}
             .streaming=${m.streaming || false}
+            .msgId=${m.id || null}
           ></message-item>
         `)}
         ${this.thinking ? html`<stream-indicator mode="thinking"></stream-indicator>` : ''}
         ${this.streaming && !this.thinking ? html`<stream-indicator mode="streaming"></stream-indicator>` : ''}
       </div>
+      ${this._showScrollBtn ? html`
+        <button class="scroll-bottom" @click=${this._onScrollBottom}>
+          <svg viewBox="0 0 24 24"><path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6 1.41-1.41z"/></svg>
+        </button>
+      ` : ''}
       <form class="input-bar" @submit=${this._send}>
-        <input type="text" placeholder="Message OpenClaw..." autocomplete="off">
-        <button type="submit">Send</button>
+        <input type="text" placeholder="Message Jarvis..." autocomplete="off">
+        <button class="send-btn" type="submit">Send</button>
       </form>
     `;
   }
