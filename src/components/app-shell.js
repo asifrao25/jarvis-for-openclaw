@@ -32,7 +32,6 @@ export class AppShell extends LitElement {
       display: flex;
       flex-direction: column;
       background: #060A12;
-      padding-bottom: calc(60px + env(safe-area-inset-bottom, 0));
     }
 
     header {
@@ -132,13 +131,15 @@ export class AppShell extends LitElement {
       flex: 1;
       overflow: hidden;
       min-height: 0;
-      display: flex;
-      flex-direction: column;
     }
-    .content > * {
-      flex: 1;
-      min-height: 0;
+
+    .nav-spacer {
+      height: calc(96px + env(safe-area-inset-bottom, 0px));
+      flex-shrink: 0;
+      transition: height 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     }
+    .nav-spacer.ui-hidden { height: 0; }
+    .nav-spacer.kb-open { height: 0; }
 
     .banner {
       display: flex;
@@ -205,6 +206,7 @@ export class AppShell extends LitElement {
     alertCount: { type: Number },
     reportCount: { type: Number },
     _uiHidden: { type: Boolean, state: true },
+    _kbOpen: { type: Boolean, state: true },
   };
 
   constructor() {
@@ -221,6 +223,7 @@ export class AppShell extends LitElement {
     this.alertCount = 0;
     this.reportCount = 0;
     this._uiHidden = false;
+    this._kbOpen = false;
     this._streamingRuns = new Map();
   }
 
@@ -285,6 +288,15 @@ export class AppShell extends LitElement {
       wsClient.connect(savedPassword);
       this._loadStoredMessages();
     }
+
+    // Keyboard detection is handled via kb-open / kb-close custom events
+    // dispatched by chat-view directly from its input's focus/blur listeners.
+    // This avoids composedPath() across shadow DOM boundaries which is
+    // unreliable on iOS standalone.
+  }
+
+  disconnectedCallback() {
+    super.disconnectedCallback();
   }
 
   async _loadStoredMessages() {
@@ -395,6 +407,25 @@ export class AppShell extends LitElement {
 
   _onUiVisibility(e) { this._uiHidden = e.detail.hidden; }
 
+  _onKbOpen() {
+    // Cancel any pending close timer (rapid re-focus case)
+    clearTimeout(this._kbCloseTimer);
+    const nav = this.shadowRoot.querySelector('nav-bar');
+    if (nav) nav.toggleAttribute('keyboard-open', true);
+    this._kbOpen = true;
+  }
+
+  _onKbClose() {
+    // Delay restoring the nav bar until the iOS keyboard animation finishes
+    // (~300ms). If we restore immediately on blur the visual viewport is still
+    // scrolled up, so position:fixed;bottom:0 lands above the physical bottom.
+    this._kbCloseTimer = setTimeout(() => {
+      const nav = this.shadowRoot.querySelector('nav-bar');
+      if (nav) nav.toggleAttribute('keyboard-open', false);
+      this._kbOpen = false;
+    }, 400);
+  }
+
   _onSendMessage(e) {
     const text = e.detail;
     const requestId = wsClient.sendChat(text);
@@ -473,6 +504,19 @@ export class AppShell extends LitElement {
     }
 
     return html`
+      <header>
+        <div class="header-left">
+          <div class="header-logo">J</div>
+          <span class="header-title">Jarvis</span>
+          <span class="version-tag">v3.6</span>
+        </div>
+        <div class="header-right">
+          <div class="status-indicator">
+            <div class="status-dot ${this.connected ? 'connected' : 'disconnected'}"></div>
+            <span>${this.connected ? 'Live' : 'Offline'}</span>
+          </div>
+        </div>
+      </header>
       ${this.showInstallBanner ? html`
         <div class="banner install-banner">
           <span>Add to Home Screen for the best experience</span>
@@ -490,19 +534,6 @@ export class AppShell extends LitElement {
           </div>
         </div>
       ` : ''}
-      <header>
-        <div class="header-left">
-          <div class="header-logo">J</div>
-          <span class="header-title">Jarvis</span>
-          <span class="version-tag">v1.8</span>
-        </div>
-        <div class="header-right">
-          <div class="status-indicator">
-            <div class="status-dot ${this.connected ? 'connected' : 'disconnected'}"></div>
-            <span>${this.connected ? 'Live' : 'Offline'}</span>
-          </div>
-        </div>
-      </header>
       <div class="content" @delete-message=${this._onDeleteMessage} @clear-category=${this._onClearCategory} @ui-visibility=${this._onUiVisibility}>
         ${this.view === 'chat' ? html`
           <chat-view
@@ -511,6 +542,8 @@ export class AppShell extends LitElement {
             .streaming=${this.streaming}
             @send-message=${this._onSendMessage}
             @refresh=${this._onRefresh}
+            @kb-open=${this._onKbOpen}
+            @kb-close=${this._onKbClose}
           ></chat-view>
         ` : ''}
         ${this.view === 'alert' ? html`
@@ -520,6 +553,7 @@ export class AppShell extends LitElement {
           <report-view .messages=${this.messages} @refresh=${this._onRefresh}></report-view>
         ` : ''}
       </div>
+      <div class="nav-spacer${this._uiHidden ? ' ui-hidden' : ''}${this._kbOpen ? ' kb-open' : ''}"></div>
       <nav-bar
         .active=${this.view}
         .scrollHidden=${this._uiHidden}
