@@ -14,7 +14,6 @@ export class NavBar extends LitElement {
       padding-bottom: env(safe-area-inset-bottom, 0);
       border-top: 1px solid rgba(255, 255, 255, 0.06);
       transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-      will-change: transform;
     }
     :host([scroll-hidden]) {
       transform: translateY(100%);
