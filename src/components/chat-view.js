@@ -102,13 +102,11 @@ export class ChatView extends LitElement {
       line-height: 1.5;
     }
 
-    .clear-bar {
-      display: flex;
-      align-items: center;
-      justify-content: flex-end;
-      padding: 4px 16px 2px;
-    }
     .clear-btn {
+      position: absolute;
+      top: 10px;
+      right: 14px;
+      z-index: 10;
       background: none;
       border: 1px solid rgba(239, 68, 68, 0.25);
       color: rgba(239, 68, 68, 0.7);
@@ -157,7 +155,17 @@ export class ChatView extends LitElement {
       backdrop-filter: blur(20px);
       -webkit-backdrop-filter: blur(20px);
       border-top: 1px solid rgba(255, 255, 255, 0.05);
+      max-height: 80px;
+      overflow: hidden;
+      transition: max-height 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+                  opacity     0.25s ease;
     }
+    .input-wrap.ui-hidden {
+      max-height: 0;
+      opacity: 0;
+      pointer-events: none;
+    }
+    .scroll-bottom.ui-hidden { bottom: 12px; }
     .input-row {
       display: flex;
       gap: 10px;
@@ -234,6 +242,7 @@ export class ChatView extends LitElement {
     _pullState: { type: String, state: true },
     _pullHeight: { type: Number, state: true },
     _showScrollBtn: { type: Boolean, state: true },
+    _uiHidden: { type: Boolean, state: true },
   };
 
   constructor() {
@@ -246,6 +255,8 @@ export class ChatView extends LitElement {
     this._touchStartY = 0;
     this._pulling = false;
     this._showScrollBtn = false;
+    this._uiHidden = false;
+    this._lastScrollTop = 0;
   }
 
   updated(changed) {
@@ -261,8 +272,24 @@ export class ChatView extends LitElement {
     if (!el) return;
 
     el.addEventListener('scroll', () => {
-      const distFromBottom = el.scrollHeight - el.scrollTop - el.clientHeight;
+      const st = el.scrollTop;
+      const distFromBottom = el.scrollHeight - st - el.clientHeight;
       this._showScrollBtn = distFromBottom > 150;
+
+      const delta = st - this._lastScrollTop;
+      if (Math.abs(delta) > 5) {
+        // Hide only when scrolling UP, past top threshold, and not near bottom
+        const shouldHide = delta < 0 && st > 80 && distFromBottom > 80;
+        if (shouldHide !== this._uiHidden) {
+          this._uiHidden = shouldHide;
+          this.dispatchEvent(new CustomEvent('ui-visibility', {
+            detail: { hidden: shouldHide },
+            bubbles: true,
+            composed: true,
+          }));
+        }
+        this._lastScrollTop = Math.max(0, st);
+      }
     }, { passive: true });
 
     el.addEventListener('touchstart', (e) => {
@@ -352,9 +379,7 @@ export class ChatView extends LitElement {
       </div>
 
       ${chatMessages.length > 0 ? html`
-        <div class="clear-bar">
-          <button class="clear-btn" @click=${this._clearAll}>Clear All</button>
-        </div>
+        <button class="clear-btn" @click=${this._clearAll}>Clear All</button>
       ` : ''}
 
       <div class="messages">
@@ -392,12 +417,12 @@ export class ChatView extends LitElement {
       </div>
 
       ${this._showScrollBtn ? html`
-        <button class="scroll-bottom" @click=${this._onScrollBottom} aria-label="Scroll to bottom">
+        <button class="scroll-bottom ${this._uiHidden ? 'ui-hidden' : ''}" @click=${this._onScrollBottom} aria-label="Scroll to bottom">
           <svg viewBox="0 0 24 24"><path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6 1.41-1.41z"/></svg>
         </button>
       ` : ''}
 
-      <form class="input-wrap" @submit=${this._send}>
+      <form class="input-wrap ${this._uiHidden ? 'ui-hidden' : ''}" @submit=${this._send}>
         <div class="input-row">
           <input type="text" placeholder="Message Jarvis…" autocomplete="off" autocorrect="off" spellcheck="true">
           <button class="send-btn" type="submit">

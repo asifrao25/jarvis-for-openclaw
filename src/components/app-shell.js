@@ -39,7 +39,9 @@ export class AppShell extends LitElement {
     .nav-spacer {
       flex-shrink: 0;
       height: calc(60px + env(safe-area-inset-bottom, 0));
+      transition: height 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     }
+    .nav-spacer.ui-hidden { height: 0; }
 
     header {
       display: flex;
@@ -204,6 +206,7 @@ export class AppShell extends LitElement {
     pushLoading: { type: Boolean },
     alertCount: { type: Number },
     reportCount: { type: Number },
+    _uiHidden: { type: Boolean, state: true },
   };
 
   constructor() {
@@ -219,6 +222,7 @@ export class AppShell extends LitElement {
     this.pushLoading = false;
     this.alertCount = 0;
     this.reportCount = 0;
+    this._uiHidden = false;
     this._streamingRuns = new Map();
   }
 
@@ -387,8 +391,11 @@ export class AppShell extends LitElement {
     this.view = e.detail;
     if (this.view === 'alert') this.alertCount = 0;
     if (this.view === 'report') this.reportCount = 0;
+    this._uiHidden = false;
     hapticLight();
   }
+
+  _onUiVisibility(e) { this._uiHidden = e.detail.hidden; }
 
   _onSendMessage(e) {
     const text = e.detail;
@@ -498,7 +505,7 @@ export class AppShell extends LitElement {
           </div>
         </div>
       </header>
-      <div class="content" @delete-message=${this._onDeleteMessage} @clear-category=${this._onClearCategory}>
+      <div class="content" @delete-message=${this._onDeleteMessage} @clear-category=${this._onClearCategory} @ui-visibility=${this._onUiVisibility}>
         ${this.view === 'chat' ? html`
           <chat-view
             .messages=${this.messages}
@@ -515,9 +522,10 @@ export class AppShell extends LitElement {
           <report-view .messages=${this.messages} @refresh=${this._onRefresh}></report-view>
         ` : ''}
       </div>
-      <div class="nav-spacer"></div>
+      <div class="nav-spacer${this._uiHidden ? ' ui-hidden' : ''}"></div>
       <nav-bar
         .active=${this.view}
+        .scrollHidden=${this._uiHidden}
         .alertCount=${this.alertCount}
         .reportCount=${this.reportCount}
         @navigate=${this._onNavigate}

@@ -1,6 +1,6 @@
 // Service Worker for Jarvis PWA
 
-const CACHE_NAME = 'openclaw-pwa-v64';
+const CACHE_NAME = 'openclaw-pwa-v65';
 const SHELL_FILES = ['/pwa/', '/pwa/index.html'];
 
 // Badge count tracker
@@ -49,8 +49,8 @@ self.addEventListener('push', (event) => {
 
   const tag = data.category || 'chat';
   event.waitUntil(
-    self.clients.matchAll({ type: 'window', includeUncontrolled: false }).then(async (clients) => {
-      const hasForeground = clients.some(c => c.visibilityState === 'visible');
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(async (clients) => {
+      const hasForeground = clients.some(c => c.visibilityState === 'visible' || c.focused);
       if (hasForeground) return;
 
       // Increment and set app badge count
