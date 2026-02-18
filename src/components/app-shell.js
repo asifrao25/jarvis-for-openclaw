@@ -25,85 +25,133 @@ export class AppShell extends LitElement {
   static styles = css`
     :host {
       position: fixed;
-      top: env(safe-area-inset-top, 0);
+      top: 0;
       left: 0;
       right: 0;
       bottom: 0;
       display: flex;
       flex-direction: column;
-      background: #0a0e1a;
+      background: #060A12;
+      /* Reserve space for the fixed nav bar (button area 64px + home indicator) */
+      padding-bottom: calc(64px + env(safe-area-inset-bottom, 0));
     }
+
     header {
       display: flex;
-      align-items: center;
+      align-items: flex-end;
       justify-content: space-between;
-      padding: 0 20px;
-      min-height: 52px;
-      background: rgba(10, 14, 26, 0.85);
-      backdrop-filter: blur(20px);
-      -webkit-backdrop-filter: blur(20px);
-      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+      padding: 0 18px 13px;
+      padding-top: max(env(safe-area-inset-top, 44px), 16px);
+      background: rgba(6, 10, 18, 0.88);
+      backdrop-filter: blur(24px) saturate(200%);
+      -webkit-backdrop-filter: blur(24px) saturate(200%);
+      position: relative;
+      z-index: 100;
+      flex-shrink: 0;
     }
+    header::after {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 1px;
+      background: linear-gradient(90deg,
+        transparent 0%,
+        rgba(56, 189, 248, 0.4) 30%,
+        rgba(129, 140, 248, 0.5) 60%,
+        transparent 100%);
+    }
+
     .header-left {
+      display: flex;
+      align-items: center;
+      gap: 11px;
+    }
+    .header-logo {
+      width: 34px;
+      height: 34px;
+      background: linear-gradient(135deg, #38BDF8 0%, #818CF8 100%);
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 13px;
+      font-weight: 800;
+      color: white;
+      letter-spacing: -0.5px;
+      box-shadow: 0 0 16px rgba(56, 189, 248, 0.35), 0 2px 8px rgba(0,0,0,0.4);
+      flex-shrink: 0;
+    }
+    .header-title {
+      font-size: 17px;
+      font-weight: 700;
+      color: #F1F5F9;
+      letter-spacing: -0.4px;
+    }
+    .version-tag {
+      font-size: 11px;
+      font-weight: 600;
+      color: #38BDF8;
+      background: rgba(56, 189, 248, 0.1);
+      border: 1px solid rgba(56, 189, 248, 0.2);
+      padding: 2px 7px;
+      border-radius: 6px;
+      letter-spacing: 0.2px;
+    }
+
+    .header-right {
       display: flex;
       align-items: center;
       gap: 10px;
     }
-    .header-logo {
-      width: 30px;
-      height: 30px;
-      background: linear-gradient(135deg, #3b82f6, #8b5cf6);
-      border-radius: 8px;
+    .status-indicator {
       display: flex;
       align-items: center;
-      justify-content: center;
+      gap: 6px;
       font-size: 12px;
-      font-weight: 700;
-      color: white;
-    }
-    header h1 {
-      font-size: 17px;
-      font-weight: 600;
-      color: #f1f5f9;
-      letter-spacing: -0.2px;
-    }
-    .status {
-      font-size: 11px;
-      padding: 4px 10px;
-      border-radius: 12px;
       font-weight: 500;
-      transition: all 0.3s;
+      color: #64748B;
     }
-    .status.connected {
-      background: rgba(34, 197, 94, 0.12);
-      color: #22c55e;
-      border: 1px solid rgba(34, 197, 94, 0.2);
+    .status-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      transition: all 0.4s ease;
+      flex-shrink: 0;
     }
-    .status.disconnected {
-      background: rgba(239, 68, 68, 0.12);
-      color: #ef4444;
-      border: 1px solid rgba(239, 68, 68, 0.2);
+    .status-dot.connected {
+      background: #34D399;
+      box-shadow: 0 0 6px rgba(52, 211, 153, 0.7), 0 0 12px rgba(52, 211, 153, 0.3);
     }
+    .status-dot.disconnected {
+      background: #475569;
+      box-shadow: none;
+    }
+
     .content {
       flex: 1;
       overflow: hidden;
+      min-height: 0;
     }
+
     .banner {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: 10px 16px;
+      padding: 11px 16px;
       font-size: 13px;
       font-weight: 500;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+      flex-shrink: 0;
     }
     .install-banner {
-      background: linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(139, 92, 246, 0.1));
-      color: #94a3b8;
+      background: linear-gradient(135deg, rgba(56, 189, 248, 0.08), rgba(129, 140, 248, 0.08));
+      color: #94A3B8;
     }
     .push-banner {
-      background: rgba(59, 130, 246, 0.06);
-      color: #94a3b8;
+      background: rgba(56, 189, 248, 0.06);
+      color: #94A3B8;
     }
     .banner-actions {
       display: flex;
@@ -111,39 +159,31 @@ export class AppShell extends LitElement {
       align-items: center;
     }
     .btn-sm {
-      padding: 8px 16px;
-      border-radius: 8px;
+      padding: 7px 14px;
+      border-radius: 20px;
       font-size: 13px;
       font-weight: 600;
       font-family: inherit;
       cursor: pointer;
       border: none;
-      transition: opacity 0.15s, transform 0.1s;
+      transition: all 0.15s ease;
       -webkit-tap-highlight-color: transparent;
       touch-action: manipulation;
       user-select: none;
       -webkit-user-select: none;
-      min-height: 36px;
+      min-height: 34px;
     }
-    .btn-sm:active { opacity: 0.8; transform: scale(0.96); }
+    .btn-sm:active { opacity: 0.8; transform: scale(0.95); }
     .btn-primary {
-      background: linear-gradient(135deg, #3b82f6, #6366f1);
+      background: linear-gradient(135deg, #38BDF8, #818CF8);
       color: white;
+      box-shadow: 0 2px 10px rgba(56, 189, 248, 0.3);
     }
-    .btn-primary:disabled {
-      opacity: 0.5;
-      transform: none;
-    }
+    .btn-primary:disabled { opacity: 0.5; transform: none; }
     .btn-ghost {
       background: none;
       color: #475569;
-      padding: 8px 12px;
-      font-size: 16px;
-    }
-
-    @media (min-width: 768px) {
-      header { padding: 0 24px; min-height: 56px; }
-      header h1 { font-size: 18px; }
+      padding: 7px 10px;
     }
   `;
 
@@ -180,7 +220,6 @@ export class AppShell extends LitElement {
   connectedCallback() {
     super.connectedCallback();
 
-    // Clear app badge on open
     if (navigator.clearAppBadge) {
       navigator.clearAppBadge().catch(() => {});
     }
@@ -188,7 +227,6 @@ export class AppShell extends LitElement {
       navigator.serviceWorker.controller.postMessage('clear-badge');
     }
 
-    // Clear badge when app becomes visible
     document.addEventListener('visibilitychange', () => {
       if (document.visibilityState === 'visible') {
         if (navigator.clearAppBadge) {
@@ -254,10 +292,8 @@ export class AppShell extends LitElement {
   }
 
   _handleMessage(msg) {
-    // Handle chat.send response — confirms message was received by gateway
     if (msg.type === 'res' && msg.ok && msg.payload?.status === 'started') {
       this.thinking = true;
-      // Mark the most recent sending user message as "received"
       const lastSending = this.messages.findLastIndex(m => m.role === 'user' && m.status === 'sending');
       if (lastSending !== -1) {
         const updated = [...this.messages];
@@ -267,7 +303,6 @@ export class AppShell extends LitElement {
       return;
     }
 
-    // Handle error response — mark message as failed
     if (msg.type === 'res' && !msg.ok) {
       const lastSending = this.messages.findLastIndex(m => m.role === 'user' && (m.status === 'sending' || m.status === 'received'));
       if (lastSending !== -1) {
@@ -369,13 +404,11 @@ export class AppShell extends LitElement {
 
   async _onDeleteMessage(e) {
     const { id, timestamp } = e.detail;
-    // Remove from in-memory list
     this.messages = this.messages.filter(m => {
       if (id && m.id === id) return false;
       if (timestamp && m.timestamp === timestamp && !m.id) return false;
       return true;
     });
-    // Remove from IndexedDB if it has an id
     if (id) {
       await deleteMessage(id).catch(err => console.error('Failed to delete message:', err));
     }
@@ -385,7 +418,6 @@ export class AppShell extends LitElement {
   async _onClearCategory(e) {
     const category = e.detail;
     if (category === 'chat') {
-      // Clear chat + user messages
       this.messages = this.messages.filter(m => m.category !== 'chat' && m.role !== 'user');
       await clearAll().catch(err => console.error('Failed to clear:', err));
     } else {
@@ -404,7 +436,6 @@ export class AppShell extends LitElement {
         this.showPushBanner = false;
         hapticSuccess();
       } else {
-        console.log('[Push] Registration returned false');
         hapticError();
       }
     } catch (err) {
@@ -435,7 +466,7 @@ export class AppShell extends LitElement {
       ${this.showInstallBanner ? html`
         <div class="banner install-banner">
           <span>Add to Home Screen for the best experience</span>
-          <button class="btn-sm btn-ghost" @click=${this._dismissInstall}>Dismiss</button>
+          <button class="btn-sm btn-ghost" @click=${this._dismissInstall}>✕</button>
         </div>
       ` : ''}
       ${this.showPushBanner ? html`
@@ -443,20 +474,24 @@ export class AppShell extends LitElement {
           <span>Enable push notifications?</span>
           <div class="banner-actions">
             <button class="btn-sm btn-primary" ?disabled=${this.pushLoading} @click=${this._enablePush}>
-              ${this.pushLoading ? 'Enabling...' : 'Enable'}
+              ${this.pushLoading ? 'Enabling…' : 'Enable'}
             </button>
-            <button class="btn-sm btn-ghost" @click=${this._dismissPush}>Dismiss</button>
+            <button class="btn-sm btn-ghost" @click=${this._dismissPush}>✕</button>
           </div>
         </div>
       ` : ''}
       <header>
         <div class="header-left">
           <div class="header-logo">J</div>
-          <h1>Jarvis</h1>
+          <span class="header-title">Jarvis</span>
+          <span class="version-tag">v1.2</span>
         </div>
-        <span class="status ${this.connected ? 'connected' : 'disconnected'}">
-          ${this.connected ? 'Connected' : 'Offline'}
-        </span>
+        <div class="header-right">
+          <div class="status-indicator">
+            <div class="status-dot ${this.connected ? 'connected' : 'disconnected'}"></div>
+            <span>${this.connected ? 'Live' : 'Offline'}</span>
+          </div>
+        </div>
       </header>
       <div class="content" @delete-message=${this._onDeleteMessage} @clear-category=${this._onClearCategory}>
         ${this.view === 'chat' ? html`
