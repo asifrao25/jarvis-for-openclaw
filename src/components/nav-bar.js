@@ -10,7 +10,6 @@ export class NavBar extends LitElement {
       z-index: 100;
       pointer-events: none;
       background: rgba(8, 12, 22, 0.95);
-      padding-bottom: env(safe-area-inset-bottom, 0);
       border-top: 1px solid rgba(255, 255, 255, 0.06);
       overflow: hidden;
       max-height: 100px;
@@ -19,6 +18,9 @@ export class NavBar extends LitElement {
     :host([scroll-hidden]) {
       max-height: 0;
       border-top-color: transparent;
+    }
+    .safe-area {
+      height: env(safe-area-inset-bottom, 0);
     }
     nav {
       display: flex;
@@ -167,6 +169,7 @@ export class NavBar extends LitElement {
           ${this.reportCount > 0 ? html`<span class="badge">${this.reportCount}</span>` : ''}
         </button>
       </nav>
+      <div class="safe-area"></div>
     `;
   }
 }
