@@ -13,6 +13,11 @@ export class NavBar extends LitElement {
       background: rgba(8, 12, 22, 0.95);
       padding-bottom: env(safe-area-inset-bottom, 0);
       border-top: 1px solid rgba(255, 255, 255, 0.06);
+      transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      will-change: transform;
+    }
+    :host([scroll-hidden]) {
+      transform: translateY(100%);
     }
     nav {
       display: flex;
@@ -116,6 +121,7 @@ export class NavBar extends LitElement {
     chatCount: { type: Number },
     alertCount: { type: Number },
     reportCount: { type: Number },
+    scrollHidden: { type: Boolean, reflect: true, attribute: 'scroll-hidden' },
   };
 
   constructor() {
@@ -124,6 +130,7 @@ export class NavBar extends LitElement {
     this.chatCount = 0;
     this.alertCount = 0;
     this.reportCount = 0;
+    this.scrollHidden = false;
   }
 
   _tap(tab) {
