@@ -4,23 +4,19 @@ import { hapticLight } from '../services/haptics.js';
 export class NavBar extends LitElement {
   static styles = css`
     :host {
-      display: block;
-      flex-shrink: 0;
-      width: 100%;
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
       z-index: 100;
       pointer-events: none;
       background: rgba(8, 12, 22, 0.95);
+      padding-bottom: env(safe-area-inset-bottom, 0);
       border-top: 1px solid rgba(255, 255, 255, 0.06);
-      overflow: hidden;
-      max-height: 100px;
-      transition: max-height 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     }
     :host([scroll-hidden]) {
-      max-height: 0;
-      border-top-color: transparent;
-    }
-    .safe-area {
-      height: env(safe-area-inset-bottom, 0);
+      transform: translateY(calc(100% + env(safe-area-inset-bottom, 0)));
     }
     nav {
       display: flex;
@@ -169,7 +165,6 @@ export class NavBar extends LitElement {
           ${this.reportCount > 0 ? html`<span class="badge">${this.reportCount}</span>` : ''}
         </button>
       </nav>
-      <div class="safe-area"></div>
     `;
   }
 }

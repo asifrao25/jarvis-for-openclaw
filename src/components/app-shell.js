@@ -32,6 +32,7 @@ export class AppShell extends LitElement {
       display: flex;
       flex-direction: column;
       background: #060A12;
+      padding-bottom: calc(60px + env(safe-area-inset-bottom, 0));
     }
 
     header {
@@ -130,6 +131,12 @@ export class AppShell extends LitElement {
     .content {
       flex: 1;
       overflow: hidden;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+    }
+    .content > * {
+      flex: 1;
       min-height: 0;
     }
 
@@ -487,7 +494,7 @@ export class AppShell extends LitElement {
         <div class="header-left">
           <div class="header-logo">J</div>
           <span class="header-title">Jarvis</span>
-          <span class="version-tag">v1.7</span>
+          <span class="version-tag">v1.8</span>
         </div>
         <div class="header-right">
           <div class="status-indicator">
