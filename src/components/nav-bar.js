@@ -52,7 +52,7 @@ export class NavBar extends LitElement {
       position: relative;
       padding: 10px 8px;
       border-radius: 14px;
-      margin: 6px 2px;
+      margin: 6px 2px 2px;
       transition: color 0.2s ease;
       -webkit-tap-highlight-color: transparent;
       touch-action: manipulation;
