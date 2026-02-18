@@ -8,6 +8,7 @@ export class AlertView extends LitElement {
       flex-direction: column;
       height: 100%;
       position: relative;
+      background: #060A12;
     }
 
     .pull-indicator {
@@ -20,128 +21,126 @@ export class AlertView extends LitElement {
       justify-content: center;
       height: 0;
       overflow: hidden;
-      transition: height 0.2s ease;
+      transition: height 0.25s cubic-bezier(0.4, 0, 0.2, 1);
       z-index: 10;
-      background: rgba(239, 68, 68, 0.06);
-      color: #64748b;
-      font-size: 13px;
+      background: rgba(239, 68, 68, 0.05);
+      color: #64748B;
+      font-size: 12px;
       font-weight: 500;
+      gap: 8px;
     }
     .pull-indicator.pulling { transition: none; }
     .pull-indicator.refreshing { height: 48px; }
-    .pull-indicator .spinner {
-      width: 18px;
-      height: 18px;
-      border: 2px solid rgba(239, 68, 68, 0.2);
-      border-top-color: #ef4444;
+    .pull-spinner {
+      width: 16px; height: 16px;
+      border: 1.5px solid rgba(239, 68, 68, 0.2);
+      border-top-color: #FB7185;
       border-radius: 50%;
-      margin-right: 8px;
     }
-    .pull-indicator.refreshing .spinner { animation: spin 0.8s linear infinite; }
+    .pull-indicator.refreshing .pull-spinner { animation: spin 0.75s linear infinite; }
     @keyframes spin { to { transform: rotate(360deg); } }
-    .pull-arrow { margin-right: 8px; transition: transform 0.2s; font-size: 16px; }
+    .pull-arrow { font-size: 14px; transition: transform 0.2s; opacity: 0.6; }
     .pull-arrow.ready { transform: rotate(180deg); }
 
     .clear-bar {
       display: flex;
       align-items: center;
       justify-content: flex-end;
-      padding: 6px 16px;
+      padding: 6px 16px 2px;
     }
     .clear-btn {
       background: none;
-      border: 1px solid rgba(239, 68, 68, 0.2);
-      color: #ef4444;
-      font-size: 12px;
-      font-weight: 500;
+      border: 1px solid rgba(239, 68, 68, 0.25);
+      color: rgba(239, 68, 68, 0.7);
+      font-size: 11px;
+      font-weight: 600;
       font-family: inherit;
-      padding: 5px 12px;
-      border-radius: 14px;
+      padding: 4px 10px;
+      border-radius: 20px;
       cursor: pointer;
       -webkit-tap-highlight-color: transparent;
       touch-action: manipulation;
+      transition: all 0.15s;
     }
-    .clear-btn:active { opacity: 0.7; transform: scale(0.96); }
+    .clear-btn:active { opacity: 0.6; transform: scale(0.95); }
 
     .entries {
       flex: 1;
       overflow-y: auto;
       -webkit-overflow-scrolling: touch;
-      padding: 8px 16px;
+      padding: 8px 14px 16px;
       overscroll-behavior-y: contain;
     }
-    .entries::-webkit-scrollbar { width: 4px; }
-    .entries::-webkit-scrollbar-track { background: transparent; }
-    .entries::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 2px; }
+    .entries::-webkit-scrollbar { display: none; }
 
+    /* Entry card */
     .entry {
-      margin: 4px 0;
-      border-radius: 12px;
-      background: rgba(239, 68, 68, 0.06);
-      border: 1px solid rgba(239, 68, 68, 0.1);
+      margin: 6px 0;
+      border-radius: 14px;
+      background: rgba(15, 23, 42, 0.75);
+      border: 1px solid rgba(255, 255, 255, 0.07);
+      border-left: 3px solid rgba(251, 113, 133, 0.6);
       overflow: hidden;
-      transition: background 0.15s;
+      transition: border-color 0.2s;
+    }
+    .entry.expanded {
+      border-left-color: #FB7185;
+      box-shadow: 0 0 20px rgba(239, 68, 68, 0.08);
     }
     .entry-header {
       display: flex;
       align-items: center;
-      padding: 12px 14px;
+      padding: 13px 14px;
       cursor: pointer;
       -webkit-tap-highlight-color: transparent;
       touch-action: manipulation;
       user-select: none;
       -webkit-user-select: none;
-      gap: 10px;
+      gap: 12px;
     }
-    .entry-header:active { background: rgba(239, 68, 68, 0.1); }
+    .entry-header:active { background: rgba(239, 68, 68, 0.05); }
+
     .entry-icon {
       width: 32px;
       height: 32px;
       border-radius: 8px;
-      background: rgba(239, 68, 68, 0.12);
+      background: rgba(239, 68, 68, 0.1);
+      border: 1px solid rgba(251, 113, 133, 0.2);
       display: flex;
       align-items: center;
       justify-content: center;
       flex-shrink: 0;
     }
-    .entry-icon svg { width: 16px; height: 16px; fill: #ef4444; }
-    .entry-info {
-      flex: 1;
-      min-width: 0;
-    }
+    .entry-icon svg { width: 16px; height: 16px; fill: #FB7185; }
+
+    .entry-info { flex: 1; min-width: 0; }
     .entry-title {
-      font-size: 14px;
-      font-weight: 500;
-      color: #e2e8f0;
+      font-size: 13px;
+      font-weight: 600;
+      color: #FDA4AF;
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
     }
-    .entry-time {
-      font-size: 11px;
-      color: #64748b;
-      margin-top: 2px;
-    }
-    .entry-chevron {
-      width: 20px;
-      height: 20px;
-      flex-shrink: 0;
-      transition: transform 0.2s ease;
-    }
-    .entry-chevron svg { width: 20px; height: 20px; fill: #475569; }
+    .entry-time { font-size: 11px; color: #3D4E63; margin-top: 2px; }
+
+    .entry-chevron { flex-shrink: 0; transition: transform 0.2s ease; }
+    .entry-chevron svg { width: 16px; height: 16px; fill: #3D4E63; }
     .entry.expanded .entry-chevron { transform: rotate(180deg); }
 
     .entry-body {
       display: none;
-      padding: 0 14px 14px;
+      padding: 2px 14px 14px;
+      border-top: 1px solid rgba(251, 113, 133, 0.1);
     }
     .entry.expanded .entry-body { display: block; }
     .entry-text {
-      font-size: 14px;
+      font-size: 13px;
       line-height: 1.6;
-      color: #cbd5e1;
+      color: #94A3B8;
       white-space: pre-wrap;
       word-break: break-word;
+      padding-top: 10px;
     }
 
     .empty {
@@ -150,43 +149,46 @@ export class AlertView extends LitElement {
       align-items: center;
       justify-content: center;
       height: 100%;
-      color: #475569;
-      gap: 12px;
+      gap: 14px;
+      padding: 32px;
     }
     .empty-icon {
-      width: 56px;
-      height: 56px;
-      background: rgba(239, 68, 68, 0.06);
-      border-radius: 16px;
+      width: 60px; height: 60px;
+      border-radius: 50%;
+      background: rgba(239, 68, 68, 0.07);
+      border: 1px solid rgba(251, 113, 133, 0.15);
       display: flex;
       align-items: center;
       justify-content: center;
     }
-    .empty-icon svg { width: 28px; height: 28px; fill: #ef4444; opacity: 0.4; }
-    .empty-text { font-size: 15px; font-weight: 500; }
-    .empty-hint { font-size: 13px; color: #334155; }
+    .empty-icon svg { width: 26px; height: 26px; fill: #FB7185; opacity: 0.5; }
+    .empty-text { font-size: 15px; font-weight: 600; color: #475569; }
+    .empty-hint { font-size: 13px; color: #334155; text-align: center; }
 
     .scroll-bottom {
       position: absolute;
       bottom: 16px;
       right: 16px;
-      width: 40px;
-      height: 40px;
+      width: 38px;
+      height: 38px;
       border-radius: 50%;
-      background: rgba(239, 68, 68, 0.9);
-      border: none;
-      color: white;
+      background: rgba(15, 23, 42, 0.9);
+      border: 1px solid rgba(251, 113, 133, 0.3);
+      color: #FB7185;
       display: flex;
       align-items: center;
       justify-content: center;
       cursor: pointer;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+      box-shadow: 0 4px 14px rgba(0,0,0,0.4), 0 0 10px rgba(239, 68, 68, 0.12);
       z-index: 20;
+      transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
       -webkit-tap-highlight-color: transparent;
       touch-action: manipulation;
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
     }
-    .scroll-bottom:active { transform: scale(0.9); }
-    .scroll-bottom svg { width: 22px; height: 22px; fill: white; }
+    .scroll-bottom:active { transform: scale(0.88); }
+    .scroll-bottom svg { width: 18px; height: 18px; fill: currentColor; }
   `;
 
   static properties = {
@@ -275,7 +277,7 @@ export class AlertView extends LitElement {
   _getSummary(text) {
     const stripped = text.replace(/^\[ALERT\]\s*/, '');
     const firstLine = stripped.split('\n')[0].trim();
-    return firstLine.length > 80 ? firstLine.substring(0, 77) + '...' : firstLine;
+    return firstLine.length > 80 ? firstLine.substring(0, 77) + '…' : firstLine;
   }
 
   _getBody(text) {
@@ -298,15 +300,15 @@ export class AlertView extends LitElement {
     const pullClasses = ['pull-indicator'];
     if (this._pullState === 'pulling' || this._pullState === 'ready') pullClasses.push('pulling');
     if (this._pullState === 'refreshing') pullClasses.push('refreshing');
-    const pullStyle = this._pullState === 'pulling' || this._pullState === 'ready'
+    const pullStyle = (this._pullState === 'pulling' || this._pullState === 'ready')
       ? `height: ${this._pullHeight}px` : '';
 
     return html`
       <div class=${pullClasses.join(' ')} style=${pullStyle}>
         ${this._pullState === 'refreshing' ? html`
-          <div class="spinner"></div><span>Refreshing...</span>
+          <div class="pull-spinner"></div><span>Refreshing</span>
         ` : html`
-          <span class="pull-arrow ${this._pullState === 'ready' ? 'ready' : ''}">&#x2193;</span>
+          <span class="pull-arrow ${this._pullState === 'ready' ? 'ready' : ''}">↓</span>
           <span>${this._pullState === 'ready' ? 'Release to refresh' : 'Pull to refresh'}</span>
         `}
       </div>

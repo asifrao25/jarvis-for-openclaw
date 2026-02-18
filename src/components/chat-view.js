@@ -10,6 +10,7 @@ export class ChatView extends LitElement {
       flex-direction: column;
       height: 100%;
       position: relative;
+      background: #060A12;
     }
 
     /* Pull-to-refresh indicator */
@@ -23,53 +24,44 @@ export class ChatView extends LitElement {
       justify-content: center;
       height: 0;
       overflow: hidden;
-      transition: height 0.2s ease;
+      transition: height 0.25s cubic-bezier(0.4, 0, 0.2, 1);
       z-index: 10;
-      background: rgba(59, 130, 246, 0.06);
-      color: #64748b;
-      font-size: 13px;
+      background: rgba(56, 189, 248, 0.06);
+      color: #64748B;
+      font-size: 12px;
       font-weight: 500;
+      gap: 8px;
     }
-    .pull-indicator.pulling {
-      transition: none;
-    }
-    .pull-indicator.refreshing {
-      height: 48px;
-    }
-    .pull-indicator .spinner {
-      width: 18px;
-      height: 18px;
-      border: 2px solid rgba(59, 130, 246, 0.2);
-      border-top-color: #3b82f6;
+    .pull-indicator.pulling { transition: none; }
+    .pull-indicator.refreshing { height: 48px; }
+    .pull-spinner {
+      width: 16px;
+      height: 16px;
+      border: 1.5px solid rgba(56, 189, 248, 0.2);
+      border-top-color: #38BDF8;
       border-radius: 50%;
-      margin-right: 8px;
     }
-    .pull-indicator.refreshing .spinner {
-      animation: spin 0.8s linear infinite;
+    .pull-indicator.refreshing .pull-spinner {
+      animation: spin 0.75s linear infinite;
     }
-    @keyframes spin {
-      to { transform: rotate(360deg); }
-    }
+    @keyframes spin { to { transform: rotate(360deg); } }
     .pull-arrow {
-      margin-right: 8px;
-      transition: transform 0.2s;
-      font-size: 16px;
+      font-size: 14px;
+      transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+      display: inline-block;
+      opacity: 0.6;
     }
-    .pull-arrow.ready {
-      transform: rotate(180deg);
-    }
+    .pull-arrow.ready { transform: rotate(180deg); }
 
     .messages {
       flex: 1;
       overflow-y: auto;
       -webkit-overflow-scrolling: touch;
-      padding: 12px 0;
+      padding: 8px 0 4px;
       scroll-behavior: smooth;
       overscroll-behavior-y: contain;
     }
-    .messages::-webkit-scrollbar { width: 4px; }
-    .messages::-webkit-scrollbar-track { background: transparent; }
-    .messages::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 2px; }
+    .messages::-webkit-scrollbar { display: none; }
 
     .empty {
       display: flex;
@@ -77,113 +69,160 @@ export class ChatView extends LitElement {
       align-items: center;
       justify-content: center;
       height: 100%;
-      color: #475569;
-      gap: 12px;
+      gap: 16px;
+      padding: 32px;
     }
-    .empty-icon {
-      width: 56px;
-      height: 56px;
-      background: rgba(255, 255, 255, 0.03);
-      border-radius: 16px;
+    .empty-orb {
+      width: 72px;
+      height: 72px;
+      border-radius: 50%;
+      background: radial-gradient(circle at 35% 35%, rgba(56, 189, 248, 0.25), rgba(129, 140, 248, 0.12) 60%, transparent);
+      border: 1px solid rgba(56, 189, 248, 0.2);
       display: flex;
       align-items: center;
       justify-content: center;
+      box-shadow: 0 0 30px rgba(56, 189, 248, 0.12), 0 0 60px rgba(129, 140, 248, 0.06);
+      animation: orb-pulse 3s ease-in-out infinite;
     }
-    .empty-icon svg { width: 28px; height: 28px; fill: #334155; }
-    .empty-text { font-size: 15px; font-weight: 500; }
-    .empty-hint { font-size: 13px; color: #334155; }
+    @keyframes orb-pulse {
+      0%, 100% { box-shadow: 0 0 30px rgba(56, 189, 248, 0.12), 0 0 60px rgba(129, 140, 248, 0.06); }
+      50% { box-shadow: 0 0 40px rgba(56, 189, 248, 0.22), 0 0 80px rgba(129, 140, 248, 0.12); }
+    }
+    .empty-orb svg { width: 30px; height: 30px; }
+    .empty-text {
+      font-size: 16px;
+      font-weight: 600;
+      color: #94A3B8;
+      letter-spacing: -0.2px;
+    }
+    .empty-hint {
+      font-size: 13px;
+      color: #334155;
+      text-align: center;
+      line-height: 1.5;
+    }
 
     .clear-bar {
       display: flex;
       align-items: center;
       justify-content: flex-end;
-      padding: 6px 16px;
+      padding: 4px 16px 2px;
     }
     .clear-btn {
       background: none;
-      border: 1px solid rgba(239, 68, 68, 0.2);
-      color: #ef4444;
-      font-size: 12px;
-      font-weight: 500;
+      border: 1px solid rgba(239, 68, 68, 0.25);
+      color: rgba(239, 68, 68, 0.7);
+      font-size: 11px;
+      font-weight: 600;
       font-family: inherit;
-      padding: 5px 12px;
-      border-radius: 14px;
+      padding: 4px 10px;
+      border-radius: 20px;
       cursor: pointer;
       -webkit-tap-highlight-color: transparent;
       touch-action: manipulation;
+      transition: all 0.15s;
     }
-    .clear-btn:active { opacity: 0.7; transform: scale(0.96); }
+    .clear-btn:active { opacity: 0.6; transform: scale(0.95); }
 
+    /* Scroll-to-bottom — above input bar */
     .scroll-bottom {
       position: absolute;
-      bottom: 70px;
+      bottom: 82px;
       right: 16px;
-      width: 40px;
-      height: 40px;
+      width: 38px;
+      height: 38px;
       border-radius: 50%;
-      background: rgba(59, 130, 246, 0.9);
+      background: rgba(15, 23, 42, 0.9);
+      border: 1px solid rgba(56, 189, 248, 0.3);
+      color: #38BDF8;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.4), 0 0 12px rgba(56, 189, 248, 0.15);
+      z-index: 20;
+      transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+      -webkit-tap-highlight-color: transparent;
+      touch-action: manipulation;
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+    }
+    .scroll-bottom:active { transform: scale(0.88); }
+    .scroll-bottom svg { width: 18px; height: 18px; fill: currentColor; }
+
+    /* Input area */
+    .input-wrap {
+      padding: 10px 14px 14px;
+      background: rgba(6, 10, 18, 0.92);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border-top: 1px solid rgba(255, 255, 255, 0.05);
+    }
+    .input-row {
+      display: flex;
+      gap: 10px;
+      align-items: flex-end;
+    }
+    input {
+      flex: 1;
+      padding: 12px 18px;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.09);
+      border-radius: 24px;
+      color: #F1F5F9;
+      font-size: 16px;
+      font-family: inherit;
+      outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s;
+      min-height: 46px;
+    }
+    input::placeholder { color: #3D4E63; }
+    input:focus {
+      border-color: rgba(56, 189, 248, 0.45);
+      box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.08);
+    }
+
+    .send-btn {
+      width: 46px;
+      height: 46px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #38BDF8 0%, #818CF8 100%);
       border: none;
       color: white;
       display: flex;
       align-items: center;
       justify-content: center;
       cursor: pointer;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-      z-index: 20;
-      transition: opacity 0.2s, transform 0.2s;
+      flex-shrink: 0;
+      box-shadow: 0 4px 14px rgba(56, 189, 248, 0.4), 0 2px 4px rgba(0,0,0,0.3);
+      transition: transform 0.15s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.15s;
       -webkit-tap-highlight-color: transparent;
       touch-action: manipulation;
     }
-    .scroll-bottom:active { transform: scale(0.9); }
-    .scroll-bottom svg { width: 22px; height: 22px; fill: white; }
-
-    .input-bar {
-      display: flex;
-      gap: 10px;
-      padding: 8px 14px;
-      background: rgba(10, 14, 26, 0.9);
-      backdrop-filter: blur(20px);
-      -webkit-backdrop-filter: blur(20px);
-      border-top: 1px solid rgba(255, 255, 255, 0.06);
+    .send-btn:active {
+      transform: scale(0.88);
+      box-shadow: 0 2px 8px rgba(56, 189, 248, 0.3);
     }
-    input {
-      flex: 1;
-      padding: 12px 18px;
-      background: rgba(255, 255, 255, 0.06);
-      border: 1px solid rgba(255, 255, 255, 0.06);
-      border-radius: 22px;
-      color: #f1f5f9;
-      font-size: 16px;
-      font-family: inherit;
-      outline: none;
-      transition: border-color 0.2s;
+    .send-btn:disabled {
+      opacity: 0.4;
+      transform: none;
+      box-shadow: none;
     }
-    input::placeholder { color: #475569; }
-    input:focus { border-color: rgba(59, 130, 246, 0.4); }
-    .send-btn {
-      background: linear-gradient(135deg, #3b82f6, #6366f1);
-      color: white;
-      border: none;
-      border-radius: 22px;
-      padding: 0 20px;
-      font-size: 15px;
-      font-weight: 600;
-      font-family: inherit;
-      cursor: pointer;
-      transition: opacity 0.15s, transform 0.1s;
-      white-space: nowrap;
-      -webkit-tap-highlight-color: transparent;
-      touch-action: manipulation;
+    .send-btn svg {
+      width: 20px;
+      height: 20px;
+      fill: white;
+      margin-left: 2px;
     }
-    .send-btn:active { transform: scale(0.96); opacity: 0.9; }
-    .send-btn:disabled { opacity: 0.4; }
 
     @media (min-width: 768px) {
-      .input-bar {
+      .input-wrap {
         max-width: 800px;
         margin: 0 auto;
         width: 100%;
-        padding: 12px 20px;
+        padding: 10px 20px 14px;
+        background: none;
+        border-top: none;
       }
     }
   `;
@@ -221,7 +260,6 @@ export class ChatView extends LitElement {
     const el = this.shadowRoot.querySelector('.messages');
     if (!el) return;
 
-    // Scroll position tracking for scroll-to-bottom button
     el.addEventListener('scroll', () => {
       const distFromBottom = el.scrollHeight - el.scrollTop - el.clientHeight;
       this._showScrollBtn = distFromBottom > 150;
@@ -299,33 +337,43 @@ export class ChatView extends LitElement {
     const pullClasses = ['pull-indicator'];
     if (this._pullState === 'pulling' || this._pullState === 'ready') pullClasses.push('pulling');
     if (this._pullState === 'refreshing') pullClasses.push('refreshing');
-
-    const pullStyle = this._pullState === 'pulling' || this._pullState === 'ready'
+    const pullStyle = (this._pullState === 'pulling' || this._pullState === 'ready')
       ? `height: ${this._pullHeight}px` : '';
 
     return html`
       <div class=${pullClasses.join(' ')} style=${pullStyle}>
         ${this._pullState === 'refreshing' ? html`
-          <div class="spinner"></div>
-          <span>Refreshing...</span>
+          <div class="pull-spinner"></div>
+          <span>Refreshing</span>
         ` : html`
-          <span class="pull-arrow ${this._pullState === 'ready' ? 'ready' : ''}">&#x2193;</span>
+          <span class="pull-arrow ${this._pullState === 'ready' ? 'ready' : ''}">↓</span>
           <span>${this._pullState === 'ready' ? 'Release to refresh' : 'Pull to refresh'}</span>
         `}
       </div>
+
       ${chatMessages.length > 0 ? html`
         <div class="clear-bar">
           <button class="clear-btn" @click=${this._clearAll}>Clear All</button>
         </div>
       ` : ''}
+
       <div class="messages">
         ${chatMessages.length === 0 ? html`
           <div class="empty">
-            <div class="empty-icon">
-              <svg viewBox="0 0 24 24"><path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"/></svg>
+            <div class="empty-orb">
+              <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14H9V8h2v8zm4 0h-2V8h2v8z"
+                  fill="url(#grad)" opacity="0.8"/>
+                <defs>
+                  <linearGradient id="grad" x1="2" y1="2" x2="22" y2="22" gradientUnits="userSpaceOnUse">
+                    <stop offset="0%" stop-color="#38BDF8"/>
+                    <stop offset="100%" stop-color="#818CF8"/>
+                  </linearGradient>
+                </defs>
+              </svg>
             </div>
-            <div class="empty-text">No messages yet</div>
-            <div class="empty-hint">Send a message to get started</div>
+            <div class="empty-text">Jarvis is ready</div>
+            <div class="empty-hint">Your AI assistant is online and waiting for your message</div>
           </div>
         ` : ''}
         ${chatMessages.map(m => html`
@@ -342,14 +390,22 @@ export class ChatView extends LitElement {
         ${this.thinking ? html`<stream-indicator mode="thinking"></stream-indicator>` : ''}
         ${this.streaming && !this.thinking ? html`<stream-indicator mode="streaming"></stream-indicator>` : ''}
       </div>
+
       ${this._showScrollBtn ? html`
-        <button class="scroll-bottom" @click=${this._onScrollBottom}>
+        <button class="scroll-bottom" @click=${this._onScrollBottom} aria-label="Scroll to bottom">
           <svg viewBox="0 0 24 24"><path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6 1.41-1.41z"/></svg>
         </button>
       ` : ''}
-      <form class="input-bar" @submit=${this._send}>
-        <input type="text" placeholder="Message Jarvis..." autocomplete="off">
-        <button class="send-btn" type="submit">Send</button>
+
+      <form class="input-wrap" @submit=${this._send}>
+        <div class="input-row">
+          <input type="text" placeholder="Message Jarvis…" autocomplete="off" autocorrect="off" spellcheck="true">
+          <button class="send-btn" type="submit">
+            <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+              <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
+            </svg>
+          </button>
+        </div>
       </form>
     `;
   }
