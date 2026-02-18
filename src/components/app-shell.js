@@ -32,8 +32,13 @@ export class AppShell extends LitElement {
       display: flex;
       flex-direction: column;
       background: #060A12;
-      /* Reserve space for the fixed nav bar (button area 60px + home indicator) */
-      padding-bottom: calc(60px + env(safe-area-inset-bottom, 0));
+    }
+
+    /* In-flow spacer that reserves the exact height of the fixed nav bar
+       so .content never slides underneath it */
+    .nav-spacer {
+      flex-shrink: 0;
+      height: calc(60px + env(safe-area-inset-bottom, 0));
     }
 
     header {
@@ -484,7 +489,7 @@ export class AppShell extends LitElement {
         <div class="header-left">
           <div class="header-logo">J</div>
           <span class="header-title">Jarvis</span>
-          <span class="version-tag">v1.3</span>
+          <span class="version-tag">v1.4</span>
         </div>
         <div class="header-right">
           <div class="status-indicator">
@@ -510,6 +515,7 @@ export class AppShell extends LitElement {
           <report-view .messages=${this.messages} @refresh=${this._onRefresh}></report-view>
         ` : ''}
       </div>
+      <div class="nav-spacer"></div>
       <nav-bar
         .active=${this.view}
         .alertCount=${this.alertCount}
