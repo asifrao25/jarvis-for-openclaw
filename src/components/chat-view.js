@@ -150,12 +150,12 @@ export class ChatView extends LitElement {
 
     /* Input area */
     .input-wrap {
-      padding: 10px 14px 14px;
+      padding: 6px 12px 8px;
       background: rgba(6, 10, 18, 0.92);
       backdrop-filter: blur(20px);
       -webkit-backdrop-filter: blur(20px);
       border-top: 1px solid rgba(255, 255, 255, 0.05);
-      max-height: 80px;
+      max-height: 64px;
       overflow: hidden;
       transition: max-height 0.3s cubic-bezier(0.4, 0, 0.2, 1),
                   opacity     0.25s ease;
@@ -173,7 +173,7 @@ export class ChatView extends LitElement {
     }
     input {
       flex: 1;
-      padding: 12px 18px;
+      padding: 9px 16px;
       background: rgba(255, 255, 255, 0.05);
       border: 1px solid rgba(255, 255, 255, 0.09);
       border-radius: 24px;
@@ -182,7 +182,7 @@ export class ChatView extends LitElement {
       font-family: inherit;
       outline: none;
       transition: border-color 0.2s, box-shadow 0.2s;
-      min-height: 46px;
+      min-height: 40px;
     }
     input::placeholder { color: #3D4E63; }
     input:focus {
@@ -191,8 +191,8 @@ export class ChatView extends LitElement {
     }
 
     .send-btn {
-      width: 46px;
-      height: 46px;
+      width: 40px;
+      height: 40px;
       border-radius: 50%;
       background: linear-gradient(135deg, #38BDF8 0%, #818CF8 100%);
       border: none;
