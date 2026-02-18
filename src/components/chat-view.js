@@ -125,7 +125,7 @@ export class ChatView extends LitElement {
     /* Scroll-to-bottom — above input bar */
     .scroll-bottom {
       position: absolute;
-      bottom: 82px;
+      bottom: 112px;
       right: 16px;
       width: 38px;
       height: 38px;
@@ -329,6 +329,31 @@ export class ChatView extends LitElement {
         this._pullHeight = 0;
       }
     }, { passive: true });
+
+    // Keyboard detection: attach directly to the input element so there is
+    // no dependency on composedPath() across shadow DOM boundaries.
+    // A 600ms startup guard prevents iOS focus-restoration from triggering
+    // keyboard-open on launch.
+    const input = this.shadowRoot.querySelector('input');
+    if (input) {
+      let kbReady = false;
+      let inputFocused = false;
+      setTimeout(() => { kbReady = true; }, 600);
+      input.addEventListener('focus', () => {
+        inputFocused = true;
+        if (!kbReady) return;
+        this.dispatchEvent(new CustomEvent('kb-open', { bubbles: true, composed: true }));
+      });
+      input.addEventListener('blur', () => {
+        inputFocused = false;
+        this.dispatchEvent(new CustomEvent('kb-close', { bubbles: true, composed: true }));
+      });
+
+      // Touching the messages area while keyboard is open dismisses it
+      el.addEventListener('touchstart', () => {
+        if (inputFocused) input.blur();
+      }, { passive: true });
+    }
   }
 
   _scrollToBottom() {
