@@ -487,7 +487,7 @@ export class AppShell extends LitElement {
         <div class="header-left">
           <div class="header-logo">J</div>
           <span class="header-title">Jarvis</span>
-          <span class="version-tag">v1.5</span>
+          <span class="version-tag">v1.6</span>
         </div>
         <div class="header-right">
           <div class="status-indicator">
