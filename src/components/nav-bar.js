@@ -4,19 +4,21 @@ import { hapticLight } from '../services/haptics.js';
 export class NavBar extends LitElement {
   static styles = css`
     :host {
-      position: fixed;
-      bottom: 0;
-      left: 0;
-      right: 0;
+      display: block;
+      flex-shrink: 0;
+      width: 100%;
       z-index: 100;
       pointer-events: none;
       background: rgba(8, 12, 22, 0.95);
       padding-bottom: env(safe-area-inset-bottom, 0);
       border-top: 1px solid rgba(255, 255, 255, 0.06);
-      transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      overflow: hidden;
+      max-height: 100px;
+      transition: max-height 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     }
     :host([scroll-hidden]) {
-      transform: translateY(100%);
+      max-height: 0;
+      border-top-color: transparent;
     }
     nav {
       display: flex;

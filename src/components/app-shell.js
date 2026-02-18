@@ -34,15 +34,6 @@ export class AppShell extends LitElement {
       background: #060A12;
     }
 
-    /* In-flow spacer that reserves the exact height of the fixed nav bar
-       so .content never slides underneath it */
-    .nav-spacer {
-      flex-shrink: 0;
-      height: calc(60px + env(safe-area-inset-bottom, 0));
-      transition: height 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    }
-    .nav-spacer.ui-hidden { height: 0; }
-
     header {
       display: flex;
       align-items: flex-end;
@@ -522,7 +513,6 @@ export class AppShell extends LitElement {
           <report-view .messages=${this.messages} @refresh=${this._onRefresh}></report-view>
         ` : ''}
       </div>
-      <div class="nav-spacer${this._uiHidden ? ' ui-hidden' : ''}"></div>
       <nav-bar
         .active=${this.view}
         .scrollHidden=${this._uiHidden}
