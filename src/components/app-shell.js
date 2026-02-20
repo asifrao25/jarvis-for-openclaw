@@ -40,12 +40,11 @@ export class AppShell extends LitElement {
       flex-direction: column;
       width: 100%;
       height: 100%;
-      /* Background for the whole app including safe areas */
       background: #000;
+      min-height: 0;
     }
 
     .header {
-      /* Padding top instead of wrapper padding to keep background flushed */
       padding-top: env(safe-area-inset-top, 44px);
       height: calc(var(--s-header-h) + env(safe-area-inset-top, 44px));
       box-sizing: border-box;
@@ -54,44 +53,19 @@ export class AppShell extends LitElement {
       justify-content: space-between;
       padding-left: 20px;
       padding-right: 20px;
-      border-bottom: 1px solid rgba(0, 255, 255, 0.1);
-      background: rgba(0, 0, 0, 0.9);
-      backdrop-filter: blur(10px);
-      -webkit-backdrop-filter: blur(10px);
-      z-index: 10;
+      border-bottom: 1px solid rgba(0, 255, 255, 0.15);
+      background: #000;
+      z-index: 50;
       flex-shrink: 0;
-    }
-
-    .main-view {
-      flex: 1;
-      overflow: hidden;
-      position: relative;
-      background: radial-gradient(circle at center, #001111 0%, #000000 100%);
-    }
-
-    .nav-container {
-      /* Padding bottom for home indicator */
-      padding-bottom: env(safe-area-inset-bottom, 20px);
-      height: calc(var(--s-nav-h) + env(safe-area-inset-bottom, 20px));
-      box-sizing: border-box;
-      background: rgba(0, 0, 0, 0.95);
-      border-top: 1px solid rgba(0, 255, 255, 0.15);
-      z-index: 20;
       transition: all 0.3s ease;
-      flex-shrink: 0;
-    }
-    
-    :host([keyboard-open]) .nav-container {
-      height: 0;
-      transform: translateY(100%);
-      padding-bottom: 0;
-      border-top: none;
-      opacity: 0;
+      overflow: hidden;
     }
 
-    /* Adjust login screen to handle its own safe areas or use the wrapper */
-    login-screen {
-      flex: 1;
+    :host([ui-hidden]) .header {
+      height: 0;
+      padding-top: 0;
+      opacity: 0;
+      border-bottom: none;
     }
 
     .header h1 {
@@ -101,6 +75,14 @@ export class AppShell extends LitElement {
       color: var(--c-primary);
       text-shadow: 0 0 10px var(--c-primary-dim);
       margin: 0;
+    }
+
+    .header h1 span {
+      font-size: 10px;
+      vertical-align: middle;
+      opacity: 0.5;
+      font-family: var(--f-mono);
+      margin-left: 5px;
     }
 
     .status {
@@ -121,34 +103,63 @@ export class AppShell extends LitElement {
     .status-dot.online { background: #00FF00; box-shadow: 0 0 8px #00FF00; }
     .status-dot.connecting { background: #FFFF00; box-shadow: 0 0 8px #FFFF00; }
 
-    /* Container for the active view (chat/alert/report) */
+    .main-view {
+      flex: 1;
+      position: relative;
+      background: radial-gradient(circle at center, #001111 0%, #000000 100%);
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
+    }
+
+    .bg-grid {
+      position: absolute;
+      top: 0; left: 0; width: 100%; height: 100%;
+      background-image:
+        linear-gradient(rgba(0, 255, 255, 0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0, 255, 255, 0.03) 1px, transparent 1px);
+      background-size: 40px 40px;
+      pointer-events: none;
+      z-index: 0;
+    }
+
     .view-container {
       flex: 1;
       position: relative;
-      overflow: hidden;
       display: flex;
       flex-direction: column;
       z-index: 1;
       min-height: 0;
     }
 
-    /* Nav bar container */
     .nav-container {
-      height: var(--s-nav-h);
-      padding-bottom: var(--s-safe-bottom);
-      background: rgba(0, 0, 0, 0.9);
-      border-top: 1px solid rgba(0, 255, 255, 0.15);
-      z-index: 20;
-      transition: height 0.3s ease, transform 0.3s ease;
       flex-shrink: 0;
+      height: calc(var(--s-nav-h) + env(safe-area-inset-bottom, 20px));
+      padding-bottom: env(safe-area-inset-bottom, 20px);
+      box-sizing: border-box;
+      background: #000;
+      border-top: 1px solid rgba(0, 255, 255, 0.15);
+      z-index: 40;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      position: relative;
+      width: 100%;
+      overflow: hidden;
     }
     
-    /* Hide nav when keyboard is open (or explicitly hidden) */
-    :host([keyboard-open]) .nav-container {
+    :host([ui-hidden]) .nav-container {
       height: 0;
-      transform: translateY(100%);
       padding-bottom: 0;
+      opacity: 0;
+      pointer-events: none;
       border-top: none;
+    }
+
+    :host([keyboard-open]) .nav-container {
+      display: none;
+    }
+
+    login-screen {
+      flex: 1;
     }
   `;
 
@@ -161,6 +172,7 @@ export class AppShell extends LitElement {
     streaming: { type: Boolean },
     alertCount: { type: Number },
     reportCount: { type: Number },
+    uiHidden: { type: Boolean, reflect: true, attribute: 'ui-hidden' },
     _keyboardOpen: { type: Boolean, reflect: true, attribute: 'keyboard-open' },
   };
 
@@ -174,6 +186,7 @@ export class AppShell extends LitElement {
     this.streaming = false;
     this.alertCount = 0;
     this.reportCount = 0;
+    this.uiHidden = false;
     this._keyboardOpen = false;
     this._streamingRuns = new Map();
   }
@@ -184,22 +197,19 @@ export class AppShell extends LitElement {
     this._setupWebSocket();
     this._checkLogin();
 
-    // Listen for custom events
     this.addEventListener('navigate', this._onNavigate);
     this.addEventListener('send-message', this._onSendMessage);
     this.addEventListener('refresh', this._onRefresh);
     this.addEventListener('delete-message', this._onDeleteMessage);
     this.addEventListener('clear-category', this._onClearCategory);
     this.addEventListener('login', this._onLogin);
+    this.addEventListener('ui-toggle', (e) => { this.uiHidden = e.detail; });
   }
 
   _setupViewport() {
     if (window.visualViewport) {
       const handleResize = () => {
         const vv = window.visualViewport;
-        
-        // Use visualViewport height/offset ONLY when keyboard is open or offset is non-zero
-        // Otherwise, stick to 100% / 0 to ensure absolute flush
         const isKeyboard = (window.innerHeight - vv.height) > 150;
         
         if (isKeyboard) {
@@ -212,7 +222,8 @@ export class AppShell extends LitElement {
         
         if (isKeyboard !== this._keyboardOpen) {
           this._keyboardOpen = isKeyboard;
-          // When keyboard opens, scroll chat to bottom
+          if (isKeyboard) this.uiHidden = false;
+          
           if (isKeyboard && this.view === 'chat') {
              setTimeout(() => {
                const chatView = this.shadowRoot.querySelector('chat-view');
@@ -270,7 +281,6 @@ export class AppShell extends LitElement {
   _handleMessage(msg) {
     if (msg.type === 'res' && msg.ok && msg.payload?.status === 'started') {
       this.thinking = true;
-      // Mark user msg as received
       const lastSending = this.messages.findLastIndex(m => m.role === 'user' && m.status === 'sending');
       if (lastSending !== -1) {
         const updated = [...this.messages];
@@ -281,7 +291,6 @@ export class AppShell extends LitElement {
     }
 
     if (msg.type === 'res' && !msg.ok) {
-      // Mark as failed
       const lastSending = this.messages.findLastIndex(m => m.role === 'user' && (m.status === 'sending' || m.status === 'received'));
       if (lastSending !== -1) {
         const updated = [...this.messages];
@@ -350,7 +359,14 @@ export class AppShell extends LitElement {
     this.view = e.detail;
     if (this.view === 'alert') this.alertCount = 0;
     if (this.view === 'report') this.reportCount = 0;
+    this.uiHidden = false;
     hapticLight();
+    if (this.view === 'chat') {
+      setTimeout(() => {
+        const cv = this.shadowRoot.querySelector('chat-view');
+        if (cv) cv.scrollToBottom();
+      }, 50);
+    }
   }
 
   _onSendMessage(e) {
@@ -397,7 +413,7 @@ export class AppShell extends LitElement {
           <login-screen @login=${this._onLogin}></login-screen>
         ` : html`
           <div class="header">
-            <h1>JARVIS</h1>
+            <h1>JARVIS <span>v4.1.7</span></h1>
             <div class="status">
               <span>SYSTEM</span>
               <div class="status-dot ${this.connected ? 'online' : 'connecting'}"></div>
@@ -412,6 +428,7 @@ export class AppShell extends LitElement {
                   .messages=${this.messages}
                   .thinking=${this.thinking}
                   .streaming=${this.streaming}
+                  .uiHidden=${this.uiHidden}
                 ></chat-view>
               ` : ''}
               ${this.view === 'alert' ? html`
