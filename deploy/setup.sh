@@ -16,8 +16,8 @@ npx vite build
 cp public/manifest.json dist/
 cp -r public/icons dist/ 2>/dev/null || true
 
-# Copy service worker from src (it needs to be at the root of /pwa/)
-cp src/sw.js dist/
+# Copy service worker from public (it needs to be at the root of /pwa/)
+cp public/sw.js dist/
 
 # Install LaunchAgent
 echo "Installing LaunchAgent..."
@@ -30,7 +30,7 @@ launchctl load ~/Library/LaunchAgents/com.openclaw-pwa.relay.plist
 
 # Configure Tailscale Serve
 echo "Configuring Tailscale Serve..."
-tailscale serve --bg --https=443 /pwa http://127.0.0.1:18800
+tailscale serve --bg --https=443 --set-path=/pwa 18800
 
 echo ""
 echo "=== Setup Complete ==="

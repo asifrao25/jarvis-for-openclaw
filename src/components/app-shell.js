@@ -8,6 +8,7 @@ import './login-screen.js';
 import './chat-view.js';
 import './alert-view.js';
 import './report-view.js';
+import './nav-bar.js';
 
 function categorize(text) {
   if (text.startsWith('[ALERT]')) return 'alert';
@@ -23,160 +24,144 @@ function extractText(msg) {
 export class AppShell extends LitElement {
   static styles = css`
     :host {
+      display: flex;
+      flex-direction: column;
       position: fixed;
-      top: 0; left: 0; right: 0;
+      top: 0;
+      left: 0;
+      width: 100%;
       height: 100%;
-      display: flex;
-      flex-direction: column;
-      background: #030507;
-      /* Force GPU compositing layer — fixes WebKit fixed-position rendering glitch on iOS */
-      -webkit-transform: translateZ(0);
-      transform: translateZ(0);
+      background: #000;
       overflow: hidden;
     }
 
-    /* ── Background layer ── */
-    .bg {
-      position: absolute;
-      inset: 0;
-      z-index: 0;
-      pointer-events: none;
-      overflow: hidden;
-    }
-    .bg-grid {
-      position: absolute;
-      inset: -40px;
-      background-image:
-        linear-gradient(rgba(0,255,238,.025) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(0,255,238,.025) 1px, transparent 1px);
-      background-size: 44px 44px;
-    }
-    .bg-scanlines {
-      position: absolute;
-      inset: 0;
-      background: repeating-linear-gradient(
-        0deg,
-        transparent, transparent 3px,
-        rgba(0,0,0,.07) 3px, rgba(0,0,0,.07) 4px
-      );
-    }
-    .bg-orb {
-      position: absolute;
-      border-radius: 50%;
-      filter: blur(110px);
-      animation: drift 10s ease-in-out infinite alternate;
-    }
-    .bg-orb-1 {
-      width: 580px; height: 580px;
-      background: radial-gradient(circle, rgba(0,255,238,.10) 0%, transparent 70%);
-      top: -260px; right: -180px;
-    }
-    .bg-orb-2 {
-      width: 380px; height: 380px;
-      background: radial-gradient(circle, rgba(255,140,66,.06) 0%, transparent 70%);
-      bottom: 80px; left: -120px;
-      animation-duration: 14s;
-      animation-direction: alternate-reverse;
-    }
-    .bg-orb-3 {
-      width: 200px; height: 200px;
-      background: radial-gradient(circle, rgba(0,255,238,.05) 0%, transparent 70%);
-      bottom: 40%; right: 8%;
-      animation-duration: 18s;
-    }
-    @keyframes drift {
-      from { transform: translate(0,0) scale(1); }
-      to   { transform: translate(25px, 35px) scale(1.08); }
-    }
-
-    /* ── Boot screen ── */
-    .boot {
-      position: fixed;
-      inset: 0;
-      z-index: 999;
-      background: #030507;
+    .app-wrapper {
       display: flex;
       flex-direction: column;
+      width: 100%;
+      height: 100%;
+      /* Background for the whole app including safe areas */
+      background: #000;
+    }
+
+    .header {
+      /* Padding top instead of wrapper padding to keep background flushed */
+      padding-top: env(safe-area-inset-top, 44px);
+      height: calc(var(--s-header-h) + env(safe-area-inset-top, 44px));
+      box-sizing: border-box;
+      display: flex;
       align-items: center;
-      justify-content: center;
-      gap: 28px;
-      transition: opacity .55s ease .1s;
-      pointer-events: all;
-    }
-    .boot.hidden { opacity: 0; pointer-events: none; }
-    .boot-logo {
-      font-family: 'Orbitron', monospace;
-      font-weight: 900;
-      font-size: clamp(28px, 8vw, 40px);
-      letter-spacing: .35em;
-      color: #00ffee;
-      text-shadow: 0 0 40px rgba(0,255,238,.6), 0 0 90px rgba(0,255,238,.2);
-      animation: bootRise .6s cubic-bezier(.16,1,.3,1) both;
-    }
-    .boot-sub {
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 10px;
-      letter-spacing: .2em;
-      color: #d4eaf5;
-      text-transform: uppercase;
-      animation: bootRise .5s .15s cubic-bezier(.16,1,.3,1) both;
-    }
-    .boot-track {
-      width: 180px; height: 1px;
-      background: rgba(0,255,238,.15);
-      border-radius: 1px;
-      overflow: hidden;
-      animation: bootRise .5s .2s both;
-    }
-    .boot-fill {
-      height: 100%;
-      background: linear-gradient(90deg, #00ffee, rgba(0,255,238,.5));
-      box-shadow: 0 0 12px #00ffee;
-      width: 0%;
-      animation: bootFill 2.2s .3s cubic-bezier(.4,0,.2,1) forwards;
-    }
-    @keyframes bootRise {
-      from { opacity: 0; transform: translateY(14px) scale(.93); }
-      to   { opacity: 1; transform: translateY(0) scale(1); }
-    }
-    @keyframes bootFill {
-      0%   { width: 0% }
-      30%  { width: 42% }
-      65%  { width: 74% }
-      88%  { width: 92% }
-      100% { width: 100% }
+      justify-content: space-between;
+      padding-left: 20px;
+      padding-right: 20px;
+      border-bottom: 1px solid rgba(0, 255, 255, 0.1);
+      background: rgba(0, 0, 0, 0.9);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      z-index: 10;
+      flex-shrink: 0;
     }
 
-    /* Content area */
-    .content {
+    .main-view {
       flex: 1;
-      min-height: 0;
-      display: flex;
-      flex-direction: column;
       overflow: hidden;
       position: relative;
+      background: radial-gradient(circle at center, #001111 0%, #000000 100%);
+    }
+
+    .nav-container {
+      /* Padding bottom for home indicator */
+      padding-bottom: env(safe-area-inset-bottom, 20px);
+      height: calc(var(--s-nav-h) + env(safe-area-inset-bottom, 20px));
+      box-sizing: border-box;
+      background: rgba(0, 0, 0, 0.95);
+      border-top: 1px solid rgba(0, 255, 255, 0.15);
+      z-index: 20;
+      transition: all 0.3s ease;
+      flex-shrink: 0;
+    }
+    
+    :host([keyboard-open]) .nav-container {
+      height: 0;
+      transform: translateY(100%);
+      padding-bottom: 0;
+      border-top: none;
+      opacity: 0;
+    }
+
+    /* Adjust login screen to handle its own safe areas or use the wrapper */
+    login-screen {
+      flex: 1;
+    }
+
+    .header h1 {
+      font-family: var(--f-display);
+      font-size: 20px;
+      letter-spacing: 2px;
+      color: var(--c-primary);
+      text-shadow: 0 0 10px var(--c-primary-dim);
+      margin: 0;
+    }
+
+    .status {
+      font-family: var(--f-mono);
+      font-size: 10px;
+      color: var(--c-text-dim);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .status-dot {
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: #333;
+      box-shadow: 0 0 5px #333;
+    }
+    .status-dot.online { background: #00FF00; box-shadow: 0 0 8px #00FF00; }
+    .status-dot.connecting { background: #FFFF00; box-shadow: 0 0 8px #FFFF00; }
+
+    /* Container for the active view (chat/alert/report) */
+    .view-container {
+      flex: 1;
+      position: relative;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
       z-index: 1;
-      padding-top: env(safe-area-inset-top, 0px);
+      min-height: 0;
+    }
+
+    /* Nav bar container */
+    .nav-container {
+      height: var(--s-nav-h);
+      padding-bottom: var(--s-safe-bottom);
+      background: rgba(0, 0, 0, 0.9);
+      border-top: 1px solid rgba(0, 255, 255, 0.15);
+      z-index: 20;
+      transition: height 0.3s ease, transform 0.3s ease;
+      flex-shrink: 0;
+    }
+    
+    /* Hide nav when keyboard is open (or explicitly hidden) */
+    :host([keyboard-open]) .nav-container {
+      height: 0;
+      transform: translateY(100%);
+      padding-bottom: 0;
+      border-top: none;
     }
   `;
 
   static properties = {
-    view:             { type: String },
-    loggedIn:         { type: Boolean },
-    connected:        { type: Boolean },
-    messages:         { type: Array },
-    thinking:         { type: Boolean },
-    streaming:        { type: Boolean },
-    showInstallBanner:{ type: Boolean },
-    showPushBanner:   { type: Boolean },
-    pushLoading:      { type: Boolean },
-    alertCount:       { type: Number },
-    reportCount:      { type: Number },
-    _uiHidden:        { type: Boolean, state: true },
-    _kbOpen:          { type: Boolean, state: true },
-    _wsStatus:        { type: String,  state: true },
-    _booting:         { type: Boolean, state: true },
-    _bootHidden:      { type: Boolean, state: true },
+    view: { type: String },
+    loggedIn: { type: Boolean },
+    connected: { type: Boolean },
+    messages: { type: Array },
+    thinking: { type: Boolean },
+    streaming: { type: Boolean },
+    alertCount: { type: Number },
+    reportCount: { type: Number },
+    _keyboardOpen: { type: Boolean, reflect: true, attribute: 'keyboard-open' },
   };
 
   constructor() {
@@ -187,60 +172,71 @@ export class AppShell extends LitElement {
     this.messages = [];
     this.thinking = false;
     this.streaming = false;
-    this.showInstallBanner = false;
-    this.showPushBanner = false;
-    this.pushLoading = false;
     this.alertCount = 0;
     this.reportCount = 0;
-    this._uiHidden = false;
-    this._kbOpen = false;
-    this._wsStatus = 'offline';
+    this._keyboardOpen = false;
     this._streamingRuns = new Map();
-    this._booting = true;
-    this._bootHidden = false;
   }
 
   connectedCallback() {
     super.connectedCallback();
+    this._setupViewport();
+    this._setupWebSocket();
+    this._checkLogin();
 
-    // Boot animation
-    setTimeout(() => { this._bootHidden = true; }, 2400);
-    setTimeout(() => { this._booting = false; }, 3100);
+    // Listen for custom events
+    this.addEventListener('navigate', this._onNavigate);
+    this.addEventListener('send-message', this._onSendMessage);
+    this.addEventListener('refresh', this._onRefresh);
+    this.addEventListener('delete-message', this._onDeleteMessage);
+    this.addEventListener('clear-category', this._onClearCategory);
+    this.addEventListener('login', this._onLogin);
+  }
 
-    if (navigator.clearAppBadge) navigator.clearAppBadge().catch(() => {});
-    if (navigator.serviceWorker?.controller) {
-      navigator.serviceWorker.controller.postMessage('clear-badge');
-    }
-
-    document.addEventListener('visibilitychange', () => {
-      if (document.visibilityState === 'visible') {
-        if (navigator.clearAppBadge) navigator.clearAppBadge().catch(() => {});
-        if (navigator.serviceWorker?.controller) {
-          navigator.serviceWorker.controller.postMessage('clear-badge');
+  _setupViewport() {
+    if (window.visualViewport) {
+      const handleResize = () => {
+        const vv = window.visualViewport;
+        
+        // Use visualViewport height/offset ONLY when keyboard is open or offset is non-zero
+        // Otherwise, stick to 100% / 0 to ensure absolute flush
+        const isKeyboard = (window.innerHeight - vv.height) > 150;
+        
+        if (isKeyboard) {
+          this.style.height = `${vv.height}px`;
+          this.style.top = `${vv.offsetTop}px`;
+        } else {
+          this.style.height = '100%';
+          this.style.top = '0';
         }
-      }
-    });
-
-    const isStandalone = window.matchMedia('(display-mode: standalone)').matches
-      || window.navigator.standalone === true;
-    if (!isStandalone) this.showInstallBanner = true;
-
-    if (!localStorage.getItem('openclaw-push-registered') && !localStorage.getItem('openclaw-push-dismissed')) {
-      this.showPushBanner = true;
+        
+        if (isKeyboard !== this._keyboardOpen) {
+          this._keyboardOpen = isKeyboard;
+          // When keyboard opens, scroll chat to bottom
+          if (isKeyboard && this.view === 'chat') {
+             setTimeout(() => {
+               const chatView = this.shadowRoot.querySelector('chat-view');
+               if(chatView) chatView.scrollToBottom();
+             }, 100);
+          }
+        }
+      };
+      
+      window.visualViewport.addEventListener('resize', handleResize);
+      window.visualViewport.addEventListener('scroll', handleResize);
+      handleResize();
     }
+  }
 
+  _setupWebSocket() {
     wsClient.addEventListener('authenticated', async () => {
       this.connected = true;
-      this._wsStatus = 'online';
-      const synced = await resyncPush();
-      if (!synced && !this.showPushBanner) this.showPushBanner = true;
+      await resyncPush();
     });
 
     wsClient.addEventListener('disconnected', () => {
       this.connected = false;
-      this._wsStatus = 'connecting';
     });
-
 
     wsClient.addEventListener('auth-failed', (e) => {
       this.loggedIn = false;
@@ -250,36 +246,19 @@ export class AppShell extends LitElement {
       if (loginEl) loginEl.setError(e.detail || 'Authentication failed');
     });
 
-    wsClient.addEventListener('message', (e) => { this._handleMessage(e.detail); });
+    wsClient.addEventListener('message', (e) => {
+      this._handleMessage(e.detail);
+    });
+  }
 
-    if (window.visualViewport) {
-      const onVvResize = () => {
-        const vv = window.visualViewport;
-        this.style.height = `${vv.height}px`;
-        this.style.top = `${vv.offsetTop}px`;
-
-        // Check if keyboard is likely open based on viewport height reduction
-        const isKbOpen = (window.innerHeight - vv.height) > 150;
-        if (isKbOpen !== this._kbOpen) {
-          if (isKbOpen) this._onKbOpen();
-          else this._onKbClose();
-        }
-      };
-      window.visualViewport.addEventListener('resize', onVvResize);
-      window.visualViewport.addEventListener('scroll', onVvResize);
-      onVvResize();
-    }
-
+  _checkLogin() {
     const savedPassword = getAuth();
     if (savedPassword) {
       this.loggedIn = true;
-      this._wsStatus = 'connecting';
       wsClient.connect(savedPassword);
       this._loadStoredMessages();
     }
   }
-
-  disconnectedCallback() { super.disconnectedCallback(); }
 
   async _loadStoredMessages() {
     try {
@@ -291,6 +270,7 @@ export class AppShell extends LitElement {
   _handleMessage(msg) {
     if (msg.type === 'res' && msg.ok && msg.payload?.status === 'started') {
       this.thinking = true;
+      // Mark user msg as received
       const lastSending = this.messages.findLastIndex(m => m.role === 'user' && m.status === 'sending');
       if (lastSending !== -1) {
         const updated = [...this.messages];
@@ -301,6 +281,7 @@ export class AppShell extends LitElement {
     }
 
     if (msg.type === 'res' && !msg.ok) {
+      // Mark as failed
       const lastSending = this.messages.findLastIndex(m => m.role === 'user' && (m.status === 'sending' || m.status === 'received'));
       if (lastSending !== -1) {
         const updated = [...this.messages];
@@ -360,7 +341,6 @@ export class AppShell extends LitElement {
     const { password } = e.detail;
     saveAuth(password);
     this.loggedIn = true;
-    this._wsStatus = 'connecting';
     wsClient.connect(password);
     this._loadStoredMessages();
     hapticSuccess();
@@ -370,25 +350,7 @@ export class AppShell extends LitElement {
     this.view = e.detail;
     if (this.view === 'alert') this.alertCount = 0;
     if (this.view === 'report') this.reportCount = 0;
-    this._uiHidden = false;
     hapticLight();
-  }
-
-  _onUiVisibility(e) { this._uiHidden = e.detail.hidden; }
-
-  _onKbOpen() {
-    clearTimeout(this._kbCloseTimer);
-    this._kbOpen = true;
-    const cv = this.shadowRoot?.querySelector('chat-view');
-    if (cv) cv.setAttribute('kb-open', '');
-  }
-
-  _onKbClose() {
-    this._kbOpen = false;
-    this._kbCloseTimer = setTimeout(() => {
-      const cv = this.shadowRoot?.querySelector('chat-view');
-      if (cv) cv.removeAttribute('kb-open');
-    }, 350);
   }
 
   _onSendMessage(e) {
@@ -400,7 +362,10 @@ export class AppShell extends LitElement {
     hapticMedium();
   }
 
-  _onRefresh() { this._loadStoredMessages(); hapticMedium(); }
+  _onRefresh() {
+    this._loadStoredMessages();
+    hapticMedium();
+  }
 
   async _onDeleteMessage(e) {
     const { id, timestamp } = e.detail;
@@ -425,70 +390,47 @@ export class AppShell extends LitElement {
     hapticMedium();
   }
 
-  async _enablePush() {
-    hapticLight();
-    this.pushLoading = true;
-    try {
-      const ok = await registerPush();
-      if (ok) { this.showPushBanner = false; hapticSuccess(); }
-      else hapticError();
-    } catch (err) { console.error('[Push] Enable failed:', err); hapticError(); }
-    finally { this.pushLoading = false; }
-  }
-
-  _dismissPush() {
-    this.showPushBanner = false;
-    localStorage.setItem('openclaw-push-dismissed', 'true');
-    hapticLight();
-  }
-
-  _dismissInstall() { this.showInstallBanner = false; hapticLight(); }
-
-  _clearChat() {
-    hapticMedium();
-    this._onClearCategory({ detail: 'chat' });
-  }
-
   render() {
-    const bg = html`
-      <div class="bg" aria-hidden="true">
-        <div class="bg-grid"></div>
-        <div class="bg-scanlines"></div>
-        <div class="bg-orb bg-orb-1"></div>
-        <div class="bg-orb bg-orb-2"></div>
-        <div class="bg-orb bg-orb-3"></div>
-      </div>
-    `;
-
-    if (!this.loggedIn) {
-      return html`
-        ${bg}
-        <login-screen @login=${this._onLogin}></login-screen>
-      `;
-    }
-
     return html`
-      ${this._booting ? html`
-        <div class="boot${this._bootHidden ? ' hidden' : ''}">
-          <div class="boot-logo">JARVIS</div>
-          <div class="boot-sub">Neural Interface v4.0</div>
-          <div class="boot-track"><div class="boot-fill"></div></div>
-        </div>
-      ` : ''}
+      <div class="app-wrapper">
+        ${!this.loggedIn ? html`
+          <login-screen @login=${this._onLogin}></login-screen>
+        ` : html`
+          <div class="header">
+            <h1>JARVIS</h1>
+            <div class="status">
+              <span>SYSTEM</span>
+              <div class="status-dot ${this.connected ? 'online' : 'connecting'}"></div>
+            </div>
+          </div>
 
-      ${bg}
+          <div class="main-view">
+            <div class="bg-grid"></div>
+            <div class="view-container">
+              ${this.view === 'chat' ? html`
+                <chat-view
+                  .messages=${this.messages}
+                  .thinking=${this.thinking}
+                  .streaming=${this.streaming}
+                ></chat-view>
+              ` : ''}
+              ${this.view === 'alert' ? html`
+                <alert-view .messages=${this.messages}></alert-view>
+              ` : ''}
+              ${this.view === 'report' ? html`
+                <report-view .messages=${this.messages}></report-view>
+              ` : ''}
+            </div>
+          </div>
 
-      <div class="content"
-        @delete-message=${this._onDeleteMessage}
-        @clear-category=${this._onClearCategory}
-        @ui-visibility=${this._onUiVisibility}>
-        <chat-view
-          .messages=${this.messages}
-          .thinking=${this.thinking}
-          .streaming=${this.streaming}
-          @send-message=${this._onSendMessage}
-          @refresh=${this._onRefresh}
-        ></chat-view>
+          <div class="nav-container">
+            <nav-bar
+              .active=${this.view}
+              .alertCount=${this.alertCount}
+              .reportCount=${this.reportCount}
+            ></nav-bar>
+          </div>
+        `}
       </div>
     `;
   }

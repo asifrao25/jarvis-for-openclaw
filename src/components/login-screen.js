@@ -9,7 +9,8 @@ export class LoginScreen extends LitElement {
       justify-content: center;
       height: 100%;
       width: 100%;
-      padding: env(safe-area-inset-top, 20px) 20px env(safe-area-inset-bottom, 20px);
+      padding: env(safe-area-inset-top, 44px) 20px env(safe-area-inset-bottom, 20px);
+      box-sizing: border-box;
       position: relative;
       z-index: 1;
     }
@@ -176,7 +177,11 @@ export class LoginScreen extends LitElement {
     this.loading = true;
     this.error = '';
     hapticMedium();
-    this.dispatchEvent(new CustomEvent('login', { detail: { password } }));
+    this.dispatchEvent(new CustomEvent('login', { 
+      detail: { password },
+      bubbles: true,
+      composed: true
+    }));
   }
 
   setError(msg) {

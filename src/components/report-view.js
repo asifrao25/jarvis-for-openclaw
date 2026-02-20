@@ -9,6 +9,8 @@ export class ReportView extends LitElement {
       height: 100%;
       position: relative;
       background: transparent;
+      flex: 1;
+      min-height: 0;
     }
 
     .pull-indicator {
@@ -45,6 +47,7 @@ export class ReportView extends LitElement {
       align-items: center;
       justify-content: flex-end;
       padding: 6px 16px 2px;
+      flex-shrink: 0;
     }
     .clear-btn {
       background: transparent;
@@ -69,6 +72,7 @@ export class ReportView extends LitElement {
 
     .entries {
       flex: 1;
+      min-height: 0;
       overflow-y: auto;
       -webkit-overflow-scrolling: touch;
       padding: 8px 14px 16px;
