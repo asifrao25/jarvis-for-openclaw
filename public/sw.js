@@ -1,6 +1,6 @@
 // Service Worker for Jarvis PWA
 
-const CACHE_NAME = 'openclaw-pwa-v120';
+const CACHE_NAME = 'openclaw-pwa-v130';
 const SHELL_FILES = ['/pwa/', '/pwa/index.html'];
 
 // Badge count tracker
