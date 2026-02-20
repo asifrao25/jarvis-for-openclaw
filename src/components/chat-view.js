@@ -19,7 +19,7 @@ export class ChatView extends LitElement {
       overflow-y: scroll;
       -webkit-overflow-scrolling: touch;
       padding: 15px 20px;
-      /* Ensure last message is above the input bar when visible */
+      /* Room for the input area */
       padding-bottom: 120px;
       display: flex;
       flex-direction: column;
@@ -38,7 +38,7 @@ export class ChatView extends LitElement {
 
     .input-area {
       flex-shrink: 0;
-      /* Using full width up to the 50px FAB zone on the right, removed left button padding */
+      /* Exactly 50px on the right for the FAB zone */
       padding: 0 50px 0 12px;
       padding-bottom: env(safe-area-inset-bottom, 0px);
       background: #000;
@@ -47,8 +47,10 @@ export class ChatView extends LitElement {
       align-items: center;
       z-index: 30;
       overflow: hidden;
+      /* Strict height to match NavBar host height logic */
+      height: 56px;
       min-height: 56px;
-      box-sizing: border-box;
+      box-sizing: content-box;
       transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     }
 
@@ -65,7 +67,7 @@ export class ChatView extends LitElement {
       background: rgba(0, 255, 255, 0.05);
       border: 1px solid rgba(0, 255, 255, 0.2);
       border-radius: 10px;
-      padding: 10px 15px;
+      padding: 0 15px;
       height: 40px;
       color: var(--c-primary);
       font-family: var(--f-body);
@@ -73,7 +75,9 @@ export class ChatView extends LitElement {
       outline: none;
       -webkit-appearance: none;
       box-sizing: border-box;
-      width: 100%;
+      /* Force expansion */
+      display: block;
+      min-width: 0;
     }
 
     input:focus {
