@@ -132,32 +132,6 @@ export class AppShell extends LitElement {
       min-height: 0;
     }
 
-    .nav-container {
-      flex-shrink: 0;
-      height: calc(var(--s-nav-h) + env(safe-area-inset-bottom, 20px));
-      padding-bottom: env(safe-area-inset-bottom, 20px);
-      box-sizing: border-box;
-      background: #000;
-      border-top: 1px solid rgba(0, 255, 255, 0.15);
-      z-index: 40;
-      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-      position: relative;
-      width: 100%;
-      overflow: hidden;
-    }
-    
-    :host([ui-hidden]) .nav-container {
-      height: 0;
-      padding-bottom: 0;
-      opacity: 0;
-      pointer-events: none;
-      border-top: none;
-    }
-
-    :host([keyboard-open]) .nav-container {
-      display: none;
-    }
-
     login-screen {
       flex: 1;
     }
@@ -408,12 +382,12 @@ export class AppShell extends LitElement {
 
   render() {
     return html`
-      <div class="app-wrapper">
+      <div class="app-wrapper" ?ui-hidden=${this.uiHidden}>
         ${!this.loggedIn ? html`
           <login-screen @login=${this._onLogin}></login-screen>
         ` : html`
           <div class="header">
-            <h1>JARVIS <span>v4.1.7</span></h1>
+            <h1>JARVIS <span>v4.3.0</span></h1>
             <div class="status">
               <span>SYSTEM</span>
               <div class="status-dot ${this.connected ? 'online' : 'connecting'}"></div>
@@ -440,13 +414,13 @@ export class AppShell extends LitElement {
             </div>
           </div>
 
-          <div class="nav-container">
-            <nav-bar
-              .active=${this.view}
-              .alertCount=${this.alertCount}
-              .reportCount=${this.reportCount}
-            ></nav-bar>
-          </div>
+          <nav-bar
+            .active=${this.view}
+            .alertCount=${this.alertCount}
+            .reportCount=${this.reportCount}
+            .uiHidden=${this.uiHidden}
+            ?keyboard-open=${this._keyboardOpen}
+          ></nav-bar>
         `}
       </div>
     `;

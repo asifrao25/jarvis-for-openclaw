@@ -1,82 +1,141 @@
 import { LitElement, html, css } from 'lit';
-import { hapticLight } from '../services/haptics.js';
+import { hapticLight, hapticMedium } from '../services/haptics.js';
 
 export class NavBar extends LitElement {
   static styles = css`
     :host {
-      display: flex;
-      width: 100%;
-      height: 100%;
-      justify-content: space-around;
-      align-items: center;
-      position: relative;
-    }
-
-    button {
-      background: transparent;
-      border: none;
-      color: #555;
+      position: fixed;
+      right: 10px;
+      /* Aligned vertically center with the 56px flush input bar */
+      bottom: 6px;
+      z-index: 100;
       display: flex;
       flex-direction: column;
-      align-items: center;
-      gap: 4px;
-      padding: 10px 20px;
-      cursor: pointer;
-      position: relative;
-      transition: color 0.3s;
+      align-items: flex-end;
+      pointer-events: none;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     }
 
-    button.active {
+    :host([ui-hidden]) {
+      transform: translateY(100px);
+      opacity: 0;
+    }
+
+    :host([keyboard-open]) {
+      bottom: 6px;
+    }
+
+    .menu-container {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      opacity: 0;
+      transform: translateY(20px) scale(0.9);
+      pointer-events: none;
+      transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+      margin-bottom: 15px;
+      background: rgba(0, 15, 20, 0.98);
+      border: 1px solid var(--c-primary);
+      border-radius: 12px;
+      padding: 10px;
+      box-shadow: 0 0 30px rgba(0, 255, 255, 0.3);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+    }
+
+    .menu-container.open {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+      pointer-events: auto;
+    }
+
+    .nav-item {
+      width: 150px;
+      padding: 14px;
+      border-radius: 8px;
+      background: rgba(0, 255, 255, 0.05);
+      border: 1px solid rgba(0, 255, 255, 0.1);
       color: var(--c-primary);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      cursor: pointer;
+      transition: all 0.2s;
     }
 
-    .icon-box {
-      width: 24px; height: 24px;
+    .nav-item:active {
+      background: rgba(0, 255, 255, 0.2);
+      transform: scale(0.96);
+    }
+
+    .nav-item svg {
+      width: 20px; height: 20px;
+      fill: currentColor;
+    }
+
+    .nav-item .label {
+      font-family: var(--f-mono);
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .fab-main {
+      width: 44px; height: 44px;
+      border-radius: 10px;
+      background: rgba(0, 30, 40, 0.9);
+      border: 1px solid var(--c-primary);
+      color: var(--c-primary);
       display: flex;
       align-items: center;
       justify-content: center;
+      cursor: pointer;
+      box-shadow: 0 0 15px rgba(0, 255, 255, 0.2);
+      pointer-events: auto;
+      transition: all 0.3s ease;
       position: relative;
-    }
-    
-    svg {
-      width: 24px; height: 24px;
-      fill: currentColor;
-      filter: drop-shadow(0 0 0 transparent);
-      transition: filter 0.3s;
-    }
-    
-    button.active svg {
-      filter: drop-shadow(0 0 5px var(--c-primary));
+      padding: 0;
+      backdrop-filter: blur(10px);
     }
 
-    .label {
-      font-family: var(--f-mono);
-      font-size: 10px;
-      letter-spacing: 1px;
-      text-transform: uppercase;
+    .fab-main.open {
+      background: var(--c-primary);
+      color: #000;
+    }
+
+    .fab-main svg {
+      width: 28px; height: 28px;
+      fill: currentColor;
+      transition: transform 0.3s ease;
+    }
+
+    .fab-main.open svg {
+      transform: rotate(180deg);
     }
 
     .badge {
       position: absolute;
-      top: -5px; right: -5px;
+      top: -8px;
+      right: -8px;
       background: var(--c-alert);
-      color: #FFF;
-      font-size: 9px;
-      font-weight: bold;
-      padding: 2px 4px;
-      border-radius: 4px;
-      box-shadow: 0 0 5px var(--c-alert);
+      color: white;
+      font-size: 10px;
+      font-weight: 900;
+      min-width: 18px;
+      height: 18px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 50%;
+      box-shadow: 0 0 10px var(--c-alert);
+      font-family: var(--f-mono);
+      border: 1px solid rgba(255,255,255,0.4);
+      z-index: 5;
     }
 
-    /* Active Indicator Line */
-    .indicator {
-      position: absolute;
-      top: 0;
-      height: 2px;
-      width: 40px;
-      background: var(--c-primary);
-      box-shadow: 0 0 8px var(--c-primary);
-      transition: transform 0.3s cubic-bezier(0.4, 0.0, 0.2, 1);
+    .nav-item .badge {
+      position: static;
+      margin-left: auto;
     }
   `;
 
@@ -84,36 +143,56 @@ export class NavBar extends LitElement {
     active: { type: String },
     alertCount: { type: Number },
     reportCount: { type: Number },
+    open: { type: Boolean, state: true },
+    uiHidden: { type: Boolean, reflect: true, attribute: 'ui-hidden' },
+    keyboardOpen: { type: Boolean, reflect: true, attribute: 'keyboard-open' }
   };
+
+  constructor() {
+    super();
+    this.open = false;
+    this.uiHidden = false;
+  }
+
+  _toggle() {
+    this.open = !this.open;
+    hapticMedium();
+  }
 
   _nav(view) {
     this.dispatchEvent(new CustomEvent('navigate', { detail: view, bubbles: true, composed: true }));
+    this.open = false;
     hapticLight();
   }
 
   render() {
+    const totalUnread = (this.alertCount || 0) + (this.reportCount || 0);
+
     return html`
-      <button class=${this.active === 'chat' ? 'active' : ''} @click=${() => this._nav('chat')}>
-        <div class="icon-box">
-          <svg viewBox="0 0 24 24"><path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"/></svg>
-        </div>
-        <span class="label">Chat</span>
-      </button>
-
-      <button class=${this.active === 'alert' ? 'active' : ''} @click=${() => this._nav('alert')}>
-        <div class="icon-box">
-          <svg viewBox="0 0 24 24"><path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.9 2 2 2zm6-6v-5c0-3.07-1.63-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.64 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z"/></svg>
-          ${this.alertCount > 0 ? html`<span class="badge">${this.alertCount}</span>` : ''}
-        </div>
-        <span class="label">Alerts</span>
-      </button>
-
-      <button class=${this.active === 'report' ? 'active' : ''} @click=${() => this._nav('report')}>
-        <div class="icon-box">
+      <div class="menu-container ${this.open ? 'open' : ''}">
+        <div class="nav-item" @click=${() => this._nav('report')}>
           <svg viewBox="0 0 24 24"><path d="M3 13h2v-2H3v2zm0 4h2v-2H3v2zm0-8h2V7H3v2zm4 4h14v-2H7v2zm0 4h14v-2H7v2zM7 7v2h14V7H7z"/></svg>
+          <span class="label">Reports</span>
           ${this.reportCount > 0 ? html`<span class="badge">${this.reportCount}</span>` : ''}
         </div>
-        <span class="label">Reports</span>
+
+        <div class="nav-item" @click=${() => this._nav('alert')}>
+          <svg viewBox="0 0 24 24"><path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.9 2 2 2zm6-6v-5c0-3.07-1.63-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.64 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z"/></svg>
+          <span class="label">Alerts</span>
+          ${this.alertCount > 0 ? html`<span class="badge">${this.alertCount}</span>` : ''}
+        </div>
+
+        ${this.active !== 'chat' ? html`
+          <div class="nav-item" @click=${() => this._nav('chat')}>
+            <svg viewBox="0 0 24 24"><path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"/></svg>
+            <span class="label">Interface</span>
+          </div>
+        ` : ''}
+      </div>
+
+      <button class="fab-main ${this.open ? 'open' : ''}" @click=${this._toggle} aria-label="Toggle Menu">
+        ${!this.open && totalUnread > 0 ? html`<span class="badge">${totalUnread}</span>` : ''}
+        <svg viewBox="0 0 24 24"><path d="M7.41 15.41L12 10.83l4.59 4.58L18 14l-6-6-6 6z"/></svg>
       </button>
     `;
   }
