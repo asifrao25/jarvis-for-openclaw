@@ -5,42 +5,36 @@ export class MessageItem extends LitElement {
   static styles = css`
     :host { display: block; overflow: hidden; }
 
-    /* Swipe-to-delete */
     .swipe-container { position: relative; }
     .swipe-container.user-msg {
       display: flex;
       flex-direction: column;
       align-items: flex-end;
     }
+
     .delete-bg {
       position: absolute;
-      top: 50%;
-      right: 20px;
+      top: 50%; right: 20px;
       transform: translateY(-50%);
-      width: 40px;
-      height: 40px;
+      width: 38px; height: 38px;
       border-radius: 50%;
-      background: rgba(239, 68, 68, 0.18);
-      border: 1px solid rgba(239, 68, 68, 0.35);
+      background: rgba(255,77,109,.12);
+      border: 1px solid rgba(255,77,109,.28);
       display: flex;
       align-items: center;
       justify-content: center;
     }
-    .delete-bg svg {
-      width: 18px;
-      height: 18px;
-      fill: #FB7185;
-    }
+    .delete-bg svg { width: 17px; height: 17px; fill: #FF4D6D; }
 
-    /* Base message */
+    /* Message bubble */
     .msg {
-      padding: 11px 15px;
+      padding: 10px 14px;
       margin: 3px 0;
-      animation: msgIn 0.22s cubic-bezier(0.34, 1.56, 0.64, 1);
+      animation: msgIn 0.26s cubic-bezier(.16,1,.3,1);
       position: relative;
       transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
       width: fit-content;
-      max-width: calc(100% - 68px);
+      max-width: calc(100% - 60px);
     }
     .msg.swiping { transition: none; }
     .msg.removing {
@@ -50,61 +44,67 @@ export class MessageItem extends LitElement {
     }
 
     @keyframes msgIn {
-      from { opacity: 0; transform: translateY(6px) scale(0.97); }
-      to   { opacity: 1; transform: translateY(0) scale(1); }
+      from { opacity: 0; transform: translateY(7px); }
+      to   { opacity: 1; transform: translateY(0); }
     }
 
-    /* User bubble — gradient right-aligned */
+    /* User bubble */
     .msg.user {
-      background: linear-gradient(135deg, #1E40AF 0%, #3B5BDB 45%, #6D28D9 100%);
-      box-shadow: 0 4px 16px rgba(59, 91, 219, 0.35), 0 2px 4px rgba(0,0,0,0.3);
+      background: linear-gradient(135deg, rgba(0,255,238,.13), rgba(0,255,238,.06));
+      border: 1px solid rgba(0,255,238,.20);
+      border-radius: 14px 3px 14px 14px;
+      color: #d4eaf5;
       margin-left: auto;
       margin-right: 14px;
-      border-radius: 20px 20px 5px 20px;
-      color: #F0F9FF;
+      box-shadow: 0 4px 20px rgba(0,0,0,.3), inset 0 1px 0 rgba(0,255,238,.12);
     }
 
-    /* Assistant bubble — dark glass left-aligned */
+    /* AI bubble */
     .msg.assistant {
-      background: rgba(15, 23, 42, 0.8);
-      border: 1px solid rgba(255, 255, 255, 0.08);
+      background: rgba(8,13,20,.78);
+      border: 1px solid rgba(0,255,238,.10);
+      border-radius: 3px 14px 14px 14px;
+      color: #d4eaf5;
       margin-left: 14px;
       margin-right: auto;
-      border-radius: 5px 20px 20px 20px;
-      color: #CBD5E1;
-      box-shadow: 0 2px 12px rgba(0,0,0,0.35);
+      box-shadow: 0 4px 20px rgba(0,0,0,.35), inset 0 1px 0 rgba(0,255,238,.06);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
     }
 
-    /* Alert and report overrides (shown in chat if they appear) */
+    /* Alert bubble */
     .msg.alert {
-      border-left: 3px solid rgba(251, 113, 133, 0.7);
-      background: rgba(239, 68, 68, 0.07);
-      border-top: 1px solid rgba(251, 113, 133, 0.15);
-      border-right: 1px solid rgba(251, 113, 133, 0.08);
-      border-bottom: 1px solid rgba(251, 113, 133, 0.08);
-      border-radius: 0 16px 16px 0;
+      border-left: 2px solid rgba(255,77,109,.6);
+      background: rgba(255,77,109,.05);
+      border-top: 1px solid rgba(255,77,109,.12);
+      border-right: 1px solid rgba(255,77,109,.08);
+      border-bottom: 1px solid rgba(255,77,109,.08);
+      border-radius: 0 12px 12px 0;
       margin-left: 14px;
-      color: #FCA5A5;
+      color: #FECDD3;
     }
+
+    /* Report bubble */
     .msg.report {
-      border-left: 3px solid rgba(52, 211, 153, 0.7);
-      background: rgba(52, 211, 153, 0.07);
-      border-top: 1px solid rgba(52, 211, 153, 0.15);
-      border-right: 1px solid rgba(52, 211, 153, 0.08);
-      border-bottom: 1px solid rgba(52, 211, 153, 0.08);
-      border-radius: 0 16px 16px 0;
+      border-left: 2px solid rgba(0,229,160,.6);
+      background: rgba(0,229,160,.05);
+      border-top: 1px solid rgba(0,229,160,.12);
+      border-right: 1px solid rgba(0,229,160,.08);
+      border-bottom: 1px solid rgba(0,229,160,.08);
+      border-radius: 0 12px 12px 0;
       margin-left: 14px;
       color: #6EE7B7;
     }
 
     .text {
       font-size: 15px;
-      line-height: 1.5;
+      line-height: 1.55;
       white-space: pre-wrap;
       word-break: break-word;
+      font-family: 'Syne', sans-serif;
     }
-    .msg.user .text { color: #EFF6FF; }
 
+    /* Meta row */
     .meta {
       display: flex;
       align-items: center;
@@ -112,64 +112,55 @@ export class MessageItem extends LitElement {
       margin-top: 5px;
       justify-content: flex-end;
     }
-    .msg.assistant .meta, .msg.alert .meta, .msg.report .meta {
-      justify-content: flex-start;
-    }
-    .time {
-      font-size: 11px;
-      color: rgba(255, 255, 255, 0.35);
-      font-variant-numeric: tabular-nums;
-    }
-    .msg.assistant .time, .msg.alert .time, .msg.report .time {
-      color: #475569;
-    }
+    .msg.assistant .meta,
+    .msg.alert .meta,
+    .msg.report .meta { justify-content: flex-start; }
 
-    /* Delivery ticks */
-    .ticks {
-      display: inline-flex;
-      align-items: center;
-      line-height: 1;
+    .time {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 9.5px;
+      letter-spacing: .04em;
+      color: rgba(0,255,238,.22);
     }
-    .ticks svg { width: 14px; height: 10px; }
-    .ticks.sending svg { fill: rgba(255,255,255,0.35); }
-    .ticks.received svg { fill: #60A5FA; }
-    .ticks.failed svg { fill: #FB7185; }
+    .msg.assistant .time,
+    .msg.alert .time,
+    .msg.report .time { color: #2a3f50; }
+
+    /* Status ticks */
+    .ticks { display: inline-flex; align-items: center; line-height: 1; }
+    .ticks svg { width: 13px; height: 9px; }
+    .ticks.sending  svg { fill: rgba(0,255,238,.25); }
+    .ticks.received svg { fill: #00ffee; }
+    .ticks.failed   svg { fill: #FF4D6D; }
 
     /* Streaming cursor */
     .msg.streaming .text::after {
       content: '';
       display: inline-block;
-      width: 2px;
-      height: 14px;
-      background: #38BDF8;
+      width: 2px; height: 14px;
+      background: #00ffee;
       margin-left: 2px;
       vertical-align: text-bottom;
       border-radius: 1px;
-      animation: cursor-blink 1s step-end infinite;
+      animation: cursorBlink 1s step-end infinite;
+      box-shadow: 0 0 6px #00ffee;
     }
-    @keyframes cursor-blink {
+    @keyframes cursorBlink {
       0%, 100% { opacity: 1; }
-      50% { opacity: 0; }
-    }
-
-    @media (min-width: 768px) {
-      .msg { max-width: calc(100% - 140px); }
-    }
-    @media (min-width: 1024px) {
-      .msg { max-width: calc(100% - 240px); }
+      50%       { opacity: 0; }
     }
   `;
 
   static properties = {
-    role: { type: String },
-    text: { type: String },
+    role:      { type: String },
+    text:      { type: String },
     timestamp: { type: Number },
-    category: { type: String },
+    category:  { type: String },
     streaming: { type: Boolean },
-    msgId: { type: Number },
-    status: { type: String },
-    _swipeX: { type: Number, state: true },
-    _swiping: { type: Boolean, state: true },
+    msgId:     { type: Number },
+    status:    { type: String },
+    _swipeX:   { type: Number,  state: true },
+    _swiping:  { type: Boolean, state: true },
     _removing: { type: Boolean, state: true },
   };
 
@@ -204,17 +195,11 @@ export class MessageItem extends LitElement {
     el.addEventListener('touchmove', (e) => {
       const dx = e.touches[0].clientX - this._touchStartX;
       const dy = e.touches[0].clientY - this._touchStartY;
-
       if (this._isHorizontal === null && (Math.abs(dx) > 8 || Math.abs(dy) > 8)) {
         this._isHorizontal = Math.abs(dx) > Math.abs(dy);
       }
-
       if (!this._isHorizontal) return;
-
-      if (dx < 0) {
-        this._swiping = true;
-        this._swipeX = Math.max(dx, -100);
-      }
+      if (dx < 0) { this._swiping = true; this._swipeX = Math.max(dx, -100); }
     }, { passive: true });
 
     el.addEventListener('touchend', () => {
@@ -267,11 +252,11 @@ export class MessageItem extends LitElement {
 
   render() {
     const classes = ['msg', this.role];
-    if (this.category === 'alert') classes.push('alert');
+    if (this.category === 'alert')  classes.push('alert');
     if (this.category === 'report') classes.push('report');
-    if (this.streaming) classes.push('streaming');
-    if (this._swiping) classes.push('swiping');
-    if (this._removing) classes.push('removing');
+    if (this.streaming)  classes.push('streaming');
+    if (this._swiping)   classes.push('swiping');
+    if (this._removing)  classes.push('removing');
 
     const swipeStyle = this._swipeX < 0 ? `transform: translateX(${this._swipeX}px)` : '';
     const containerClass = this.role === 'user' ? 'swipe-container user-msg' : 'swipe-container';

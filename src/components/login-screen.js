@@ -9,222 +9,157 @@ export class LoginScreen extends LitElement {
       justify-content: center;
       height: 100%;
       width: 100%;
+      padding: env(safe-area-inset-top, 20px) 20px env(safe-area-inset-bottom, 20px);
       position: relative;
-      overflow: hidden;
-      background: #060A12;
-      padding: env(safe-area-inset-top, 0) 0 env(safe-area-inset-bottom, 0);
-    }
-
-    /* Ambient background blobs */
-    .bg-blob {
-      position: absolute;
-      border-radius: 50%;
-      filter: blur(80px);
-      pointer-events: none;
-      will-change: transform;
-    }
-    .bg-blob-1 {
-      width: 280px;
-      height: 280px;
-      background: radial-gradient(circle, rgba(56, 189, 248, 0.12) 0%, transparent 70%);
-      top: 10%;
-      left: -10%;
-      animation: float1 8s ease-in-out infinite;
-    }
-    .bg-blob-2 {
-      width: 320px;
-      height: 320px;
-      background: radial-gradient(circle, rgba(129, 140, 248, 0.1) 0%, transparent 70%);
-      bottom: 15%;
-      right: -15%;
-      animation: float2 10s ease-in-out infinite;
-    }
-    .bg-blob-3 {
-      width: 200px;
-      height: 200px;
-      background: radial-gradient(circle, rgba(167, 139, 250, 0.08) 0%, transparent 70%);
-      top: 55%;
-      left: 20%;
-      animation: float3 7s ease-in-out infinite;
-    }
-    @keyframes float1 {
-      0%, 100% { transform: translate(0, 0); }
-      50% { transform: translate(20px, -25px); }
-    }
-    @keyframes float2 {
-      0%, 100% { transform: translate(0, 0); }
-      50% { transform: translate(-18px, 22px); }
-    }
-    @keyframes float3 {
-      0%, 100% { transform: translate(0, 0); }
-      50% { transform: translate(14px, -16px); }
-    }
-
-    /* Grid pattern overlay */
-    .bg-grid {
-      position: absolute;
-      inset: 0;
-      background-image:
-        linear-gradient(rgba(56, 189, 248, 0.03) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(56, 189, 248, 0.03) 1px, transparent 1px);
-      background-size: 40px 40px;
-      mask-image: radial-gradient(ellipse at center, black 30%, transparent 80%);
-      -webkit-mask-image: radial-gradient(ellipse at center, black 30%, transparent 80%);
-      pointer-events: none;
+      z-index: 1;
     }
 
     .card {
-      position: relative;
-      z-index: 1;
-      background: rgba(12, 18, 32, 0.75);
-      border: 1px solid rgba(255, 255, 255, 0.08);
-      border-radius: 28px;
-      padding: 44px 32px 40px;
-      width: calc(100% - 40px);
-      max-width: 380px;
+      width: 100%;
+      max-width: 360px;
       text-align: center;
-      backdrop-filter: blur(24px) saturate(160%);
-      -webkit-backdrop-filter: blur(24px) saturate(160%);
-      box-shadow:
-        0 0 0 1px rgba(56, 189, 248, 0.06),
-        0 24px 60px rgba(0,0,0,0.5),
-        0 0 80px rgba(56, 189, 248, 0.04);
+      background: rgba(8, 13, 20, 0.78);
+      border: 1px solid rgba(0,255,238,.12);
+      border-radius: 20px;
+      padding: 44px 28px 38px;
+      backdrop-filter: blur(24px) saturate(180%);
+      -webkit-backdrop-filter: blur(24px) saturate(180%);
+      box-shadow: 0 8px 40px rgba(0,0,0,.5), inset 0 1px 0 rgba(0,255,238,.08);
     }
 
     /* Logo mark */
     .logo-wrap {
-      margin: 0 auto 28px;
       position: relative;
-      width: 80px;
-      height: 80px;
+      width: 72px; height: 72px;
+      margin: 0 auto 26px;
     }
     .logo-ring {
-      position: absolute;
-      inset: -6px;
-      border-radius: 50%;
-      border: 1px solid rgba(56, 189, 248, 0.25);
-      animation: ring-rotate 6s linear infinite;
+      position: absolute; inset: 0;
+      animation: logoSpin 20s linear infinite;
+      transform-origin: center;
     }
-    .logo-ring::before {
-      content: '';
+    .logo-core {
       position: absolute;
-      top: -1px;
-      left: 50%;
-      transform: translateX(-50%);
-      width: 6px;
-      height: 6px;
+      inset: 20px;
       border-radius: 50%;
-      background: #38BDF8;
-      box-shadow: 0 0 8px rgba(56, 189, 248, 0.8);
+      background: #00ffee;
+      box-shadow: 0 0 16px #00ffee, 0 0 32px rgba(0,255,238,.4);
+      animation: corePulse 3s ease-in-out infinite;
     }
-    @keyframes ring-rotate {
+    @keyframes logoSpin {
       from { transform: rotate(0deg); }
-      to { transform: rotate(360deg); }
+      to   { transform: rotate(360deg); }
     }
-    .logo {
-      width: 80px;
-      height: 80px;
-      background: linear-gradient(135deg, #1D4ED8 0%, #38BDF8 50%, #818CF8 100%);
-      border-radius: 24px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 28px;
-      font-weight: 800;
-      color: white;
-      letter-spacing: -1px;
-      box-shadow:
-        0 0 30px rgba(56, 189, 248, 0.3),
-        0 8px 24px rgba(0,0,0,0.4);
+    @keyframes corePulse {
+      0%, 100% { box-shadow: 0 0 14px #00ffee, 0 0 28px rgba(0,255,238,.4); }
+      50%       { box-shadow: 0 0 22px #00ffee, 0 0 48px rgba(0,255,238,.6); }
     }
 
     h1 {
-      font-size: 26px;
-      font-weight: 700;
-      color: #F1F5F9;
+      font-family: 'Orbitron', monospace;
+      font-size: 20px;
+      font-weight: 900;
+      color: #d4eaf5;
       margin-bottom: 6px;
-      letter-spacing: -0.5px;
+      letter-spacing: .3em;
+      text-transform: uppercase;
+      text-shadow: 0 0 20px rgba(0,255,238,.3);
     }
     .subtitle {
-      color: #475569;
-      font-size: 14px;
-      font-weight: 400;
-      margin-bottom: 36px;
+      font-family: 'JetBrains Mono', monospace;
+      color: #4a6e82;
+      font-size: 11px;
+      letter-spacing: .10em;
+      text-transform: uppercase;
+      margin-bottom: 34px;
     }
 
+    /* Input */
     .input-wrap {
       position: relative;
-      margin-bottom: 16px;
+      margin-bottom: 12px;
     }
     .input-icon {
       position: absolute;
-      left: 16px;
+      left: 14px;
       top: 50%;
       transform: translateY(-50%);
-      color: #3D4E63;
+      color: #4a6e82;
       pointer-events: none;
-      font-size: 16px;
+      font-size: 12px;
+      line-height: 1;
     }
     input {
       width: 100%;
-      padding: 15px 18px 15px 42px;
-      background: rgba(255, 255, 255, 0.04);
-      border: 1px solid rgba(255, 255, 255, 0.09);
-      border-radius: 14px;
-      color: #F1F5F9;
+      padding: 13px 16px 13px 38px;
+      background: #0d1520;
+      border: 1px solid rgba(0,255,238,.12);
+      border-radius: 12px;
+      color: #d4eaf5;
       font-size: 16px;
-      font-family: inherit;
+      font-family: 'Syne', sans-serif;
       outline: none;
-      transition: border-color 0.2s, box-shadow 0.2s;
+      caret-color: #00ffee;
+      transition: border-color .2s, box-shadow .2s;
+      -webkit-appearance: none;
     }
-    input::placeholder { color: #2D3A4A; }
+    input::placeholder {
+      color: #2a3f50;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 13px;
+      letter-spacing: .04em;
+    }
     input:focus {
-      border-color: rgba(56, 189, 248, 0.45);
-      box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.08);
+      border-color: rgba(0,255,238,.30);
+      box-shadow: 0 0 0 3px rgba(0,255,238,.05);
     }
-    input:disabled { opacity: 0.6; }
+    input:disabled { opacity: 0.5; }
 
+    /* Connect button */
     button[type="submit"] {
       width: 100%;
-      padding: 15px;
-      background: linear-gradient(135deg, #38BDF8 0%, #818CF8 100%);
-      color: white;
+      padding: 14px;
+      background: linear-gradient(135deg, #00ffee, #00c8b8);
+      color: #030507;
       border: none;
-      border-radius: 14px;
-      font-size: 15px;
+      border-radius: 12px;
+      font-family: 'Orbitron', monospace;
+      font-size: 13px;
       font-weight: 700;
-      font-family: inherit;
+      letter-spacing: .15em;
+      text-transform: uppercase;
       cursor: pointer;
-      box-shadow: 0 4px 20px rgba(56, 189, 248, 0.35), 0 2px 6px rgba(0,0,0,0.3);
-      transition: transform 0.15s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.15s;
       -webkit-tap-highlight-color: transparent;
       touch-action: manipulation;
-      letter-spacing: -0.1px;
+      box-shadow: 0 4px 20px rgba(0,255,238,.25);
+      transition: opacity .15s, transform .12s, box-shadow .15s;
     }
     button[type="submit"]:active {
-      transform: scale(0.97);
-      box-shadow: 0 2px 10px rgba(56, 189, 248, 0.25);
+      opacity: .9;
+      transform: scale(.97);
+      box-shadow: 0 2px 10px rgba(0,255,238,.2);
     }
     button[type="submit"]:disabled {
-      opacity: 0.6;
-      transform: none;
+      opacity: 0.4;
+      box-shadow: none;
     }
 
     .error {
-      margin-top: 16px;
-      padding: 12px 16px;
-      background: rgba(239, 68, 68, 0.1);
-      border: 1px solid rgba(239, 68, 68, 0.25);
-      border-radius: 12px;
-      color: #FCA5A5;
-      font-size: 13px;
-      font-weight: 500;
-      line-height: 1.4;
+      margin-top: 14px;
+      padding: 11px 14px;
+      background: rgba(255,77,109,.08);
+      border: 1px solid rgba(255,77,109,.22);
+      border-radius: 10px;
+      color: #FECDD3;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      letter-spacing: .03em;
+      text-align: left;
     }
   `;
 
   static properties = {
-    error: { type: String },
+    error:   { type: String },
     loading: { type: Boolean },
   };
 
@@ -251,29 +186,32 @@ export class LoginScreen extends LitElement {
 
   render() {
     return html`
-      <div class="bg-blob bg-blob-1"></div>
-      <div class="bg-blob bg-blob-2"></div>
-      <div class="bg-blob bg-blob-3"></div>
-      <div class="bg-grid"></div>
       <form class="card" @submit=${this._submit}>
         <div class="logo-wrap">
-          <div class="logo-ring"></div>
-          <div class="logo">J</div>
+          <svg class="logo-ring" viewBox="0 0 72 72" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="36" cy="36" r="34" stroke="rgba(0,255,238,0.20)" stroke-width="1"/>
+            <circle cx="36" cy="36" r="24" stroke="rgba(0,255,238,0.12)" stroke-width=".8" stroke-dasharray="3 3"/>
+            <line x1="36" y1="1"  x2="36" y2="10" stroke="rgba(0,255,238,0.4)" stroke-width="1.2"/>
+            <line x1="36" y1="62" x2="36" y2="71" stroke="rgba(0,255,238,0.4)" stroke-width="1.2"/>
+            <line x1="1"  y1="36" x2="10" y2="36" stroke="rgba(0,255,238,0.4)" stroke-width="1.2"/>
+            <line x1="62" y1="36" x2="71" y2="36" stroke="rgba(0,255,238,0.4)" stroke-width="1.2"/>
+          </svg>
+          <div class="logo-core"></div>
         </div>
         <h1>Jarvis</h1>
-        <p class="subtitle">Connect to your gateway</p>
+        <p class="subtitle">// connect to gateway</p>
         <div class="input-wrap">
-          <span class="input-icon">⬤</span>
+          <span class="input-icon">◈</span>
           <input
             type="password"
-            placeholder="Access key"
+            placeholder="access key"
             autocomplete="current-password"
             ?disabled=${this.loading}>
         </div>
         <button type="submit" ?disabled=${this.loading}>
           ${this.loading ? 'Connecting…' : 'Connect'}
         </button>
-        ${this.error ? html`<div class="error">${this.error}</div>` : ''}
+        ${this.error ? html`<div class="error">⚠ ${this.error}</div>` : ''}
       </form>
     `;
   }

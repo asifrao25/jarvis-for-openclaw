@@ -8,7 +8,6 @@ import './login-screen.js';
 import './chat-view.js';
 import './alert-view.js';
 import './report-view.js';
-import './nav-bar.js';
 
 function categorize(text) {
   if (text.startsWith('[ALERT]')) return 'alert';
@@ -25,188 +24,159 @@ export class AppShell extends LitElement {
   static styles = css`
     :host {
       position: fixed;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
+      top: 0; left: 0; right: 0;
+      height: 100%;
       display: flex;
       flex-direction: column;
-      background: #060A12;
+      background: #030507;
+      /* Force GPU compositing layer — fixes WebKit fixed-position rendering glitch on iOS */
+      -webkit-transform: translateZ(0);
+      transform: translateZ(0);
+      overflow: hidden;
     }
 
-    header {
-      display: flex;
-      align-items: flex-end;
-      justify-content: space-between;
-      padding: 0 18px 13px;
-      padding-top: max(env(safe-area-inset-top, 44px), 16px);
-      background: rgba(6, 10, 18, 0.88);
-      backdrop-filter: blur(24px) saturate(200%);
-      -webkit-backdrop-filter: blur(24px) saturate(200%);
-      position: relative;
-      z-index: 100;
-      flex-shrink: 0;
-    }
-    header::after {
-      content: '';
+    /* ── Background layer ── */
+    .bg {
       position: absolute;
-      bottom: 0;
-      left: 0;
-      right: 0;
-      height: 1px;
-      background: linear-gradient(90deg,
-        transparent 0%,
-        rgba(56, 189, 248, 0.4) 30%,
-        rgba(129, 140, 248, 0.5) 60%,
-        transparent 100%);
+      inset: 0;
+      z-index: 0;
+      pointer-events: none;
+      overflow: hidden;
+    }
+    .bg-grid {
+      position: absolute;
+      inset: -40px;
+      background-image:
+        linear-gradient(rgba(0,255,238,.025) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0,255,238,.025) 1px, transparent 1px);
+      background-size: 44px 44px;
+    }
+    .bg-scanlines {
+      position: absolute;
+      inset: 0;
+      background: repeating-linear-gradient(
+        0deg,
+        transparent, transparent 3px,
+        rgba(0,0,0,.07) 3px, rgba(0,0,0,.07) 4px
+      );
+    }
+    .bg-orb {
+      position: absolute;
+      border-radius: 50%;
+      filter: blur(110px);
+      animation: drift 10s ease-in-out infinite alternate;
+    }
+    .bg-orb-1 {
+      width: 580px; height: 580px;
+      background: radial-gradient(circle, rgba(0,255,238,.10) 0%, transparent 70%);
+      top: -260px; right: -180px;
+    }
+    .bg-orb-2 {
+      width: 380px; height: 380px;
+      background: radial-gradient(circle, rgba(255,140,66,.06) 0%, transparent 70%);
+      bottom: 80px; left: -120px;
+      animation-duration: 14s;
+      animation-direction: alternate-reverse;
+    }
+    .bg-orb-3 {
+      width: 200px; height: 200px;
+      background: radial-gradient(circle, rgba(0,255,238,.05) 0%, transparent 70%);
+      bottom: 40%; right: 8%;
+      animation-duration: 18s;
+    }
+    @keyframes drift {
+      from { transform: translate(0,0) scale(1); }
+      to   { transform: translate(25px, 35px) scale(1.08); }
     }
 
-    .header-left {
+    /* ── Boot screen ── */
+    .boot {
+      position: fixed;
+      inset: 0;
+      z-index: 999;
+      background: #030507;
       display: flex;
-      align-items: center;
-      gap: 11px;
-    }
-    .header-logo {
-      width: 34px;
-      height: 34px;
-      background: linear-gradient(135deg, #38BDF8 0%, #818CF8 100%);
-      border-radius: 10px;
-      display: flex;
+      flex-direction: column;
       align-items: center;
       justify-content: center;
-      font-size: 13px;
-      font-weight: 800;
-      color: white;
-      letter-spacing: -0.5px;
-      box-shadow: 0 0 16px rgba(56, 189, 248, 0.35), 0 2px 8px rgba(0,0,0,0.4);
-      flex-shrink: 0;
+      gap: 28px;
+      transition: opacity .55s ease .1s;
+      pointer-events: all;
     }
-    .header-title {
-      font-size: 17px;
-      font-weight: 700;
-      color: #F1F5F9;
-      letter-spacing: -0.4px;
+    .boot.hidden { opacity: 0; pointer-events: none; }
+    .boot-logo {
+      font-family: 'Orbitron', monospace;
+      font-weight: 900;
+      font-size: clamp(28px, 8vw, 40px);
+      letter-spacing: .35em;
+      color: #00ffee;
+      text-shadow: 0 0 40px rgba(0,255,238,.6), 0 0 90px rgba(0,255,238,.2);
+      animation: bootRise .6s cubic-bezier(.16,1,.3,1) both;
     }
-    .version-tag {
-      font-size: 11px;
-      font-weight: 600;
-      color: #38BDF8;
-      background: rgba(56, 189, 248, 0.1);
-      border: 1px solid rgba(56, 189, 248, 0.2);
-      padding: 2px 7px;
-      border-radius: 6px;
-      letter-spacing: 0.2px;
+    .boot-sub {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px;
+      letter-spacing: .2em;
+      color: #d4eaf5;
+      text-transform: uppercase;
+      animation: bootRise .5s .15s cubic-bezier(.16,1,.3,1) both;
     }
-
-    .header-right {
-      display: flex;
-      align-items: center;
-      gap: 10px;
+    .boot-track {
+      width: 180px; height: 1px;
+      background: rgba(0,255,238,.15);
+      border-radius: 1px;
+      overflow: hidden;
+      animation: bootRise .5s .2s both;
     }
-    .status-indicator {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      font-size: 12px;
-      font-weight: 500;
-      color: #64748B;
+    .boot-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #00ffee, rgba(0,255,238,.5));
+      box-shadow: 0 0 12px #00ffee;
+      width: 0%;
+      animation: bootFill 2.2s .3s cubic-bezier(.4,0,.2,1) forwards;
     }
-    .status-dot {
-      width: 7px;
-      height: 7px;
-      border-radius: 50%;
-      transition: all 0.4s ease;
-      flex-shrink: 0;
+    @keyframes bootRise {
+      from { opacity: 0; transform: translateY(14px) scale(.93); }
+      to   { opacity: 1; transform: translateY(0) scale(1); }
     }
-    .status-dot.connected {
-      background: #34D399;
-      box-shadow: 0 0 6px rgba(52, 211, 153, 0.7), 0 0 12px rgba(52, 211, 153, 0.3);
-    }
-    .status-dot.disconnected {
-      background: #475569;
-      box-shadow: none;
+    @keyframes bootFill {
+      0%   { width: 0% }
+      30%  { width: 42% }
+      65%  { width: 74% }
+      88%  { width: 92% }
+      100% { width: 100% }
     }
 
+    /* Content area */
     .content {
       flex: 1;
-      overflow: hidden;
       min-height: 0;
-    }
-
-    .nav-spacer {
-      height: calc(96px + env(safe-area-inset-bottom, 0px));
-      flex-shrink: 0;
-      transition: height 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    }
-    .nav-spacer.ui-hidden { height: 0; }
-    .nav-spacer.kb-open { height: 0; }
-
-    .banner {
       display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 11px 16px;
-      font-size: 13px;
-      font-weight: 500;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
-      flex-shrink: 0;
-    }
-    .install-banner {
-      background: linear-gradient(135deg, rgba(56, 189, 248, 0.08), rgba(129, 140, 248, 0.08));
-      color: #94A3B8;
-    }
-    .push-banner {
-      background: rgba(56, 189, 248, 0.06);
-      color: #94A3B8;
-    }
-    .banner-actions {
-      display: flex;
-      gap: 8px;
-      align-items: center;
-    }
-    .btn-sm {
-      padding: 7px 14px;
-      border-radius: 20px;
-      font-size: 13px;
-      font-weight: 600;
-      font-family: inherit;
-      cursor: pointer;
-      border: none;
-      transition: all 0.15s ease;
-      -webkit-tap-highlight-color: transparent;
-      touch-action: manipulation;
-      user-select: none;
-      -webkit-user-select: none;
-      min-height: 34px;
-    }
-    .btn-sm:active { opacity: 0.8; transform: scale(0.95); }
-    .btn-primary {
-      background: linear-gradient(135deg, #38BDF8, #818CF8);
-      color: white;
-      box-shadow: 0 2px 10px rgba(56, 189, 248, 0.3);
-    }
-    .btn-primary:disabled { opacity: 0.5; transform: none; }
-    .btn-ghost {
-      background: none;
-      color: #475569;
-      padding: 7px 10px;
+      flex-direction: column;
+      overflow: hidden;
+      position: relative;
+      z-index: 1;
+      padding-top: env(safe-area-inset-top, 0px);
     }
   `;
 
   static properties = {
-    view: { type: String },
-    loggedIn: { type: Boolean },
-    connected: { type: Boolean },
-    messages: { type: Array },
-    thinking: { type: Boolean },
-    streaming: { type: Boolean },
-    showInstallBanner: { type: Boolean },
-    showPushBanner: { type: Boolean },
-    pushLoading: { type: Boolean },
-    alertCount: { type: Number },
-    reportCount: { type: Number },
-    _uiHidden: { type: Boolean, state: true },
-    _kbOpen: { type: Boolean, state: true },
+    view:             { type: String },
+    loggedIn:         { type: Boolean },
+    connected:        { type: Boolean },
+    messages:         { type: Array },
+    thinking:         { type: Boolean },
+    streaming:        { type: Boolean },
+    showInstallBanner:{ type: Boolean },
+    showPushBanner:   { type: Boolean },
+    pushLoading:      { type: Boolean },
+    alertCount:       { type: Number },
+    reportCount:      { type: Number },
+    _uiHidden:        { type: Boolean, state: true },
+    _kbOpen:          { type: Boolean, state: true },
+    _wsStatus:        { type: String,  state: true },
+    _booting:         { type: Boolean, state: true },
+    _bootHidden:      { type: Boolean, state: true },
   };
 
   constructor() {
@@ -224,24 +194,27 @@ export class AppShell extends LitElement {
     this.reportCount = 0;
     this._uiHidden = false;
     this._kbOpen = false;
+    this._wsStatus = 'offline';
     this._streamingRuns = new Map();
+    this._booting = true;
+    this._bootHidden = false;
   }
 
   connectedCallback() {
     super.connectedCallback();
 
-    if (navigator.clearAppBadge) {
-      navigator.clearAppBadge().catch(() => {});
-    }
+    // Boot animation
+    setTimeout(() => { this._bootHidden = true; }, 2400);
+    setTimeout(() => { this._booting = false; }, 3100);
+
+    if (navigator.clearAppBadge) navigator.clearAppBadge().catch(() => {});
     if (navigator.serviceWorker?.controller) {
       navigator.serviceWorker.controller.postMessage('clear-badge');
     }
 
     document.addEventListener('visibilitychange', () => {
       if (document.visibilityState === 'visible') {
-        if (navigator.clearAppBadge) {
-          navigator.clearAppBadge().catch(() => {});
-        }
+        if (navigator.clearAppBadge) navigator.clearAppBadge().catch(() => {});
         if (navigator.serviceWorker?.controller) {
           navigator.serviceWorker.controller.postMessage('clear-badge');
         }
@@ -250,9 +223,7 @@ export class AppShell extends LitElement {
 
     const isStandalone = window.matchMedia('(display-mode: standalone)').matches
       || window.navigator.standalone === true;
-    if (!isStandalone) {
-      this.showInstallBanner = true;
-    }
+    if (!isStandalone) this.showInstallBanner = true;
 
     if (!localStorage.getItem('openclaw-push-registered') && !localStorage.getItem('openclaw-push-dismissed')) {
       this.showPushBanner = true;
@@ -260,15 +231,16 @@ export class AppShell extends LitElement {
 
     wsClient.addEventListener('authenticated', async () => {
       this.connected = true;
+      this._wsStatus = 'online';
       const synced = await resyncPush();
-      if (!synced && !this.showPushBanner) {
-        this.showPushBanner = true;
-      }
+      if (!synced && !this.showPushBanner) this.showPushBanner = true;
     });
 
     wsClient.addEventListener('disconnected', () => {
       this.connected = false;
+      this._wsStatus = 'connecting';
     });
+
 
     wsClient.addEventListener('auth-failed', (e) => {
       this.loggedIn = false;
@@ -278,36 +250,42 @@ export class AppShell extends LitElement {
       if (loginEl) loginEl.setError(e.detail || 'Authentication failed');
     });
 
-    wsClient.addEventListener('message', (e) => {
-      this._handleMessage(e.detail);
-    });
+    wsClient.addEventListener('message', (e) => { this._handleMessage(e.detail); });
+
+    if (window.visualViewport) {
+      const onVvResize = () => {
+        const vv = window.visualViewport;
+        this.style.height = `${vv.height}px`;
+        this.style.top = `${vv.offsetTop}px`;
+
+        // Check if keyboard is likely open based on viewport height reduction
+        const isKbOpen = (window.innerHeight - vv.height) > 150;
+        if (isKbOpen !== this._kbOpen) {
+          if (isKbOpen) this._onKbOpen();
+          else this._onKbClose();
+        }
+      };
+      window.visualViewport.addEventListener('resize', onVvResize);
+      window.visualViewport.addEventListener('scroll', onVvResize);
+      onVvResize();
+    }
 
     const savedPassword = getAuth();
     if (savedPassword) {
       this.loggedIn = true;
+      this._wsStatus = 'connecting';
       wsClient.connect(savedPassword);
       this._loadStoredMessages();
     }
-
-    // Keyboard detection is handled via kb-open / kb-close custom events
-    // dispatched by chat-view directly from its input's focus/blur listeners.
-    // This avoids composedPath() across shadow DOM boundaries which is
-    // unreliable on iOS standalone.
   }
 
-  disconnectedCallback() {
-    super.disconnectedCallback();
-  }
+  disconnectedCallback() { super.disconnectedCallback(); }
 
   async _loadStoredMessages() {
     try {
       const all = await getLatest(200);
-      if (all.length > 0) {
-        this.messages = all;
-      }
-    } catch (err) {
-      console.error('Failed to load stored messages:', err);
-    }
+      if (all.length > 0) this.messages = all;
+    } catch (err) { console.error('Failed to load stored messages:', err); }
   }
 
   _handleMessage(msg) {
@@ -345,7 +323,6 @@ export class AppShell extends LitElement {
       this.thinking = false;
       this.streaming = true;
       const existingIdx = this._streamingRuns.get(runId);
-
       if (existingIdx !== undefined) {
         const updated = [...this.messages];
         updated[existingIdx] = { ...updated[existingIdx], text, streaming: true };
@@ -353,19 +330,13 @@ export class AppShell extends LitElement {
       } else {
         const idx = this.messages.length;
         this._streamingRuns.set(runId, idx);
-        this.messages = [...this.messages, {
-          role, text, category, timestamp: Date.now(), streaming: true, runId,
-        }];
+        this.messages = [...this.messages, { role, text, category, timestamp: Date.now(), streaming: true, runId }];
       }
     } else if (state === 'final') {
       this.thinking = false;
       this.streaming = false;
       const existingIdx = this._streamingRuns.get(runId);
-
-      const finalMsg = {
-        role, text, category, timestamp: Date.now(), streaming: false, runId,
-        seq: msg.seq,
-      };
+      const finalMsg = { role, text, category, timestamp: Date.now(), streaming: false, runId, seq: msg.seq };
 
       if (existingIdx !== undefined) {
         const updated = [...this.messages];
@@ -378,11 +349,8 @@ export class AppShell extends LitElement {
 
       addMessage(finalMsg).catch(err => console.error('Failed to store message:', err));
 
-      if (category === 'alert' && this.view !== 'alert') {
-        this.alertCount++;
-      } else if (category === 'report' && this.view !== 'report') {
-        this.reportCount++;
-      }
+      if (category === 'alert' && this.view !== 'alert') this.alertCount++;
+      else if (category === 'report' && this.view !== 'report') this.reportCount++;
 
       hapticLight();
     }
@@ -392,6 +360,7 @@ export class AppShell extends LitElement {
     const { password } = e.detail;
     saveAuth(password);
     this.loggedIn = true;
+    this._wsStatus = 'connecting';
     wsClient.connect(password);
     this._loadStoredMessages();
     hapticSuccess();
@@ -408,40 +377,30 @@ export class AppShell extends LitElement {
   _onUiVisibility(e) { this._uiHidden = e.detail.hidden; }
 
   _onKbOpen() {
-    // Cancel any pending close timer (rapid re-focus case)
     clearTimeout(this._kbCloseTimer);
-    const nav = this.shadowRoot.querySelector('nav-bar');
-    if (nav) nav.toggleAttribute('keyboard-open', true);
     this._kbOpen = true;
+    const cv = this.shadowRoot?.querySelector('chat-view');
+    if (cv) cv.setAttribute('kb-open', '');
   }
 
   _onKbClose() {
-    // Delay restoring the nav bar until the iOS keyboard animation finishes
-    // (~300ms). If we restore immediately on blur the visual viewport is still
-    // scrolled up, so position:fixed;bottom:0 lands above the physical bottom.
+    this._kbOpen = false;
     this._kbCloseTimer = setTimeout(() => {
-      const nav = this.shadowRoot.querySelector('nav-bar');
-      if (nav) nav.toggleAttribute('keyboard-open', false);
-      this._kbOpen = false;
-    }, 400);
+      const cv = this.shadowRoot?.querySelector('chat-view');
+      if (cv) cv.removeAttribute('kb-open');
+    }, 350);
   }
 
   _onSendMessage(e) {
     const text = e.detail;
     const requestId = wsClient.sendChat(text);
-    const userMsg = {
-      role: 'user', text, category: 'chat', timestamp: Date.now(),
-      requestId, status: 'sending',
-    };
+    const userMsg = { role: 'user', text, category: 'chat', timestamp: Date.now(), requestId, status: 'sending' };
     this.messages = [...this.messages, userMsg];
     addMessage(userMsg).catch(err => console.error('Failed to store message:', err));
     hapticMedium();
   }
 
-  _onRefresh() {
-    this._loadStoredMessages();
-    hapticMedium();
-  }
+  _onRefresh() { this._loadStoredMessages(); hapticMedium(); }
 
   async _onDeleteMessage(e) {
     const { id, timestamp } = e.detail;
@@ -450,9 +409,7 @@ export class AppShell extends LitElement {
       if (timestamp && m.timestamp === timestamp && !m.id) return false;
       return true;
     });
-    if (id) {
-      await deleteMessage(id).catch(err => console.error('Failed to delete message:', err));
-    }
+    if (id) await deleteMessage(id).catch(err => console.error('Failed to delete message:', err));
     hapticLight();
   }
 
@@ -473,18 +430,10 @@ export class AppShell extends LitElement {
     this.pushLoading = true;
     try {
       const ok = await registerPush();
-      if (ok) {
-        this.showPushBanner = false;
-        hapticSuccess();
-      } else {
-        hapticError();
-      }
-    } catch (err) {
-      console.error('[Push] Enable failed:', err);
-      hapticError();
-    } finally {
-      this.pushLoading = false;
-    }
+      if (ok) { this.showPushBanner = false; hapticSuccess(); }
+      else hapticError();
+    } catch (err) { console.error('[Push] Enable failed:', err); hapticError(); }
+    finally { this.pushLoading = false; }
   }
 
   _dismissPush() {
@@ -493,74 +442,54 @@ export class AppShell extends LitElement {
     hapticLight();
   }
 
-  _dismissInstall() {
-    this.showInstallBanner = false;
-    hapticLight();
+  _dismissInstall() { this.showInstallBanner = false; hapticLight(); }
+
+  _clearChat() {
+    hapticMedium();
+    this._onClearCategory({ detail: 'chat' });
   }
 
   render() {
+    const bg = html`
+      <div class="bg" aria-hidden="true">
+        <div class="bg-grid"></div>
+        <div class="bg-scanlines"></div>
+        <div class="bg-orb bg-orb-1"></div>
+        <div class="bg-orb bg-orb-2"></div>
+        <div class="bg-orb bg-orb-3"></div>
+      </div>
+    `;
+
     if (!this.loggedIn) {
-      return html`<login-screen @login=${this._onLogin}></login-screen>`;
+      return html`
+        ${bg}
+        <login-screen @login=${this._onLogin}></login-screen>
+      `;
     }
 
     return html`
-      <header>
-        <div class="header-left">
-          <div class="header-logo">J</div>
-          <span class="header-title">Jarvis</span>
-          <span class="version-tag">v3.6</span>
-        </div>
-        <div class="header-right">
-          <div class="status-indicator">
-            <div class="status-dot ${this.connected ? 'connected' : 'disconnected'}"></div>
-            <span>${this.connected ? 'Live' : 'Offline'}</span>
-          </div>
-        </div>
-      </header>
-      ${this.showInstallBanner ? html`
-        <div class="banner install-banner">
-          <span>Add to Home Screen for the best experience</span>
-          <button class="btn-sm btn-ghost" @click=${this._dismissInstall}>✕</button>
+      ${this._booting ? html`
+        <div class="boot${this._bootHidden ? ' hidden' : ''}">
+          <div class="boot-logo">JARVIS</div>
+          <div class="boot-sub">Neural Interface v4.0</div>
+          <div class="boot-track"><div class="boot-fill"></div></div>
         </div>
       ` : ''}
-      ${this.showPushBanner ? html`
-        <div class="banner push-banner">
-          <span>Enable push notifications?</span>
-          <div class="banner-actions">
-            <button class="btn-sm btn-primary" ?disabled=${this.pushLoading} @click=${this._enablePush}>
-              ${this.pushLoading ? 'Enabling…' : 'Enable'}
-            </button>
-            <button class="btn-sm btn-ghost" @click=${this._dismissPush}>✕</button>
-          </div>
-        </div>
-      ` : ''}
-      <div class="content" @delete-message=${this._onDeleteMessage} @clear-category=${this._onClearCategory} @ui-visibility=${this._onUiVisibility}>
-        ${this.view === 'chat' ? html`
-          <chat-view
-            .messages=${this.messages}
-            .thinking=${this.thinking}
-            .streaming=${this.streaming}
-            @send-message=${this._onSendMessage}
-            @refresh=${this._onRefresh}
-            @kb-open=${this._onKbOpen}
-            @kb-close=${this._onKbClose}
-          ></chat-view>
-        ` : ''}
-        ${this.view === 'alert' ? html`
-          <alert-view .messages=${this.messages} @refresh=${this._onRefresh}></alert-view>
-        ` : ''}
-        ${this.view === 'report' ? html`
-          <report-view .messages=${this.messages} @refresh=${this._onRefresh}></report-view>
-        ` : ''}
+
+      ${bg}
+
+      <div class="content"
+        @delete-message=${this._onDeleteMessage}
+        @clear-category=${this._onClearCategory}
+        @ui-visibility=${this._onUiVisibility}>
+        <chat-view
+          .messages=${this.messages}
+          .thinking=${this.thinking}
+          .streaming=${this.streaming}
+          @send-message=${this._onSendMessage}
+          @refresh=${this._onRefresh}
+        ></chat-view>
       </div>
-      <div class="nav-spacer${this._uiHidden ? ' ui-hidden' : ''}${this._kbOpen ? ' kb-open' : ''}"></div>
-      <nav-bar
-        .active=${this.view}
-        .scrollHidden=${this._uiHidden}
-        .alertCount=${this.alertCount}
-        .reportCount=${this.reportCount}
-        @navigate=${this._onNavigate}
-      ></nav-bar>
     `;
   }
 }
