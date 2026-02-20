@@ -20,6 +20,7 @@ export class MessageItem extends LitElement {
       padding: 10px 14px;
       border-radius: 8px;
       position: relative;
+      transition: all 0.5s ease;
     }
     
     .role-user {
@@ -46,6 +47,19 @@ export class MessageItem extends LitElement {
       box-shadow: 0 0 8px var(--c-primary);
     }
 
+    /* Unread Highlight for Assistant Messages */
+    .role-assistant.unread {
+      border: 1px solid var(--c-primary);
+      box-shadow: 0 0 20px rgba(0, 255, 255, 0.3);
+      animation: pulse-border 2s infinite;
+    }
+
+    @keyframes pulse-border {
+      0% { border-color: var(--c-primary-dim); box-shadow: 0 0 10px rgba(0, 255, 255, 0.2); }
+      50% { border-color: var(--c-primary); box-shadow: 0 0 25px rgba(0, 255, 255, 0.5); }
+      100% { border-color: var(--c-primary-dim); box-shadow: 0 0 10px rgba(0, 255, 255, 0.2); }
+    }
+
     .meta {
       font-size: 10px;
       color: rgba(255, 255, 255, 0.4);
@@ -56,14 +70,65 @@ export class MessageItem extends LitElement {
   `;
 
   static properties = {
+    msgId: { type: Number },
     role: { type: String },
     text: { type: String },
     timestamp: { type: Number },
+    seen: { type: Boolean },
   };
 
+  constructor() {
+    super();
+    this.seen = true;
+    this._observer = null;
+  }
+
+  firstUpdated() {
+    if (this.role === 'assistant' && !this.seen) {
+      this._setupObserver();
+    }
+  }
+
+  _setupObserver() {
+    this._observer = new IntersectionObserver((entries) => {
+      if (entries[0].isIntersecting) {
+        this._markAsSeen();
+      }
+    }, { threshold: 0.5 });
+    this._observer.observe(this.shadowRoot.querySelector('.message-container'));
+  }
+
+  _markAsSeen() {
+    if (this._observer) {
+      this._observer.disconnect();
+      this._observer = null;
+    }
+    
+    // Only trigger if still unseen
+    if (!this.seen) {
+      this.dispatchEvent(new CustomEvent('message-seen', {
+        detail: { id: this.msgId, timestamp: this.timestamp },
+        bubbles: true,
+        composed: true
+      }));
+    }
+  }
+
+  disconnectedCallback() {
+    super.disconnectedCallback();
+    if (this._observer) {
+      this._observer.disconnect();
+    }
+  }
+
   render() {
+    const containerClasses = ['message-container', `role-${this.role}`];
+    if (this.role === 'assistant' && !this.seen) {
+      containerClasses.push('unread');
+    }
+
     return html`
-      <div class="message-container role-${this.role}">
+      <div class="${containerClasses.join(' ')}">
         <div class="text">${this.text}</div>
         <div class="meta">${new Date(this.timestamp).toLocaleTimeString()}</div>
       </div>

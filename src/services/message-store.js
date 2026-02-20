@@ -23,8 +23,8 @@ export async function addMessage(msg) {
   const db = await openDB();
   return new Promise((resolve, reject) => {
     const tx = db.transaction(STORE_NAME, 'readwrite');
-    tx.objectStore(STORE_NAME).add(msg);
-    tx.oncomplete = () => resolve();
+    const req = tx.objectStore(STORE_NAME).add(msg);
+    tx.oncomplete = () => resolve(req.result);
     tx.onerror = () => reject(tx.error);
   });
 }
@@ -53,6 +53,25 @@ export async function getLatest(limit = 100) {
       resolve(results.slice(-limit));
     };
     req.onerror = () => reject(req.error);
+  });
+}
+
+export async function markSeen(id) {
+  if (!id) return;
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(STORE_NAME, 'readwrite');
+    const store = tx.objectStore(STORE_NAME);
+    const req = store.get(id);
+    req.onsuccess = () => {
+      const msg = req.result;
+      if (msg) {
+        msg.seen = true;
+        store.put(msg);
+      }
+    };
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
   });
 }
 
