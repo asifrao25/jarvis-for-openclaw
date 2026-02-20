@@ -28,8 +28,7 @@ export class ChatView extends LitElement {
     }
     
     :host([ui-hidden]) .messages {
-      padding-top: 10px;
-      padding-bottom: env(safe-area-inset-bottom, 20px);
+      padding-bottom: 20px;
     }
 
     .messages::-webkit-scrollbar { width: 4px; }
@@ -37,15 +36,16 @@ export class ChatView extends LitElement {
 
     .input-area {
       flex-shrink: 0;
-      padding: 10px 15px;
+      /* Flushed horizontally and almost flushed vertically (tiny margin for home indicator safety) */
+      padding: 8px 60px 8px 12px;
       background: #000;
       border-top: 1px solid rgba(0, 255, 255, 0.15);
       display: flex;
       align-items: center;
-      gap: 10px;
+      gap: 8px;
       z-index: 30;
       overflow: hidden;
-      height: 60px;
+      height: 56px;
       box-sizing: border-box;
       transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     }
@@ -63,7 +63,7 @@ export class ChatView extends LitElement {
       background: rgba(0, 255, 255, 0.05);
       border: 1px solid rgba(0, 255, 255, 0.2);
       border-radius: 8px;
-      padding: 10px 15px;
+      padding: 8px 12px;
       color: var(--c-primary);
       font-family: var(--f-body);
       font-size: 16px;
@@ -80,12 +80,13 @@ export class ChatView extends LitElement {
       background: var(--c-primary);
       border: none;
       border-radius: 8px;
-      padding: 10px 18px;
+      padding: 8px 14px;
       color: #000;
       font-weight: 800;
       cursor: pointer;
       font-family: var(--f-mono);
       text-transform: uppercase;
+      font-size: 12px;
     }
     
     button:active { transform: scale(0.92); }
@@ -143,7 +144,6 @@ export class ChatView extends LitElement {
       
       if (Math.abs(diff) > 5) {
         let shouldHide = this.uiHidden;
-        
         // Hide UI on scroll UP, show on scroll DOWN or bottom
         if (diff < -15 && st > 100) {
           shouldHide = true;
