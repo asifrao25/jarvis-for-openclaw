@@ -4,154 +4,117 @@ import { hapticLight } from '../services/haptics.js';
 export class NavBar extends LitElement {
   static styles = css`
     :host {
-      flex-shrink: 0;
-      pointer-events: none;
-      background: rgba(3,5,7,.97);
-      backdrop-filter: blur(24px) saturate(180%);
-      -webkit-backdrop-filter: blur(24px) saturate(180%);
-      border-top: 1px solid rgba(0,255,238,.10);
-      padding-bottom: env(safe-area-inset-bottom, 0px);
-      max-height: 200px;
-      overflow: hidden;
-      transition: max-height 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-      position: relative;
-      z-index: 100;
-    }
-    :host([scroll-hidden]) { max-height: 0; }
-    :host([keyboard-open]) { display: none; }
-
-    nav {
       display: flex;
       width: 100%;
-      padding: 0 8px;
+      height: 100%;
       justify-content: space-around;
       align-items: center;
-      pointer-events: auto;
+      position: relative;
     }
 
     button {
-      flex: 1;
+      background: transparent;
+      border: none;
+      color: #555;
       display: flex;
       flex-direction: column;
       align-items: center;
-      gap: 3px;
-      padding: 9px 0 7px;
-      background: transparent;
-      border: none;
-      color: #3f6070;
+      gap: 4px;
+      padding: 10px 20px;
       cursor: pointer;
-      -webkit-tap-highlight-color: transparent;
-      touch-action: manipulation;
-      user-select: none;
-      -webkit-user-select: none;
       position: relative;
-      transition: color .2s;
-    }
-    button.active { color: #00ffee; }
-
-    /* Active top indicator */
-    button.active::before {
-      content: '';
-      position: absolute;
-      top: 0; left: 50%;
-      transform: translateX(-50%);
-      width: 28px; height: 2px;
-      background: #00ffee;
-      border-radius: 0 0 2px 2px;
-      box-shadow: 0 0 8px #00ffee;
+      transition: color 0.3s;
     }
 
-    .btn-icon {
-      width: 26px; height: 26px;
-      border-radius: 7px;
+    button.active {
+      color: var(--c-primary);
+    }
+
+    .icon-box {
+      width: 24px; height: 24px;
       display: flex;
       align-items: center;
       justify-content: center;
       position: relative;
-      transition: background .2s, transform .15s;
     }
-    button.active .btn-icon { background: rgba(0,255,238,.10); }
-    button:active .btn-icon { transform: scale(.86); }
-
-    button svg {
-      width: 18px; height: 18px;
+    
+    svg {
+      width: 24px; height: 24px;
       fill: currentColor;
+      filter: drop-shadow(0 0 0 transparent);
+      transition: filter 0.3s;
+    }
+    
+    button.active svg {
+      filter: drop-shadow(0 0 5px var(--c-primary));
     }
 
     .label {
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 8.5px;
-      letter-spacing: .10em;
+      font-family: var(--f-mono);
+      font-size: 10px;
+      letter-spacing: 1px;
       text-transform: uppercase;
-      line-height: 1;
     }
 
     .badge {
       position: absolute;
-      top: -4px; right: -4px;
-      min-width: 16px; height: 16px;
-      line-height: 16px;
-      border-radius: 8px;
-      background: #FF4D6D;
-      box-shadow: 0 0 8px rgba(255,77,109,.5);
-      color: white;
-      font-family: 'JetBrains Mono', monospace;
+      top: -5px; right: -5px;
+      background: var(--c-alert);
+      color: #FFF;
       font-size: 9px;
-      font-weight: 700;
-      text-align: center;
-      padding: 0 4px;
+      font-weight: bold;
+      padding: 2px 4px;
+      border-radius: 4px;
+      box-shadow: 0 0 5px var(--c-alert);
+    }
+
+    /* Active Indicator Line */
+    .indicator {
+      position: absolute;
+      top: 0;
+      height: 2px;
+      width: 40px;
+      background: var(--c-primary);
+      box-shadow: 0 0 8px var(--c-primary);
+      transition: transform 0.3s cubic-bezier(0.4, 0.0, 0.2, 1);
     }
   `;
 
   static properties = {
-    active:       { type: String },
-    chatCount:    { type: Number },
-    alertCount:   { type: Number },
-    reportCount:  { type: Number },
-    scrollHidden: { type: Boolean, reflect: true, attribute: 'scroll-hidden' },
+    active: { type: String },
+    alertCount: { type: Number },
+    reportCount: { type: Number },
   };
 
-  constructor() {
-    super();
-    this.active = 'chat';
-    this.chatCount = 0;
-    this.alertCount = 0;
-    this.reportCount = 0;
-    this.scrollHidden = false;
-  }
-
-  _tap(tab) {
+  _nav(view) {
+    this.dispatchEvent(new CustomEvent('navigate', { detail: view, bubbles: true, composed: true }));
     hapticLight();
-    this.dispatchEvent(new CustomEvent('navigate', { detail: tab }));
   }
 
   render() {
     return html`
-      <nav>
-        <button class=${this.active === 'chat' ? 'active' : ''} @click=${() => this._tap('chat')}>
-          <div class="btn-icon">
-            <svg viewBox="0 0 24 24"><path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"/></svg>
-            ${this.chatCount > 0 ? html`<span class="badge">${this.chatCount}</span>` : ''}
-          </div>
-          <span class="label">Chat</span>
-        </button>
+      <button class=${this.active === 'chat' ? 'active' : ''} @click=${() => this._nav('chat')}>
+        <div class="icon-box">
+          <svg viewBox="0 0 24 24"><path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"/></svg>
+        </div>
+        <span class="label">Chat</span>
+      </button>
 
-        <button class=${this.active === 'alert' ? 'active' : ''} @click=${() => this._tap('alert')}>
-          <div class="btn-icon">
-            <svg viewBox="0 0 24 24"><path d="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z"/></svg>
-            ${this.alertCount > 0 ? html`<span class="badge">${this.alertCount}</span>` : ''}
-          </div>
-          <span class="label">Alerts</span>
-        </button>
+      <button class=${this.active === 'alert' ? 'active' : ''} @click=${() => this._nav('alert')}>
+        <div class="icon-box">
+          <svg viewBox="0 0 24 24"><path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.9 2 2 2zm6-6v-5c0-3.07-1.63-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.64 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z"/></svg>
+          ${this.alertCount > 0 ? html`<span class="badge">${this.alertCount}</span>` : ''}
+        </div>
+        <span class="label">Alerts</span>
+      </button>
 
-        <button class=${this.active === 'report' ? 'active' : ''} @click=${() => this._tap('report')}>
-          <div class="btn-icon">
-            <svg viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/></svg>
-            ${this.reportCount > 0 ? html`<span class="badge">${this.reportCount}</span>` : ''}
-          </div>
-          <span class="label">Reports</span>
-        </button>
-      </nav>
+      <button class=${this.active === 'report' ? 'active' : ''} @click=${() => this._nav('report')}>
+        <div class="icon-box">
+          <svg viewBox="0 0 24 24"><path d="M3 13h2v-2H3v2zm0 4h2v-2H3v2zm0-8h2V7H3v2zm4 4h14v-2H7v2zm0 4h14v-2H7v2zM7 7v2h14V7H7z"/></svg>
+          ${this.reportCount > 0 ? html`<span class="badge">${this.reportCount}</span>` : ''}
+        </div>
+        <span class="label">Reports</span>
+      </button>
     `;
   }
 }
