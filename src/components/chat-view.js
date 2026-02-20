@@ -19,8 +19,8 @@ export class ChatView extends LitElement {
       overflow-y: scroll;
       -webkit-overflow-scrolling: touch;
       padding: 15px 20px;
-      /* Room for the input area */
-      padding-bottom: 120px;
+      /* Default padding to clear the 56px input bar */
+      padding-bottom: 80px;
       display: flex;
       flex-direction: column;
       gap: 12px;
@@ -29,8 +29,9 @@ export class ChatView extends LitElement {
       transition: padding 0.3s ease;
     }
     
+    /* When UI is hidden, utilize EVERY pixel including the bottom bezel area */
     :host([ui-hidden]) .messages {
-      padding-bottom: env(safe-area-inset-bottom, 20px);
+      padding-bottom: 10px;
     }
 
     .messages::-webkit-scrollbar { width: 4px; }
@@ -38,19 +39,18 @@ export class ChatView extends LitElement {
 
     .input-area {
       flex-shrink: 0;
-      /* Exactly 50px on the right for the FAB zone */
+      /* Exactly 50px on the right for the FAB zone, and 12px on left */
       padding: 0 50px 0 12px;
-      padding-bottom: env(safe-area-inset-bottom, 0px);
+      /* Absolute bottom flush: no padding-bottom, relying on 56px height to contain 40px input */
       background: #000;
       border-top: 1px solid rgba(0, 255, 255, 0.15);
       display: flex;
       align-items: center;
       z-index: 30;
       overflow: hidden;
-      /* Strict height to match NavBar host height logic */
       height: 56px;
       min-height: 56px;
-      box-sizing: content-box;
+      box-sizing: border-box;
       transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     }
 
@@ -75,7 +75,6 @@ export class ChatView extends LitElement {
       outline: none;
       -webkit-appearance: none;
       box-sizing: border-box;
-      /* Force expansion */
       display: block;
       min-width: 0;
     }

@@ -6,14 +6,17 @@ export class NavBar extends LitElement {
     :host {
       position: fixed;
       right: 0;
-      /* Aligned with the 56px flush input bar + safe area */
+      /* Force literal bottom flush */
       bottom: 0;
       width: 50px;
-      height: calc(56px + env(safe-area-inset-bottom, 0px));
+      /* Exactly 56px to match input area, solid black background to hit bottom edge */
+      height: 56px;
+      background: #000;
       z-index: 100;
       display: flex;
       flex-direction: column;
       align-items: center;
+      justify-content: center;
       pointer-events: none;
       transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     }
@@ -25,12 +28,11 @@ export class NavBar extends LitElement {
 
     :host([keyboard-open]) {
       bottom: 0;
-      height: 56px;
     }
 
     .menu-container {
       position: absolute;
-      bottom: calc(56px + env(safe-area-inset-bottom, 0px) + 12px);
+      bottom: 68px; /* 56px bar + 12px margin */
       right: 10px;
       display: flex;
       flex-direction: column;
@@ -46,10 +48,6 @@ export class NavBar extends LitElement {
       box-shadow: 0 0 30px rgba(0, 255, 255, 0.3);
       backdrop-filter: blur(20px);
       -webkit-backdrop-filter: blur(20px);
-    }
-
-    :host([keyboard-open]) .menu-container {
-      bottom: 68px;
     }
 
     .menu-container.open {
@@ -87,16 +85,6 @@ export class NavBar extends LitElement {
       font-size: 11px;
       text-transform: uppercase;
       letter-spacing: 1px;
-    }
-
-    /* Container to center the 40px button in the 56px height slot */
-    .fab-slot {
-      width: 100%;
-      height: 56px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      flex-shrink: 0;
     }
 
     .fab-main {
@@ -206,16 +194,14 @@ export class NavBar extends LitElement {
         ` : ''}
       </div>
 
-      <div class="fab-slot">
-        <button class="fab-main ${this.open ? 'open' : ''}" @click=${this._toggle} aria-label="Toggle Menu">
-          ${!this.open && totalUnread > 0 ? html`<span class="badge">${totalUnread}</span>` : ''}
-          ${this.open ? html`
-            <svg viewBox="0 0 24 24"><path d="M16.59 8.59L12 13.17 7.41 8.59 6 10l6 6 6-6z"/></svg>
-          ` : html`
-            <svg viewBox="0 0 24 24"><path d="M12 8l-6 6 1.41 1.41L12 10.83l4.59 4.58L18 14z"/></svg>
-          `}
-        </button>
-      </div>
+      <button class="fab-main ${this.open ? 'open' : ''}" @click=${this._toggle} aria-label="Toggle Menu">
+        ${!this.open && totalUnread > 0 ? html`<span class="badge">${totalUnread}</span>` : ''}
+        ${this.open ? html`
+          <svg viewBox="0 0 24 24"><path d="M16.59 8.59L12 13.17 7.41 8.59 6 10l6 6 6-6z"/></svg>
+        ` : html`
+          <svg viewBox="0 0 24 24"><path d="M12 8l-6 6 1.41 1.41L12 10.83l4.59 4.58L18 14z"/></svg>
+        `}
+      </button>
     `;
   }
 }
