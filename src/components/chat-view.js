@@ -214,7 +214,13 @@ export class ChatView extends LitElement {
         ` : ''}
         
         ${this.messages.map(m => html`
-          <message-item .role=${m.role} .text=${m.text} .timestamp=${m.timestamp}></message-item>
+          <message-item 
+            .msgId=${m.id} 
+            .role=${m.role} 
+            .text=${m.text} 
+            .timestamp=${m.timestamp}
+            .seen=${m.seen}
+          ></message-item>
         `)}
         
         ${this.thinking ? html`<div style="color:var(--c-primary); font-family:var(--f-mono); margin-left:10px; font-size:12px; letter-spacing:1px; margin-bottom: 20px;">ANALYZING...</div>` : ''}

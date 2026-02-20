@@ -2,7 +2,7 @@ import { LitElement, html, css } from 'lit';
 import { wsClient } from '../services/ws-client.js';
 import { getAuth, saveAuth, clearAuth } from '../services/auth.js';
 import { registerPush, resyncPush } from '../services/push-registration.js';
-import { addMessage, getLatest, deleteMessage, clearByCategory, clearAll } from '../services/message-store.js';
+import { addMessage, getLatest, deleteMessage, markSeen, clearByCategory, clearAll } from '../services/message-store.js';
 import { hapticLight, hapticMedium, hapticSuccess, hapticError } from '../services/haptics.js';
 import './login-screen.js';
 import './chat-view.js';
@@ -178,6 +178,20 @@ export class AppShell extends LitElement {
     this.addEventListener('clear-category', this._onClearCategory);
     this.addEventListener('login', this._onLogin);
     this.addEventListener('ui-toggle', (e) => { this.uiHidden = e.detail; });
+    this.addEventListener('message-seen', this._onMessageSeen);
+  }
+
+  _onMessageSeen(e) {
+    const { id, timestamp } = e.detail;
+    // Update in-memory state
+    this.messages = this.messages.map(m => {
+      if ((id && m.id === id) || (timestamp && m.timestamp === timestamp)) {
+        return { ...m, seen: true };
+      }
+      return m;
+    });
+    // Persist to store if it has an ID
+    if (id) markSeen(id);
   }
 
   _setupViewport() {
@@ -300,7 +314,7 @@ export class AppShell extends LitElement {
       this.thinking = false;
       this.streaming = false;
       const existingIdx = this._streamingRuns.get(runId);
-      const finalMsg = { role, text, category, timestamp: Date.now(), streaming: false, runId, seq: msg.seq };
+      const finalMsg = { role, text, category, timestamp: Date.now(), streaming: false, runId, seq: msg.seq, seen: false };
 
       if (existingIdx !== undefined) {
         const updated = [...this.messages];
@@ -311,7 +325,14 @@ export class AppShell extends LitElement {
         this.messages = [...this.messages, finalMsg];
       }
 
-      addMessage(finalMsg).catch(err => console.error('Failed to store message:', err));
+      addMessage(finalMsg).then(id => {
+        // If the ID was auto-generated, we might want to update our local object
+        // but for now, we'll rely on the timestamp or a re-render.
+        // Actually, let's update the message in the list with its new ID if possible.
+        if (id) {
+           this.messages = this.messages.map(m => m.timestamp === finalMsg.timestamp ? { ...m, id } : m);
+        }
+      }).catch(err => console.error('Failed to store message:', err));
 
       if (category === 'alert' && this.view !== 'alert') this.alertCount++;
       else if (category === 'report' && this.view !== 'report') this.reportCount++;
@@ -346,7 +367,7 @@ export class AppShell extends LitElement {
   _onSendMessage(e) {
     const text = e.detail;
     const requestId = wsClient.sendChat(text);
-    const userMsg = { role: 'user', text, category: 'chat', timestamp: Date.now(), requestId, status: 'sending' };
+    const userMsg = { role: 'user', text, category: 'chat', timestamp: Date.now(), requestId, status: 'sending', seen: true };
     this.messages = [...this.messages, userMsg];
     addMessage(userMsg).catch(err => console.error('Failed to store message:', err));
     hapticMedium();
@@ -387,7 +408,7 @@ export class AppShell extends LitElement {
           <login-screen @login=${this._onLogin}></login-screen>
         ` : html`
           <div class="header">
-            <h1>JARVIS <span>v4.5.0</span></h1>
+            <h1>JARVIS <span>v4.5.1</span></h1>
             <div class="status">
               <span>SYSTEM</span>
               <div class="status-dot ${this.connected ? 'online' : 'connecting'}"></div>
