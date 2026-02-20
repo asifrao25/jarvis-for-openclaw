@@ -6,19 +6,18 @@ import './stream-indicator.js';
 export class ChatView extends LitElement {
   static styles = css`
     :host {
+      flex: 1;
+      min-height: 0;
       display: flex;
       flex-direction: column;
-      height: 100%;
       position: relative;
-      background: #060A12;
+      overflow: hidden;
     }
 
     /* Pull-to-refresh indicator */
     .pull-indicator {
       position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
+      top: 0; left: 0; right: 0;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -26,223 +25,260 @@ export class ChatView extends LitElement {
       overflow: hidden;
       transition: height 0.25s cubic-bezier(0.4, 0, 0.2, 1);
       z-index: 10;
-      background: rgba(56, 189, 248, 0.06);
-      color: #64748B;
-      font-size: 12px;
-      font-weight: 500;
+      color: #4a6e82;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      letter-spacing: .08em;
       gap: 8px;
     }
     .pull-indicator.pulling { transition: none; }
     .pull-indicator.refreshing { height: 48px; }
     .pull-spinner {
-      width: 16px;
-      height: 16px;
-      border: 1.5px solid rgba(56, 189, 248, 0.2);
-      border-top-color: #38BDF8;
+      width: 14px; height: 14px;
+      border: 1.5px solid rgba(0,255,238,.18);
+      border-top-color: #00ffee;
       border-radius: 50%;
     }
-    .pull-indicator.refreshing .pull-spinner {
-      animation: spin 0.75s linear infinite;
-    }
+    .pull-indicator.refreshing .pull-spinner { animation: spin 0.75s linear infinite; }
     @keyframes spin { to { transform: rotate(360deg); } }
-    .pull-arrow {
-      font-size: 14px;
-      transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-      display: inline-block;
-      opacity: 0.6;
-    }
+    .pull-arrow { font-size: 13px; opacity: 0.5; transition: transform .2s; }
     .pull-arrow.ready { transform: rotate(180deg); }
 
+    /* Header bar */
+    .cv-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 6px 14px;
+      flex-shrink: 0;
+      border-bottom: 1px solid rgba(0,255,238,.08);
+      background: rgba(3,5,7,.6);
+    }
+    .cv-header-title {
+      font-family: 'Orbitron', monospace;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: .25em;
+      color: #00ffee;
+      text-transform: uppercase;
+    }
+    .cv-header-ver {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 9px;
+      letter-spacing: .1em;
+      color: #4a6e82;
+    }
+
+    /* Messages area */
     .messages {
       flex: 1;
       overflow-y: auto;
       -webkit-overflow-scrolling: touch;
-      padding: 8px 0 4px;
-      scroll-behavior: smooth;
+      padding: 12px 0 8px;
       overscroll-behavior-y: contain;
     }
     .messages::-webkit-scrollbar { display: none; }
 
+    /* Empty state */
     .empty {
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
       height: 100%;
-      gap: 16px;
+      gap: 14px;
       padding: 32px;
     }
     .empty-orb {
-      width: 72px;
-      height: 72px;
+      width: 64px; height: 64px;
       border-radius: 50%;
-      background: radial-gradient(circle at 35% 35%, rgba(56, 189, 248, 0.25), rgba(129, 140, 248, 0.12) 60%, transparent);
-      border: 1px solid rgba(56, 189, 248, 0.2);
+      border: 1px solid rgba(0,255,238,.18);
+      background: rgba(0,255,238,.04);
       display: flex;
       align-items: center;
       justify-content: center;
-      box-shadow: 0 0 30px rgba(56, 189, 248, 0.12), 0 0 60px rgba(129, 140, 248, 0.06);
-      animation: orb-pulse 3s ease-in-out infinite;
+      box-shadow: 0 0 24px rgba(0,255,238,.08);
+      animation: orbBreath 4s ease-in-out infinite;
     }
-    @keyframes orb-pulse {
-      0%, 100% { box-shadow: 0 0 30px rgba(56, 189, 248, 0.12), 0 0 60px rgba(129, 140, 248, 0.06); }
-      50% { box-shadow: 0 0 40px rgba(56, 189, 248, 0.22), 0 0 80px rgba(129, 140, 248, 0.12); }
+    @keyframes orbBreath {
+      0%, 100% { box-shadow: 0 0 20px rgba(0,255,238,.08); }
+      50%       { box-shadow: 0 0 36px rgba(0,255,238,.16); }
     }
-    .empty-orb svg { width: 30px; height: 30px; }
+    .empty-orb svg { width: 28px; height: 28px; }
     .empty-text {
-      font-size: 16px;
-      font-weight: 600;
-      color: #94A3B8;
-      letter-spacing: -0.2px;
+      font-family: 'Orbitron', monospace;
+      font-size: 12px;
+      font-weight: 700;
+      color: #4a6e82;
+      letter-spacing: .2em;
+      text-transform: uppercase;
     }
     .empty-hint {
-      font-size: 13px;
-      color: #334155;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      color: #2a3f50;
       text-align: center;
-      line-height: 1.5;
+      letter-spacing: .03em;
+      line-height: 1.6;
     }
 
+    /* Clear all button */
     .clear-btn {
       position: absolute;
-      top: 10px;
-      right: 14px;
+      top: 10px; right: 14px;
       z-index: 10;
-      background: none;
-      border: 1px solid rgba(239, 68, 68, 0.25);
-      color: rgba(239, 68, 68, 0.7);
-      font-size: 11px;
-      font-weight: 600;
-      font-family: inherit;
+      background: transparent;
+      border: 1px solid rgba(0,255,238,.14);
+      color: #4a6e82;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 9.5px;
+      letter-spacing: .08em;
+      text-transform: uppercase;
       padding: 4px 10px;
       border-radius: 20px;
       cursor: pointer;
       -webkit-tap-highlight-color: transparent;
       touch-action: manipulation;
-      transition: all 0.15s;
+      transition: all .2s;
     }
-    .clear-btn:active { opacity: 0.6; transform: scale(0.95); }
+    .clear-btn:active {
+      color: #FF4D6D;
+      border-color: rgba(255,77,109,.3);
+      background: rgba(255,77,109,.06);
+    }
 
-    /* Scroll-to-bottom — above input bar */
+    /* Scroll-to-bottom */
     .scroll-bottom {
       position: absolute;
-      bottom: 112px;
-      right: 16px;
-      width: 38px;
-      height: 38px;
+      bottom: 80px; right: 16px;
+      width: 34px; height: 34px;
       border-radius: 50%;
-      background: rgba(15, 23, 42, 0.9);
-      border: 1px solid rgba(56, 189, 248, 0.3);
-      color: #38BDF8;
+      background: rgba(8,13,20,.92);
+      border: 1px solid rgba(0,255,238,.18);
+      color: #00ffee;
       display: flex;
       align-items: center;
       justify-content: center;
       cursor: pointer;
-      box-shadow: 0 4px 16px rgba(0,0,0,0.4), 0 0 12px rgba(56, 189, 248, 0.15);
       z-index: 20;
-      transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
       -webkit-tap-highlight-color: transparent;
       touch-action: manipulation;
-      backdrop-filter: blur(12px);
-      -webkit-backdrop-filter: blur(12px);
+      box-shadow: 0 0 12px rgba(0,255,238,.12);
+      transition: all .2s;
     }
-    .scroll-bottom:active { transform: scale(0.88); }
-    .scroll-bottom svg { width: 18px; height: 18px; fill: currentColor; }
+    .scroll-bottom:active { opacity: 0.7; transform: scale(.9); }
+    .scroll-bottom svg { width: 16px; height: 16px; fill: currentColor; }
 
-    /* Input area */
+    /* Input bar */
     .input-wrap {
-      padding: 6px 12px 8px;
-      background: rgba(6, 10, 18, 0.92);
-      backdrop-filter: blur(20px);
-      -webkit-backdrop-filter: blur(20px);
-      border-top: 1px solid rgba(255, 255, 255, 0.05);
-      max-height: 64px;
-      overflow: hidden;
-      transition: max-height 0.3s cubic-bezier(0.4, 0, 0.2, 1),
-                  opacity     0.25s ease;
-    }
-    .input-wrap.ui-hidden {
-      max-height: 0;
-      opacity: 0;
-      pointer-events: none;
-    }
-    .scroll-bottom.ui-hidden { bottom: 12px; }
-    .input-row {
       display: flex;
-      gap: 10px;
       align-items: flex-end;
+      gap: 8px;
+      padding: 10px 14px;
+      padding-bottom: calc(10px + env(safe-area-inset-bottom, 0px));
+      background: rgba(3,5,7,.94);
+      backdrop-filter: blur(24px) saturate(180%);
+      -webkit-backdrop-filter: blur(24px) saturate(180%);
+      border-top: 1px solid rgba(0,255,238,.10);
+      flex-shrink: 0;
+      position: relative;
     }
+    .input-wrap::before {
+      content: '';
+      position: absolute;
+      top: -1px; left: 15%; right: 15%;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(0,255,238,.35), transparent);
+    }
+    :host([kb-open]) .input-wrap { padding-bottom: 10px; }
+
+    .attach-btn {
+      width: 40px; height: 42px;
+      border: 1px solid rgba(0,255,238,.12);
+      background: transparent;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #4a6e82;
+      cursor: pointer;
+      flex-shrink: 0;
+      transition: all .2s;
+      -webkit-tap-highlight-color: transparent;
+      touch-action: manipulation;
+      padding: 0;
+    }
+    .attach-btn:active {
+      color: #00ffee;
+      border-color: rgba(0,255,238,.28);
+      background: rgba(0,255,238,.08);
+      transform: scale(.9);
+    }
+    .attach-btn svg { width: 16px; height: 16px; }
+
+    .input-field-wrap { flex: 1; }
+
     input {
-      flex: 1;
-      padding: 9px 16px;
-      background: rgba(255, 255, 255, 0.05);
-      border: 1px solid rgba(255, 255, 255, 0.09);
-      border-radius: 24px;
-      color: #F1F5F9;
-      font-size: 16px;
-      font-family: inherit;
+      width: 100%;
+      height: 42px;
+      padding: 0 14px;
+      background: #0d1520;
+      border: 1px solid rgba(0,255,238,.12);
+      border-radius: 14px;
+      color: #d4eaf5;
+      font-size: 15px;
+      font-family: 'Syne', sans-serif;
       outline: none;
-      transition: border-color 0.2s, box-shadow 0.2s;
-      min-height: 40px;
+      caret-color: #00ffee;
+      display: block;
+      transition: border-color .2s, box-shadow .2s;
+      -webkit-appearance: none;
     }
-    input::placeholder { color: #3D4E63; }
+    input::placeholder {
+      color: #2a3f50;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12.5px;
+      letter-spacing: .04em;
+    }
     input:focus {
-      border-color: rgba(56, 189, 248, 0.45);
-      box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.08);
+      border-color: rgba(0,255,238,.28);
+      box-shadow: 0 0 0 3px rgba(0,255,238,.05);
     }
 
     .send-btn {
-      width: 40px;
-      height: 40px;
-      border-radius: 50%;
-      background: linear-gradient(135deg, #38BDF8 0%, #818CF8 100%);
+      width: 42px; height: 42px;
       border: none;
-      color: white;
+      background: linear-gradient(135deg, #00ffee, #00c8b8);
+      border-radius: 12px;
       display: flex;
       align-items: center;
       justify-content: center;
+      color: #030507;
       cursor: pointer;
       flex-shrink: 0;
-      box-shadow: 0 4px 14px rgba(56, 189, 248, 0.4), 0 2px 4px rgba(0,0,0,0.3);
-      transition: transform 0.15s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.15s;
+      transition: all .18s;
+      box-shadow: 0 4px 16px rgba(0,255,238,.22);
+      padding: 0;
       -webkit-tap-highlight-color: transparent;
       touch-action: manipulation;
     }
     .send-btn:active {
-      transform: scale(0.88);
-      box-shadow: 0 2px 8px rgba(56, 189, 248, 0.3);
+      transform: scale(.88);
+      box-shadow: 0 2px 8px rgba(0,255,238,.15);
     }
-    .send-btn:disabled {
-      opacity: 0.4;
-      transform: none;
-      box-shadow: none;
-    }
-    .send-btn svg {
-      width: 20px;
-      height: 20px;
-      fill: white;
-      margin-left: 2px;
-    }
-
-    @media (min-width: 768px) {
-      .input-wrap {
-        max-width: 800px;
-        margin: 0 auto;
-        width: 100%;
-        padding: 10px 20px 14px;
-        background: none;
-        border-top: none;
-      }
-    }
+    .send-btn:disabled { opacity: .25; box-shadow: none; }
+    .send-btn svg { width: 17px; height: 17px; fill: currentColor; }
   `;
 
   static properties = {
-    messages: { type: Array },
-    thinking: { type: Boolean },
-    streaming: { type: Boolean },
-    _pullState: { type: String, state: true },
-    _pullHeight: { type: Number, state: true },
+    messages:       { type: Array },
+    thinking:       { type: Boolean },
+    streaming:      { type: Boolean },
+    _pullState:     { type: String,  state: true },
+    _pullHeight:    { type: Number,  state: true },
     _showScrollBtn: { type: Boolean, state: true },
-    _uiHidden: { type: Boolean, state: true },
+    _uiHidden:      { type: Boolean, state: true },
+    _kbFocused:     { type: Boolean, state: true },
   };
 
   constructor() {
@@ -256,14 +292,13 @@ export class ChatView extends LitElement {
     this._pulling = false;
     this._showScrollBtn = false;
     this._uiHidden = false;
+    this._kbFocused = false;
     this._lastScrollTop = 0;
   }
 
   updated(changed) {
-    if (changed.has('messages')) {
-      if (!this._showScrollBtn) {
-        this._scrollToBottom();
-      }
+    if (changed.has('messages') && !this._showScrollBtn) {
+      this._scrollToBottom();
     }
   }
 
@@ -278,14 +313,12 @@ export class ChatView extends LitElement {
 
       const delta = st - this._lastScrollTop;
       if (Math.abs(delta) > 5) {
-        // Hide only when scrolling UP, past top threshold, and not near bottom
         const shouldHide = delta < 0 && st > 80 && distFromBottom > 80;
         if (shouldHide !== this._uiHidden) {
           this._uiHidden = shouldHide;
           this.dispatchEvent(new CustomEvent('ui-visibility', {
             detail: { hidden: shouldHide },
-            bubbles: true,
-            composed: true,
+            bubbles: true, composed: true,
           }));
         }
         this._lastScrollTop = Math.max(0, st);
@@ -293,10 +326,7 @@ export class ChatView extends LitElement {
     }, { passive: true });
 
     el.addEventListener('touchstart', (e) => {
-      if (el.scrollTop <= 0) {
-        this._touchStartY = e.touches[0].clientY;
-        this._pulling = true;
-      }
+      if (el.scrollTop <= 0) { this._touchStartY = e.touches[0].clientY; this._pulling = true; }
     }, { passive: true });
 
     el.addEventListener('touchmove', (e) => {
@@ -306,13 +336,8 @@ export class ChatView extends LitElement {
         const pull = Math.min(dy * 0.5, 80);
         this._pullHeight = pull;
         this._pullState = pull >= 60 ? 'ready' : 'pulling';
-        if (pull >= 60 && this._pullState === 'ready') {
-          hapticLight();
-        }
-      } else {
-        this._pullHeight = 0;
-        this._pullState = 'idle';
-      }
+        if (pull >= 60 && this._pullState === 'ready') hapticLight();
+      } else { this._pullHeight = 0; this._pullState = 'idle'; }
     }, { passive: true });
 
     el.addEventListener('touchend', () => {
@@ -324,34 +349,18 @@ export class ChatView extends LitElement {
         hapticMedium();
         this.dispatchEvent(new CustomEvent('refresh'));
         setTimeout(() => { this._pullState = 'idle'; }, 1000);
-      } else {
-        this._pullState = 'idle';
-        this._pullHeight = 0;
-      }
+      } else { this._pullState = 'idle'; this._pullHeight = 0; }
     }, { passive: true });
 
-    // Keyboard detection: attach directly to the input element so there is
-    // no dependency on composedPath() across shadow DOM boundaries.
-    // A 600ms startup guard prevents iOS focus-restoration from triggering
-    // keyboard-open on launch.
     const input = this.shadowRoot.querySelector('input');
     if (input) {
-      let kbReady = false;
-      let inputFocused = false;
-      setTimeout(() => { kbReady = true; }, 600);
-      input.addEventListener('focus', () => {
-        inputFocused = true;
-        if (!kbReady) return;
-        this.dispatchEvent(new CustomEvent('kb-open', { bubbles: true, composed: true }));
-      });
       input.addEventListener('blur', () => {
-        inputFocused = false;
-        this.dispatchEvent(new CustomEvent('kb-close', { bubbles: true, composed: true }));
+        this._kbFocused = false;
+        setTimeout(() => window.scrollTo(0, 0), 30);
       });
 
-      // Touching the messages area while keyboard is open dismisses it
       el.addEventListener('touchstart', () => {
-        if (inputFocused) input.blur();
+        if (this.shadowRoot.activeElement === input) input.blur();
       }, { passive: true });
     }
   }
@@ -363,10 +372,7 @@ export class ChatView extends LitElement {
     });
   }
 
-  _onScrollBottom() {
-    hapticLight();
-    this._scrollToBottom();
-  }
+  _onScrollBottom() { hapticLight(); this._scrollToBottom(); }
 
   _send(e) {
     e.preventDefault();
@@ -393,6 +399,11 @@ export class ChatView extends LitElement {
       ? `height: ${this._pullHeight}px` : '';
 
     return html`
+      <div class="cv-header">
+        <span class="cv-header-title">Jarvis</span>
+        <span class="cv-header-ver">v4.0</span>
+      </div>
+
       <div class=${pullClasses.join(' ')} style=${pullStyle}>
         ${this._pullState === 'refreshing' ? html`
           <div class="pull-spinner"></div>
@@ -412,18 +423,16 @@ export class ChatView extends LitElement {
           <div class="empty">
             <div class="empty-orb">
               <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14H9V8h2v8zm4 0h-2V8h2v8z"
-                  fill="url(#grad)" opacity="0.8"/>
-                <defs>
-                  <linearGradient id="grad" x1="2" y1="2" x2="22" y2="22" gradientUnits="userSpaceOnUse">
-                    <stop offset="0%" stop-color="#38BDF8"/>
-                    <stop offset="100%" stop-color="#818CF8"/>
-                  </linearGradient>
-                </defs>
+                <circle cx="12" cy="12" r="9" stroke="rgba(0,255,238,0.4)" stroke-width="1"/>
+                <circle cx="12" cy="12" r="3" fill="#00ffee" opacity="0.8"/>
+                <line x1="12" y1="2"  x2="12" y2="5"  stroke="rgba(0,255,238,0.5)" stroke-width="1"/>
+                <line x1="12" y1="19" x2="12" y2="22" stroke="rgba(0,255,238,0.5)" stroke-width="1"/>
+                <line x1="2"  y1="12" x2="5"  y2="12" stroke="rgba(0,255,238,0.5)" stroke-width="1"/>
+                <line x1="19" y1="12" x2="22" y2="12" stroke="rgba(0,255,238,0.5)" stroke-width="1"/>
               </svg>
             </div>
-            <div class="empty-text">Jarvis is ready</div>
-            <div class="empty-hint">Your AI assistant is online and waiting for your message</div>
+            <div class="empty-text">Jarvis Online</div>
+            <div class="empty-hint">// neural link established\nwaiting for your input</div>
           </div>
         ` : ''}
         ${chatMessages.map(m => html`
@@ -442,20 +451,23 @@ export class ChatView extends LitElement {
       </div>
 
       ${this._showScrollBtn ? html`
-        <button class="scroll-bottom ${this._uiHidden ? 'ui-hidden' : ''}" @click=${this._onScrollBottom} aria-label="Scroll to bottom">
+        <button class="scroll-bottom" @click=${this._onScrollBottom} aria-label="Scroll to bottom">
           <svg viewBox="0 0 24 24"><path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6 1.41-1.41z"/></svg>
         </button>
       ` : ''}
 
-      <form class="input-wrap ${this._uiHidden ? 'ui-hidden' : ''}" @submit=${this._send}>
-        <div class="input-row">
-          <input type="text" placeholder="Message Jarvis…" autocomplete="off" autocorrect="off" spellcheck="true">
-          <button class="send-btn" type="submit">
-            <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-              <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
-            </svg>
-          </button>
+      <form class="input-wrap" @submit=${this._send}>
+        <button type="button" class="attach-btn" aria-label="Attach">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/>
+          </svg>
+        </button>
+        <div class="input-field-wrap">
+          <input type="text" placeholder="// message jarvis…" autocomplete="off" autocorrect="off" spellcheck="true">
         </div>
+        <button class="send-btn" type="submit" aria-label="Send">
+          <svg viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
+        </button>
       </form>
     `;
   }

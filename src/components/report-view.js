@@ -8,14 +8,12 @@ export class ReportView extends LitElement {
       flex-direction: column;
       height: 100%;
       position: relative;
-      background: #060A12;
+      background: transparent;
     }
 
     .pull-indicator {
       position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
+      top: 0; left: 0; right: 0;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -23,23 +21,23 @@ export class ReportView extends LitElement {
       overflow: hidden;
       transition: height 0.25s cubic-bezier(0.4, 0, 0.2, 1);
       z-index: 10;
-      background: rgba(52, 211, 153, 0.05);
-      color: #64748B;
-      font-size: 12px;
-      font-weight: 500;
+      color: #4a6e82;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      letter-spacing: .08em;
       gap: 8px;
     }
     .pull-indicator.pulling { transition: none; }
     .pull-indicator.refreshing { height: 48px; }
     .pull-spinner {
-      width: 16px; height: 16px;
-      border: 1.5px solid rgba(52, 211, 153, 0.2);
-      border-top-color: #34D399;
+      width: 14px; height: 14px;
+      border: 1.5px solid rgba(0,229,160,.2);
+      border-top-color: #00E5A0;
       border-radius: 50%;
     }
     .pull-indicator.refreshing .pull-spinner { animation: spin 0.75s linear infinite; }
     @keyframes spin { to { transform: rotate(360deg); } }
-    .pull-arrow { font-size: 14px; transition: transform 0.2s; opacity: 0.6; }
+    .pull-arrow { font-size: 13px; opacity: 0.5; }
     .pull-arrow.ready { transform: rotate(180deg); }
 
     .clear-bar {
@@ -49,20 +47,25 @@ export class ReportView extends LitElement {
       padding: 6px 16px 2px;
     }
     .clear-btn {
-      background: none;
-      border: 1px solid rgba(52, 211, 153, 0.25);
-      color: rgba(52, 211, 153, 0.7);
-      font-size: 11px;
-      font-weight: 600;
-      font-family: inherit;
+      background: transparent;
+      border: 1px solid rgba(0,229,160,.18);
+      color: #4a6e82;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 9.5px;
+      letter-spacing: .08em;
+      text-transform: uppercase;
       padding: 4px 10px;
       border-radius: 20px;
       cursor: pointer;
       -webkit-tap-highlight-color: transparent;
       touch-action: manipulation;
-      transition: all 0.15s;
+      transition: all .2s;
     }
-    .clear-btn:active { opacity: 0.6; transform: scale(0.95); }
+    .clear-btn:active {
+      color: #00E5A0;
+      border-color: rgba(0,229,160,.4);
+      background: rgba(0,229,160,.06);
+    }
 
     .entries {
       flex: 1;
@@ -75,16 +78,11 @@ export class ReportView extends LitElement {
 
     .entry {
       margin: 6px 0;
-      border-radius: 14px;
-      background: rgba(15, 23, 42, 0.75);
-      border: 1px solid rgba(255, 255, 255, 0.07);
-      border-left: 3px solid rgba(52, 211, 153, 0.5);
+      border-radius: 12px;
+      background: rgba(0,229,160,.04);
+      border: 1px solid rgba(0,229,160,.12);
+      border-left: 2px solid rgba(0,229,160,.55);
       overflow: hidden;
-      transition: border-color 0.2s;
-    }
-    .entry.expanded {
-      border-left-color: #34D399;
-      box-shadow: 0 0 20px rgba(52, 211, 153, 0.06);
     }
     .entry-header {
       display: flex;
@@ -97,19 +95,19 @@ export class ReportView extends LitElement {
       -webkit-user-select: none;
       gap: 12px;
     }
-    .entry-header:active { background: rgba(52, 211, 153, 0.04); }
+    .entry-header:active { opacity: 0.7; }
 
     .entry-icon {
       width: 32px; height: 32px;
       border-radius: 8px;
-      background: rgba(52, 211, 153, 0.08);
-      border: 1px solid rgba(52, 211, 153, 0.18);
+      background: rgba(0,229,160,.08);
+      border: 1px solid rgba(0,229,160,.18);
       display: flex;
       align-items: center;
       justify-content: center;
       flex-shrink: 0;
     }
-    .entry-icon svg { width: 16px; height: 16px; fill: #34D399; }
+    .entry-icon svg { width: 16px; height: 16px; fill: #00E5A0; }
 
     .entry-info { flex: 1; min-width: 0; }
     .entry-title {
@@ -120,19 +118,26 @@ export class ReportView extends LitElement {
       overflow: hidden;
       text-overflow: ellipsis;
     }
-    .entry-time { font-size: 11px; color: #3D4E63; margin-top: 2px; }
+    .entry-time {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 9.5px;
+      letter-spacing: .04em;
+      color: #2a3f50;
+      margin-top: 3px;
+    }
 
     .entry-chevron { flex-shrink: 0; transition: transform 0.2s ease; }
-    .entry-chevron svg { width: 16px; height: 16px; fill: #3D4E63; }
+    .entry-chevron svg { width: 16px; height: 16px; fill: #4a6e82; }
     .entry.expanded .entry-chevron { transform: rotate(180deg); }
 
     .entry-body {
       display: none;
       padding: 2px 14px 14px;
-      border-top: 1px solid rgba(52, 211, 153, 0.1);
+      border-top: 1px solid rgba(0,229,160,.10);
     }
     .entry.expanded .entry-body { display: block; }
     .entry-text {
+      font-family: 'Syne', sans-serif;
       font-size: 13px;
       line-height: 1.6;
       color: #94A3B8;
@@ -153,47 +158,55 @@ export class ReportView extends LitElement {
     .empty-icon {
       width: 60px; height: 60px;
       border-radius: 50%;
-      background: rgba(52, 211, 153, 0.07);
-      border: 1px solid rgba(52, 211, 153, 0.15);
+      border: 1px solid rgba(0,229,160,.18);
+      background: rgba(0,229,160,.04);
       display: flex;
       align-items: center;
       justify-content: center;
     }
-    .empty-icon svg { width: 26px; height: 26px; fill: #34D399; opacity: 0.5; }
-    .empty-text { font-size: 15px; font-weight: 600; color: #475569; }
-    .empty-hint { font-size: 13px; color: #334155; text-align: center; }
+    .empty-icon svg { width: 26px; height: 26px; fill: #4a6e82; }
+    .empty-text {
+      font-family: 'Orbitron', monospace;
+      font-size: 11px;
+      font-weight: 700;
+      color: #4a6e82;
+      letter-spacing: .2em;
+      text-transform: uppercase;
+    }
+    .empty-hint {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      color: #2a3f50;
+      text-align: center;
+      letter-spacing: .03em;
+    }
 
     .scroll-bottom {
       position: absolute;
-      bottom: 16px;
-      right: 16px;
-      width: 38px; height: 38px;
+      bottom: 16px; right: 16px;
+      width: 36px; height: 36px;
       border-radius: 50%;
-      background: rgba(15, 23, 42, 0.9);
-      border: 1px solid rgba(52, 211, 153, 0.3);
-      color: #34D399;
+      background: rgba(8,13,20,.92);
+      border: 1px solid rgba(0,229,160,.20);
+      color: #00E5A0;
       display: flex;
       align-items: center;
       justify-content: center;
       cursor: pointer;
-      box-shadow: 0 4px 14px rgba(0,0,0,0.4), 0 0 10px rgba(52, 211, 153, 0.1);
       z-index: 20;
-      transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
       -webkit-tap-highlight-color: transparent;
       touch-action: manipulation;
-      backdrop-filter: blur(12px);
-      -webkit-backdrop-filter: blur(12px);
     }
-    .scroll-bottom:active { transform: scale(0.88); }
+    .scroll-bottom:active { opacity: 0.7; }
     .scroll-bottom svg { width: 18px; height: 18px; fill: currentColor; }
   `;
 
   static properties = {
-    messages: { type: Array },
-    _pullState: { type: String, state: true },
-    _pullHeight: { type: Number, state: true },
+    messages:       { type: Array },
+    _pullState:     { type: String,  state: true },
+    _pullHeight:    { type: Number,  state: true },
     _showScrollBtn: { type: Boolean, state: true },
-    _expanded: { type: Object, state: true },
+    _expanded:      { type: Object,  state: true },
   };
 
   constructor() {
@@ -217,10 +230,7 @@ export class ReportView extends LitElement {
     }, { passive: true });
 
     el.addEventListener('touchstart', (e) => {
-      if (el.scrollTop <= 0) {
-        this._touchStartY = e.touches[0].clientY;
-        this._pulling = true;
-      }
+      if (el.scrollTop <= 0) { this._touchStartY = e.touches[0].clientY; this._pulling = true; }
     }, { passive: true });
 
     el.addEventListener('touchmove', (e) => {
@@ -231,10 +241,7 @@ export class ReportView extends LitElement {
         this._pullHeight = pull;
         this._pullState = pull >= 60 ? 'ready' : 'pulling';
         if (pull >= 60 && this._pullState === 'ready') hapticLight();
-      } else {
-        this._pullHeight = 0;
-        this._pullState = 'idle';
-      }
+      } else { this._pullHeight = 0; this._pullState = 'idle'; }
     }, { passive: true });
 
     el.addEventListener('touchend', () => {
@@ -246,10 +253,7 @@ export class ReportView extends LitElement {
         hapticMedium();
         this.dispatchEvent(new CustomEvent('refresh'));
         setTimeout(() => { this._pullState = 'idle'; }, 1000);
-      } else {
-        this._pullState = 'idle';
-        this._pullHeight = 0;
-      }
+      } else { this._pullState = 'idle'; this._pullHeight = 0; }
     }, { passive: true });
   }
 
@@ -277,9 +281,7 @@ export class ReportView extends LitElement {
     return firstLine.length > 80 ? firstLine.substring(0, 77) + '…' : firstLine;
   }
 
-  _getBody(text) {
-    return text.replace(/^\[REPORT\]\s*/, '');
-  }
+  _getBody(text) { return text.replace(/^\[REPORT\]\s*/, ''); }
 
   _formatTime(ts) {
     if (!ts) return '';
@@ -287,8 +289,7 @@ export class ReportView extends LitElement {
     const now = new Date();
     const time = d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
     if (d.toDateString() === now.toDateString()) return time;
-    const date = d.toLocaleDateString([], { month: 'short', day: 'numeric' });
-    return `${date}, ${time}`;
+    return `${d.toLocaleDateString([], { month: 'short', day: 'numeric' })}, ${time}`;
   }
 
   render() {
@@ -321,7 +322,7 @@ export class ReportView extends LitElement {
               <svg viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/></svg>
             </div>
             <div class="empty-text">No reports</div>
-            <div class="empty-hint">Status reports will appear here</div>
+            <div class="empty-hint">// status reports will appear here</div>
           </div>
         ` : ''}
         ${reports.map((m, i) => {
