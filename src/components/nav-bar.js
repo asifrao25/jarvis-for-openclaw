@@ -5,8 +5,8 @@ export class NavBar extends LitElement {
   static styles = css`
     :host {
       position: fixed;
-      right: 10px;
-      /* Aligned vertically center with the 56px flush input bar */
+      right: 6px;
+      /* Aligned with the 56px flush input bar */
       bottom: 6px;
       z-index: 100;
       display: flex;
@@ -33,11 +33,11 @@ export class NavBar extends LitElement {
       transform: translateY(20px) scale(0.9);
       pointer-events: none;
       transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-      margin-bottom: 15px;
+      margin-bottom: 12px;
       background: rgba(0, 15, 20, 0.98);
       border: 1px solid var(--c-primary);
       border-radius: 12px;
-      padding: 10px;
+      padding: 8px;
       box-shadow: 0 0 30px rgba(0, 255, 255, 0.3);
       backdrop-filter: blur(20px);
       -webkit-backdrop-filter: blur(20px);
@@ -50,15 +50,15 @@ export class NavBar extends LitElement {
     }
 
     .nav-item {
-      width: 150px;
-      padding: 14px;
+      width: 140px;
+      padding: 12px;
       border-radius: 8px;
       background: rgba(0, 255, 255, 0.05);
       border: 1px solid rgba(0, 255, 255, 0.1);
       color: var(--c-primary);
       display: flex;
       align-items: center;
-      gap: 12px;
+      gap: 10px;
       cursor: pointer;
       transition: all 0.2s;
     }
@@ -69,13 +69,13 @@ export class NavBar extends LitElement {
     }
 
     .nav-item svg {
-      width: 20px; height: 20px;
+      width: 18px; height: 18px;
       fill: currentColor;
     }
 
     .nav-item .label {
       font-family: var(--f-mono);
-      font-size: 12px;
+      font-size: 11px;
       text-transform: uppercase;
       letter-spacing: 1px;
     }
@@ -107,10 +107,6 @@ export class NavBar extends LitElement {
       width: 28px; height: 28px;
       fill: currentColor;
       transition: transform 0.3s ease;
-    }
-
-    .fab-main.open svg {
-      transform: rotate(180deg);
     }
 
     .badge {
@@ -192,7 +188,11 @@ export class NavBar extends LitElement {
 
       <button class="fab-main ${this.open ? 'open' : ''}" @click=${this._toggle} aria-label="Toggle Menu">
         ${!this.open && totalUnread > 0 ? html`<span class="badge">${totalUnread}</span>` : ''}
-        <svg viewBox="0 0 24 24"><path d="M7.41 15.41L12 10.83l4.59 4.58L18 14l-6-6-6 6z"/></svg>
+        ${this.open ? html`
+          <svg viewBox="0 0 24 24"><path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6 1.41-1.41z"/></svg>
+        ` : html`
+          <svg viewBox="0 0 24 24"><path d="M7.41 15.41L12 10.83l4.59 4.58L18 14l-6-6-6 6z"/></svg>
+        `}
       </button>
     `;
   }

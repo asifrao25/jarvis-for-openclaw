@@ -36,8 +36,8 @@ export class ChatView extends LitElement {
 
     .input-area {
       flex-shrink: 0;
-      /* Flushed horizontally and almost flushed vertically (tiny margin for home indicator safety) */
-      padding: 8px 60px 8px 12px;
+      /* Reduced right padding to 54px to allow input to reach the edge of the FAB */
+      padding: 8px 54px 8px 12px;
       background: #000;
       border-top: 1px solid rgba(0, 255, 255, 0.15);
       display: flex;
@@ -87,6 +87,7 @@ export class ChatView extends LitElement {
       font-family: var(--f-mono);
       text-transform: uppercase;
       font-size: 12px;
+      margin-right: 2px;
     }
     
     button:active { transform: scale(0.92); }
@@ -144,7 +145,6 @@ export class ChatView extends LitElement {
       
       if (Math.abs(diff) > 5) {
         let shouldHide = this.uiHidden;
-        // Hide UI on scroll UP, show on scroll DOWN or bottom
         if (diff < -15 && st > 100) {
           shouldHide = true;
         } else if (diff > 10 || distFromBottom < 40 || st < 20) {
