@@ -6,7 +6,7 @@ export class NavBar extends LitElement {
     :host {
       position: fixed;
       right: 0;
-      /* Match the 56px input bar + safe area perfectly */
+      /* Aligned with the 56px flush input bar + safe area */
       bottom: 0;
       width: 50px;
       height: calc(56px + env(safe-area-inset-bottom, 0px));
@@ -30,7 +30,7 @@ export class NavBar extends LitElement {
 
     .menu-container {
       position: absolute;
-      bottom: 100%;
+      bottom: calc(56px + env(safe-area-inset-bottom, 0px) + 12px);
       right: 10px;
       display: flex;
       flex-direction: column;
@@ -39,7 +39,6 @@ export class NavBar extends LitElement {
       transform: translateY(20px) scale(0.9);
       pointer-events: none;
       transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-      margin-bottom: 12px;
       background: rgba(0, 15, 20, 0.98);
       border: 1px solid var(--c-primary);
       border-radius: 12px;
@@ -47,6 +46,10 @@ export class NavBar extends LitElement {
       box-shadow: 0 0 30px rgba(0, 255, 255, 0.3);
       backdrop-filter: blur(20px);
       -webkit-backdrop-filter: blur(20px);
+    }
+
+    :host([keyboard-open]) .menu-container {
+      bottom: 68px;
     }
 
     .menu-container.open {
@@ -86,10 +89,19 @@ export class NavBar extends LitElement {
       letter-spacing: 1px;
     }
 
+    /* Container to center the 40px button in the 56px height slot */
+    .fab-slot {
+      width: 100%;
+      height: 56px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
     .fab-main {
       width: 40px;
       height: 40px;
-      margin-top: 8px; /* Centers the 40px button in the 56px height bar */
       border-radius: 10px;
       background: rgba(0, 30, 40, 0.9);
       border: 1px solid var(--c-primary);
@@ -189,21 +201,21 @@ export class NavBar extends LitElement {
         ${this.active !== 'chat' ? html`
           <div class="nav-item" @click=${() => this._nav('chat')}>
             <svg viewBox="0 0 24 24"><path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"/></svg>
-            <span class="label">Core Interface</span>
+            <span class="label">Interface</span>
           </div>
         ` : ''}
       </div>
 
-      <button class="fab-main ${this.open ? 'open' : ''}" @click=${this._toggle} aria-label="Toggle Menu">
-        ${!this.open && totalUnread > 0 ? html`<span class="badge">${totalUnread}</span>` : ''}
-        ${this.open ? html`
-          <!-- Downward Chevron -->
-          <svg viewBox="0 0 24 24"><path d="M16.59 8.59L12 13.17 7.41 8.59 6 10l6 6 6-6z"/></svg>
-        ` : html`
-          <!-- Upward Chevron -->
-          <svg viewBox="0 0 24 24"><path d="M12 8l-6 6 1.41 1.41L12 10.83l4.59 4.58L18 14z"/></svg>
-        `}
-      </button>
+      <div class="fab-slot">
+        <button class="fab-main ${this.open ? 'open' : ''}" @click=${this._toggle} aria-label="Toggle Menu">
+          ${!this.open && totalUnread > 0 ? html`<span class="badge">${totalUnread}</span>` : ''}
+          ${this.open ? html`
+            <svg viewBox="0 0 24 24"><path d="M16.59 8.59L12 13.17 7.41 8.59 6 10l6 6 6-6z"/></svg>
+          ` : html`
+            <svg viewBox="0 0 24 24"><path d="M12 8l-6 6 1.41 1.41L12 10.83l4.59 4.58L18 14z"/></svg>
+          `}
+        </button>
+      </div>
     `;
   }
 }
