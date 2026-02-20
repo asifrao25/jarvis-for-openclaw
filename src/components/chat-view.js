@@ -19,6 +19,8 @@ export class ChatView extends LitElement {
       overflow-y: scroll;
       -webkit-overflow-scrolling: touch;
       padding: 15px 20px;
+      /* Ensure last message is above the input bar when visible */
+      padding-bottom: 120px;
       display: flex;
       flex-direction: column;
       gap: 12px;
@@ -28,7 +30,7 @@ export class ChatView extends LitElement {
     }
     
     :host([ui-hidden]) .messages {
-      padding-bottom: 20px;
+      padding-bottom: env(safe-area-inset-bottom, 20px);
     }
 
     .messages::-webkit-scrollbar { width: 4px; }
@@ -36,26 +38,27 @@ export class ChatView extends LitElement {
 
     .input-area {
       flex-shrink: 0;
-      /* Reduced right padding to 54px to allow input to reach the edge of the FAB */
-      padding: 8px 54px 8px 12px;
+      /* Full width up to the 50px FAB zone on the right */
+      padding: 0 50px 0 10px;
+      padding-bottom: env(safe-area-inset-bottom, 0px);
       background: #000;
       border-top: 1px solid rgba(0, 255, 255, 0.15);
       display: flex;
       align-items: center;
-      gap: 8px;
+      gap: 10px;
       z-index: 30;
       overflow: hidden;
-      height: 56px;
+      min-height: 56px;
       box-sizing: border-box;
       transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     }
 
     :host([ui-hidden]) .input-area {
       height: 0;
-      padding: 0;
-      border-top-color: transparent;
+      min-height: 0;
       opacity: 0;
       pointer-events: none;
+      border-top-color: transparent;
     }
 
     input {
@@ -63,12 +66,14 @@ export class ChatView extends LitElement {
       background: rgba(0, 255, 255, 0.05);
       border: 1px solid rgba(0, 255, 255, 0.2);
       border-radius: 8px;
-      padding: 8px 12px;
+      padding: 10px 12px;
+      height: 40px;
       color: var(--c-primary);
       font-family: var(--f-body);
       font-size: 16px;
       outline: none;
       -webkit-appearance: none;
+      box-sizing: border-box;
     }
 
     input:focus {
@@ -77,17 +82,20 @@ export class ChatView extends LitElement {
     }
 
     button {
+      /* SEND button on the left */
+      order: -1;
       background: var(--c-primary);
       border: none;
       border-radius: 8px;
-      padding: 8px 14px;
+      padding: 0 14px;
+      height: 40px;
       color: #000;
       font-weight: 800;
       cursor: pointer;
       font-family: var(--f-mono);
       text-transform: uppercase;
-      font-size: 12px;
-      margin-right: 2px;
+      font-size: 11px;
+      flex-shrink: 0;
     }
     
     button:active { transform: scale(0.92); }

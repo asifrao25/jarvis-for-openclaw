@@ -5,13 +5,15 @@ export class NavBar extends LitElement {
   static styles = css`
     :host {
       position: fixed;
-      right: 6px;
-      /* Aligned with the 56px flush input bar */
-      bottom: 6px;
+      right: 0;
+      /* Match the 56px input bar + safe area perfectly */
+      bottom: 0;
+      width: 50px;
+      height: calc(56px + env(safe-area-inset-bottom, 0px));
       z-index: 100;
       display: flex;
       flex-direction: column;
-      align-items: flex-end;
+      align-items: center;
       pointer-events: none;
       transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     }
@@ -22,10 +24,14 @@ export class NavBar extends LitElement {
     }
 
     :host([keyboard-open]) {
-      bottom: 6px;
+      bottom: 0;
+      height: 56px;
     }
 
     .menu-container {
+      position: absolute;
+      bottom: 100%;
+      right: 10px;
       display: flex;
       flex-direction: column;
       gap: 10px;
@@ -81,7 +87,9 @@ export class NavBar extends LitElement {
     }
 
     .fab-main {
-      width: 44px; height: 44px;
+      width: 40px;
+      height: 40px;
+      margin-top: 8px; /* Centers the 40px button in the 56px height bar */
       border-radius: 10px;
       background: rgba(0, 30, 40, 0.9);
       border: 1px solid var(--c-primary);
@@ -104,7 +112,7 @@ export class NavBar extends LitElement {
     }
 
     .fab-main svg {
-      width: 28px; height: 28px;
+      width: 24px; height: 24px;
       fill: currentColor;
       transition: transform 0.3s ease;
     }
@@ -181,7 +189,7 @@ export class NavBar extends LitElement {
         ${this.active !== 'chat' ? html`
           <div class="nav-item" @click=${() => this._nav('chat')}>
             <svg viewBox="0 0 24 24"><path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"/></svg>
-            <span class="label">Interface</span>
+            <span class="label">Core Interface</span>
           </div>
         ` : ''}
       </div>
@@ -189,9 +197,11 @@ export class NavBar extends LitElement {
       <button class="fab-main ${this.open ? 'open' : ''}" @click=${this._toggle} aria-label="Toggle Menu">
         ${!this.open && totalUnread > 0 ? html`<span class="badge">${totalUnread}</span>` : ''}
         ${this.open ? html`
-          <svg viewBox="0 0 24 24"><path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6 1.41-1.41z"/></svg>
+          <!-- Downward Chevron -->
+          <svg viewBox="0 0 24 24"><path d="M16.59 8.59L12 13.17 7.41 8.59 6 10l6 6 6-6z"/></svg>
         ` : html`
-          <svg viewBox="0 0 24 24"><path d="M7.41 15.41L12 10.83l4.59 4.58L18 14l-6-6-6 6z"/></svg>
+          <!-- Upward Chevron -->
+          <svg viewBox="0 0 24 24"><path d="M12 8l-6 6 1.41 1.41L12 10.83l4.59 4.58L18 14z"/></svg>
         `}
       </button>
     `;
