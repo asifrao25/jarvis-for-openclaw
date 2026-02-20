@@ -38,14 +38,13 @@ export class ChatView extends LitElement {
 
     .input-area {
       flex-shrink: 0;
-      /* Full width up to the 50px FAB zone on the right */
-      padding: 0 50px 0 10px;
+      /* Using full width up to the 50px FAB zone on the right, removed left button padding */
+      padding: 0 50px 0 12px;
       padding-bottom: env(safe-area-inset-bottom, 0px);
       background: #000;
       border-top: 1px solid rgba(0, 255, 255, 0.15);
       display: flex;
       align-items: center;
-      gap: 10px;
       z-index: 30;
       overflow: hidden;
       min-height: 56px;
@@ -65,8 +64,8 @@ export class ChatView extends LitElement {
       flex: 1;
       background: rgba(0, 255, 255, 0.05);
       border: 1px solid rgba(0, 255, 255, 0.2);
-      border-radius: 8px;
-      padding: 10px 12px;
+      border-radius: 10px;
+      padding: 10px 15px;
       height: 40px;
       color: var(--c-primary);
       font-family: var(--f-body);
@@ -74,31 +73,13 @@ export class ChatView extends LitElement {
       outline: none;
       -webkit-appearance: none;
       box-sizing: border-box;
+      width: 100%;
     }
 
     input:focus {
       border-color: var(--c-primary);
       background: rgba(0, 255, 255, 0.1);
     }
-
-    button {
-      /* SEND button on the left */
-      order: -1;
-      background: var(--c-primary);
-      border: none;
-      border-radius: 8px;
-      padding: 0 14px;
-      height: 40px;
-      color: #000;
-      font-weight: 800;
-      cursor: pointer;
-      font-family: var(--f-mono);
-      text-transform: uppercase;
-      font-size: 11px;
-      flex-shrink: 0;
-    }
-    
-    button:active { transform: scale(0.92); }
 
     .empty-state {
       flex: 1;
@@ -241,7 +222,6 @@ export class ChatView extends LitElement {
           this.uiHidden = false;
           this.dispatchEvent(new CustomEvent('ui-toggle', { detail: false, bubbles: true, composed: true }));
         }}>
-        <button type="submit">SEND</button>
       </form>
     `;
   }
