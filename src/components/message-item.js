@@ -128,7 +128,7 @@ export class MessageItem extends LitElement {
     }
 
     return html`
-      <div class="${containerClasses.join(' ')}">
+      <div class="${containerClasses.join(' ')}" @click=${this._markAsSeen}>
         <div class="text">${this.text}</div>
         <div class="meta">${new Date(this.timestamp).toLocaleTimeString()}</div>
       </div>
