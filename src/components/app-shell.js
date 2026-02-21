@@ -31,7 +31,7 @@ export class AppShell extends LitElement {
       top: 0;
       left: 0;
       width: 100%;
-      height: 100%;
+      height: 100dvh;
       background: #000;
       overflow: hidden;
     }
@@ -40,7 +40,7 @@ export class AppShell extends LitElement {
       display: flex;
       flex-direction: column;
       width: 100%;
-      height: 100%;
+      height: 100dvh;
       background: #000;
       min-height: 0;
     }
@@ -206,7 +206,7 @@ export class AppShell extends LitElement {
           this.style.height = `${vv.height}px`;
           this.style.top = `${vv.offsetTop}px`;
         } else {
-          this.style.height = '100%';
+          this.style.height = '100dvh';
           this.style.top = '0';
         }
         
@@ -420,7 +420,7 @@ export class AppShell extends LitElement {
           <login-screen @login=${this._onLogin}></login-screen>
         ` : html`
           <div class="header">
-            <h1>JARVIS <span>v4.5.7</span></h1>
+            <h1>JARVIS <span>v4.5.8</span></h1>
             <div class="status">
               <span>SYSTEM</span>
               <div class="status-dot ${this.connected ? 'online' : 'connecting'}"></div>
