@@ -8,7 +8,7 @@ export class MessageItem extends LitElement {
       flex-direction: column;
       margin-bottom: 8px;
       font-family: var(--f-body);
-      font-size: 14px;
+      font-size: var(--chat-font-size, 14px);
       line-height: 1.4;
       animation: fadeIn 0.3s ease-out;
     }
@@ -27,7 +27,7 @@ export class MessageItem extends LitElement {
       align-self: flex-end;
       background: rgba(0, 153, 255, 0.2);
       border: 1px solid rgba(0, 153, 255, 0.4);
-      color: #E0F7FA;
+      color: var(--chat-user-color, #E0F7FA);
       box-shadow: 0 0 10px rgba(0, 153, 255, 0.1);
     }
 
@@ -35,7 +35,7 @@ export class MessageItem extends LitElement {
       align-self: flex-start;
       background: rgba(0, 20, 30, 0.8);
       border: 1px solid var(--c-primary-dim);
-      color: var(--c-text);
+      color: var(--chat-agent-color, var(--c-text));
       box-shadow: 0 0 15px rgba(0, 255, 255, 0.05);
     }
     
@@ -61,11 +61,12 @@ export class MessageItem extends LitElement {
     }
 
     .meta {
-      font-size: 10px;
-      color: rgba(255, 255, 255, 0.4);
-      margin-top: 4px;
+      font-size: var(--chat-font-size, 14px);
+      color: #FFFFFF;
+      margin-top: 6px;
       text-align: right;
       font-family: var(--f-mono);
+      font-weight: 500;
     }
   `;
 

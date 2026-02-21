@@ -116,7 +116,6 @@ export class ChatView extends LitElement {
 
   constructor() {
     super();
-    this._lastScrollTop = 0;
     this._touchStartY = 0;
     this.uiHidden = false;
     this._isAutoScrolling = false;
@@ -127,33 +126,6 @@ export class ChatView extends LitElement {
     const input = this.shadowRoot.querySelector('input');
 
     this.scrollToBottom();
-
-    el.addEventListener('scroll', () => {
-      if (this._isAutoScrolling) return;
-
-      const st = el.scrollTop;
-      const diff = st - this._lastScrollTop;
-      const distFromBottom = el.scrollHeight - st - el.clientHeight;
-      
-      if (Math.abs(diff) > 5) {
-        let shouldHide = this.uiHidden;
-        if (diff < -15 && st > 100) {
-          shouldHide = true;
-        } else if (diff > 10 || distFromBottom < 40 || st < 20) {
-          shouldHide = false;
-        }
-        
-        if (shouldHide !== this.uiHidden) {
-          this.uiHidden = shouldHide;
-          this.dispatchEvent(new CustomEvent('ui-toggle', { 
-            detail: shouldHide, 
-            bubbles: true, 
-            composed: true 
-          }));
-        }
-      }
-      this._lastScrollTop = st;
-    }, { passive: true });
 
     el.addEventListener('touchstart', (e) => {
       this._touchStartY = e.touches[0].clientY;
@@ -184,7 +156,6 @@ export class ChatView extends LitElement {
       requestAnimationFrame(() => {
         requestAnimationFrame(() => {
           el.scrollTop = el.scrollHeight;
-          this._lastScrollTop = el.scrollTop;
           setTimeout(() => { this._isAutoScrolling = false; }, 150);
         });
       });
