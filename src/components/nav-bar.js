@@ -9,8 +9,8 @@ export class NavBar extends LitElement {
       /* Force literal bottom flush */
       bottom: 0;
       width: 50px;
-      /* Exactly 48px to match input area, solid black background to hit bottom edge */
-      height: 48px;
+      /* Exactly 40px to match input area, solid black background to hit bottom edge */
+      height: 40px;
       background: #000;
       z-index: 100;
       display: flex;
@@ -32,7 +32,7 @@ export class NavBar extends LitElement {
 
     .menu-container {
       position: absolute;
-      bottom: 60px; /* 48px bar + 12px margin */
+      bottom: 52px; /* 40px bar + 12px margin */
       right: 10px;
       display: flex;
       flex-direction: column;
@@ -88,8 +88,8 @@ export class NavBar extends LitElement {
     }
 
     .fab-main {
-      width: 36px;
-      height: 36px;
+      width: 32px;
+      height: 32px;
       border-radius: 8px;
       background: rgba(0, 30, 40, 0.9);
       border: 1px solid var(--c-primary);
@@ -112,7 +112,7 @@ export class NavBar extends LitElement {
     }
 
     .fab-main svg {
-      width: 20px; height: 20px;
+      width: 18px; height: 18px;
       fill: currentColor;
       transition: transform 0.3s ease;
     }
