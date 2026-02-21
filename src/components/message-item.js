@@ -61,7 +61,7 @@ export class MessageItem extends LitElement {
     }
 
     .meta {
-      font-size: var(--chat-font-size, 14px);
+      font-size: calc(var(--chat-font-size, 14px) * 0.75);
       color: #FFFFFF;
       margin-top: 6px;
       text-align: right;
