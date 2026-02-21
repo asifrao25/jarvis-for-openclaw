@@ -1,5 +1,6 @@
 import { LitElement, html, css } from 'lit';
-import { hapticMedium, hapticLight } from '../services/haptics.js';
+import { hapticMedium, hapticLight, hapticSuccess, hapticError } from '../services/haptics.js';
+import { registerPush } from '../services/push-registration.js';
 
 export class SettingsView extends LitElement {
   static styles = css`
@@ -68,6 +69,25 @@ export class SettingsView extends LitElement {
       font-family: var(--f-mono);
     }
 
+    .btn-action {
+      width: 100%;
+      padding: 10px;
+      border-radius: 8px;
+      background: rgba(0, 255, 255, 0.1);
+      border: 1px solid var(--c-primary);
+      color: var(--c-primary);
+      font-family: var(--f-mono);
+      font-size: 12px;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .btn-action:active {
+      background: rgba(0, 255, 255, 0.3);
+      transform: scale(0.98);
+    }
+
     .clear-btn {
       width: 100%;
       padding: 12px;
@@ -94,12 +114,22 @@ export class SettingsView extends LitElement {
       margin-top: 4px;
       font-family: var(--f-mono);
     }
+
+    .status-badge {
+      font-size: 9px;
+      padding: 2px 6px;
+      border-radius: 4px;
+      text-transform: uppercase;
+    }
+    .status-enabled { background: rgba(0, 255, 0, 0.2); color: #00FF00; }
+    .status-disabled { background: rgba(255, 0, 0, 0.2); color: #FF3333; }
   `;
 
   static properties = {
     fontSize: { type: String },
     userColor: { type: String },
-    agentColor: { type: String }
+    agentColor: { type: String },
+    pushStatus: { type: String, state: true }
   };
 
   constructor() {
@@ -107,7 +137,16 @@ export class SettingsView extends LitElement {
     this.fontSize = localStorage.getItem('settings-font-size') || '16px';
     this.userColor = localStorage.getItem('settings-user-color') || '#00FFFF';
     this.agentColor = localStorage.getItem('settings-agent-color') || '#E0FFFF';
+    this.pushStatus = Notification.permission;
     this._applySettings();
+  }
+
+  async _enablePush() {
+    hapticMedium();
+    const ok = await registerPush();
+    this.pushStatus = Notification.permission;
+    if (ok) hapticSuccess();
+    else hapticError();
   }
 
   _updateFontSize(e) {
@@ -170,6 +209,23 @@ export class SettingsView extends LitElement {
             <span class="label">Agent Chat Color</span>
             <input type="color" .value=${this.agentColor} @input=${this._updateAgentColor}>
           </div>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-title">System & Notifications</div>
+        <div class="control-group">
+          <div class="control-item">
+            <span class="label">Push Status</span>
+            <span class="status-badge ${this.pushStatus === 'granted' ? 'status-enabled' : 'status-disabled'}">
+              ${this.pushStatus}
+            </span>
+          </div>
+          ${this.pushStatus !== 'granted' ? html`
+            <button class="btn-action" @click=${this._enablePush}>Enable Notifications</button>
+          ` : html`
+            <div class="hint">Notifications are active for this device</div>
+          `}
         </div>
       </div>
 

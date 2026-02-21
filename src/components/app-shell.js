@@ -181,6 +181,19 @@ export class AppShell extends LitElement {
     this.addEventListener('login', this._onLogin);
     this.addEventListener('ui-toggle', (e) => { this.uiHidden = e.detail; });
     this.addEventListener('message-seen', this._onMessageSeen);
+
+    // Clear badge when app is focused or becomes visible
+    window.addEventListener('focus', () => this._clearBadge());
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') this._clearBadge();
+    });
+    this._clearBadge();
+  }
+
+  _clearBadge() {
+    if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
+      navigator.serviceWorker.controller.postMessage('clear-badge');
+    }
   }
 
   _onMessageSeen(e) {
