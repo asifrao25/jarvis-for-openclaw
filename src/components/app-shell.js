@@ -8,6 +8,7 @@ import './login-screen.js';
 import './chat-view.js';
 import './alert-view.js';
 import './report-view.js';
+import './settings-view.js';
 import './nav-bar.js';
 
 function categorize(text) {
@@ -170,6 +171,7 @@ export class AppShell extends LitElement {
     this._setupViewport();
     this._setupWebSocket();
     this._checkLogin();
+    this._applyGlobalSettings();
 
     this.addEventListener('navigate', this._onNavigate);
     this.addEventListener('send-message', this._onSendMessage);
@@ -257,6 +259,16 @@ export class AppShell extends LitElement {
       wsClient.connect(savedPassword);
       this._loadStoredMessages();
     }
+  }
+
+  _applyGlobalSettings() {
+    const fontSize = localStorage.getItem('settings-font-size') || '16px';
+    const userColor = localStorage.getItem('settings-user-color') || '#00FFFF';
+    const agentColor = localStorage.getItem('settings-agent-color') || '#E0FFFF';
+    
+    document.documentElement.style.setProperty('--chat-font-size', fontSize);
+    document.documentElement.style.setProperty('--chat-user-color', userColor);
+    document.documentElement.style.setProperty('--chat-agent-color', agentColor);
   }
 
   async _loadStoredMessages() {
@@ -408,7 +420,7 @@ export class AppShell extends LitElement {
           <login-screen @login=${this._onLogin}></login-screen>
         ` : html`
           <div class="header">
-            <h1>JARVIS <span>v4.5.2</span></h1>
+            <h1>JARVIS <span>v4.5.4</span></h1>
             <div class="status">
               <span>SYSTEM</span>
               <div class="status-dot ${this.connected ? 'online' : 'connecting'}"></div>
@@ -431,6 +443,9 @@ export class AppShell extends LitElement {
               ` : ''}
               ${this.view === 'report' ? html`
                 <report-view .messages=${this.messages}></report-view>
+              ` : ''}
+              ${this.view === 'settings' ? html`
+                <settings-view></settings-view>
               ` : ''}
             </div>
           </div>
