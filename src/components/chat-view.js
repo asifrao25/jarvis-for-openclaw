@@ -19,8 +19,8 @@ export class ChatView extends LitElement {
       overflow-y: scroll;
       -webkit-overflow-scrolling: touch;
       padding: 15px 20px;
-      /* Default padding to clear the 56px input bar */
-      padding-bottom: 80px;
+      /* Default padding to clear the 48px input bar */
+      padding-bottom: 60px;
       display: flex;
       flex-direction: column;
       gap: 12px;
@@ -41,15 +41,15 @@ export class ChatView extends LitElement {
       flex-shrink: 0;
       /* Exactly 50px on the right for the FAB zone, and 12px on left */
       padding: 0 50px 0 12px;
-      /* Absolute bottom flush: no padding-bottom, relying on 56px height to contain 40px input */
+      /* Absolute bottom flush: no padding-bottom, relying on 48px height to contain 36px input */
       background: #000;
       border-top: 1px solid rgba(0, 255, 255, 0.15);
       display: flex;
       align-items: center;
       z-index: 30;
       overflow: hidden;
-      height: 56px;
-      min-height: 56px;
+      height: 48px;
+      min-height: 48px;
       box-sizing: border-box;
       transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     }
@@ -68,7 +68,7 @@ export class ChatView extends LitElement {
       border: 1px solid rgba(0, 255, 255, 0.2);
       border-radius: 10px;
       padding: 0 15px;
-      height: 40px;
+      height: 36px;
       color: var(--c-primary);
       font-family: var(--f-body);
       font-size: 16px;
