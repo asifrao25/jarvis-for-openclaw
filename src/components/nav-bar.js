@@ -11,14 +11,16 @@ export class NavBar extends LitElement {
       width: 50px;
       /* Exactly 40px to match input area, solid black background to hit bottom edge */
       height: 40px;
+      padding-bottom: 2px;
       background: #000;
       z-index: 100;
       display: flex;
       flex-direction: column;
       align-items: center;
-      justify-content: center;
+      justify-content: flex-end;
       pointer-events: none;
       transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      box-sizing: border-box;
     }
 
     :host([ui-hidden]) {

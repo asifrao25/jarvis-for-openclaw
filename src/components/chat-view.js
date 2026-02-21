@@ -40,12 +40,12 @@ export class ChatView extends LitElement {
     .input-area {
       flex-shrink: 0;
       /* Exactly 50px on the right for the FAB zone, and 12px on left */
-      padding: 0 50px 0 12px;
-      /* Absolute bottom flush: no padding-bottom, relying on 40px height to contain 32px input */
+      padding: 0 50px 2px 12px;
+      /* Absolute bottom flush: reliance on flex-end to push content to the very bottom edge */
       background: #000;
       border-top: 1px solid rgba(0, 255, 255, 0.15);
       display: flex;
-      align-items: center;
+      align-items: flex-end;
       z-index: 30;
       overflow: hidden;
       height: 40px;
