@@ -106,12 +106,56 @@ export class ChatView extends LitElement {
     }
     
     @keyframes spin { to { transform: rotate(360deg); } }
+
+    .scroll-bottom-btn {
+      position: absolute;
+      bottom: 50px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(0, 30, 40, 0.85);
+      border: 1px solid var(--c-primary-dim);
+      color: var(--c-primary);
+      border-radius: 20px;
+      padding: 6px 14px;
+      font-family: var(--f-mono);
+      font-size: 10px;
+      letter-spacing: 1px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      cursor: pointer;
+      z-index: 40;
+      backdrop-filter: blur(10px);
+      box-shadow: 0 0 15px rgba(0, 255, 255, 0.1);
+      transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      opacity: 0;
+      pointer-events: none;
+      transform: translate(-50%, 20px) scale(0.9);
+    }
+
+    .scroll-bottom-btn.visible {
+      opacity: 1;
+      pointer-events: auto;
+      transform: translate(-50%, 0) scale(1);
+    }
+
+    .scroll-bottom-btn:active {
+      background: var(--c-primary);
+      color: #000;
+      transform: translate(-50%, 0) scale(0.95);
+    }
+
+    .scroll-bottom-btn svg {
+      width: 12px; height: 12px;
+      fill: currentColor;
+    }
   `;
 
   static properties = {
     messages: { type: Array },
     thinking: { type: Boolean },
     uiHidden: { type: Boolean, reflect: true, attribute: 'ui-hidden' },
+    _showScrollBtn: { type: Boolean, state: true },
   };
 
   constructor() {
@@ -119,6 +163,7 @@ export class ChatView extends LitElement {
     this._touchStartY = 0;
     this.uiHidden = false;
     this._isAutoScrolling = false;
+    this._showScrollBtn = false;
   }
 
   firstUpdated() {
@@ -126,6 +171,14 @@ export class ChatView extends LitElement {
     const input = this.shadowRoot.querySelector('input');
 
     this.scrollToBottom();
+
+    el.addEventListener('scroll', () => {
+      if (this._isAutoScrolling) return;
+      const st = el.scrollTop;
+      const distFromBottom = el.scrollHeight - st - el.clientHeight;
+      // Show button if we are more than 300px (roughly 5-10 messages) from bottom
+      this._showScrollBtn = distFromBottom > 300;
+    }, { passive: true });
 
     el.addEventListener('touchstart', (e) => {
       this._touchStartY = e.touches[0].clientY;
@@ -195,6 +248,11 @@ export class ChatView extends LitElement {
         `)}
         
         ${this.thinking ? html`<div style="color:var(--c-primary); font-family:var(--f-mono); margin-left:10px; font-size:12px; letter-spacing:1px; margin-bottom: 20px;">ANALYZING...</div>` : ''}
+      </div>
+
+      <div class="scroll-bottom-btn ${this._showScrollBtn ? 'visible' : ''}" @click=${() => { hapticMedium(); this.scrollToBottom(); }}>
+        <svg viewBox="0 0 24 24"><path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6 1.41-1.41z"/></svg>
+        <span>NEW MESSAGES BELOW</span>
       </div>
 
       <form class="input-area" @submit=${this._send}>
