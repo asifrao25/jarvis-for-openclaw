@@ -31,29 +31,18 @@ export class LoginScreen extends LitElement {
     /* Logo mark */
     .logo-wrap {
       position: relative;
-      width: 72px; height: 72px;
+      width: 100px; height: 100px;
       margin: 0 auto 26px;
+      border-radius: 20px;
+      overflow: hidden;
+      box-shadow: 0 0 20px rgba(0, 255, 238, 0.3);
+      border: 1px solid rgba(0, 255, 238, 0.2);
     }
-    .logo-ring {
-      position: absolute; inset: 0;
-      animation: logoSpin 20s linear infinite;
-      transform-origin: center;
-    }
-    .logo-core {
-      position: absolute;
-      inset: 20px;
-      border-radius: 50%;
-      background: #00ffee;
-      box-shadow: 0 0 16px #00ffee, 0 0 32px rgba(0,255,238,.4);
-      animation: corePulse 3s ease-in-out infinite;
-    }
-    @keyframes logoSpin {
-      from { transform: rotate(0deg); }
-      to   { transform: rotate(360deg); }
-    }
-    @keyframes corePulse {
-      0%, 100% { box-shadow: 0 0 14px #00ffee, 0 0 28px rgba(0,255,238,.4); }
-      50%       { box-shadow: 0 0 22px #00ffee, 0 0 48px rgba(0,255,238,.6); }
+    .logo-img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
     }
 
     h1 {
@@ -79,6 +68,8 @@ export class LoginScreen extends LitElement {
     .input-wrap {
       position: relative;
       margin-bottom: 12px;
+      width: 100%;
+      box-sizing: border-box;
     }
     .input-icon {
       position: absolute;
@@ -103,6 +94,7 @@ export class LoginScreen extends LitElement {
       caret-color: #00ffee;
       transition: border-color .2s, box-shadow .2s;
       -webkit-appearance: none;
+      box-sizing: border-box;
     }
     input::placeholder {
       color: #2a3f50;
@@ -193,15 +185,7 @@ export class LoginScreen extends LitElement {
     return html`
       <form class="card" @submit=${this._submit}>
         <div class="logo-wrap">
-          <svg class="logo-ring" viewBox="0 0 72 72" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <circle cx="36" cy="36" r="34" stroke="rgba(0,255,238,0.20)" stroke-width="1"/>
-            <circle cx="36" cy="36" r="24" stroke="rgba(0,255,238,0.12)" stroke-width=".8" stroke-dasharray="3 3"/>
-            <line x1="36" y1="1"  x2="36" y2="10" stroke="rgba(0,255,238,0.4)" stroke-width="1.2"/>
-            <line x1="36" y1="62" x2="36" y2="71" stroke="rgba(0,255,238,0.4)" stroke-width="1.2"/>
-            <line x1="1"  y1="36" x2="10" y2="36" stroke="rgba(0,255,238,0.4)" stroke-width="1.2"/>
-            <line x1="62" y1="36" x2="71" y2="36" stroke="rgba(0,255,238,0.4)" stroke-width="1.2"/>
-          </svg>
-          <div class="logo-core"></div>
+          <img src="/pwa/icons/icon-512.png" alt="Logo" class="logo-img">
         </div>
         <h1>Jarvis</h1>
         <p class="subtitle">// connect to gateway</p>
