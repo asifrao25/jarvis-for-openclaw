@@ -4,6 +4,17 @@ A Progressive Web App client for the [OpenClaw](https://github.com/asifrao25/ope
 
 ---
 
+## Screenshots
+
+<p align="center">
+  <img src="docs/screenshots/login.png" width="22%" alt="Login screen" />
+  <img src="docs/screenshots/chat.png" width="22%" alt="Chat view" />
+  <img src="docs/screenshots/nav.png" width="22%" alt="Navigation" />
+  <img src="docs/screenshots/settings.png" width="22%" alt="Settings" />
+</p>
+
+---
+
 ## Architecture
 
 ```
