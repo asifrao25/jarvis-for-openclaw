@@ -1,10 +1,26 @@
 // Service Worker for Jarvis PWA
 
-const CACHE_NAME = 'openclaw-pwa-v147';
+const CACHE_NAME = 'openclaw-pwa-v148';
 const SHELL_FILES = ['/pwa/', '/pwa/index.html'];
 
-// Badge count tracker
+// Badge count tracker (simple in-memory, but will try to persist via Cache API for resilience)
 let badgeCount = 0;
+
+async function getStoredBadgeCount() {
+  try {
+    const cache = await caches.open('badge-store');
+    const resp = await cache.match('count');
+    if (resp) return parseInt(await resp.text(), 10) || 0;
+  } catch (e) {}
+  return 0;
+}
+
+async function setStoredBadgeCount(count) {
+  try {
+    const cache = await caches.open('badge-store');
+    await cache.put('count', new Response(count.toString()));
+  } catch (e) {}
+}
 
 // Install: cache app shell
 self.addEventListener('install', (event) => {
@@ -18,7 +34,7 @@ self.addEventListener('install', (event) => {
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then(keys =>
-      Promise.all(keys.filter(k => k !== CACHE_NAME).map(k => caches.delete(k)))
+      Promise.all(keys.filter(k => k !== CACHE_NAME && k !== 'badge-store').map(k => caches.delete(k)))
     )
   );
   self.clients.claim();
@@ -51,15 +67,19 @@ self.addEventListener('push', (event) => {
   event.waitUntil(
     self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(async (clients) => {
       const hasForeground = clients.some(c => c.visibilityState === 'visible' || c.focused);
-      if (hasForeground) return;
-
-      // Increment and set app badge count
+      
+      // Update badge count regardless of visibility (some platforms only show badge if notification is shown, others always)
+      badgeCount = await getStoredBadgeCount();
       badgeCount++;
+      await setStoredBadgeCount(badgeCount);
+
       if (self.navigator && self.navigator.setAppBadge) {
         try { await self.navigator.setAppBadge(badgeCount); } catch (e) {
           console.log('[SW] setAppBadge failed:', e);
         }
       }
+
+      if (hasForeground) return;
 
       return self.registration.showNotification(data.title, {
         body: data.body,
@@ -67,6 +87,7 @@ self.addEventListener('push', (event) => {
         badge: '/pwa/icons/icon-192.png',
         tag,
         data: { url: data.url || '/pwa/' },
+        vibrate: [100, 50, 100],
       });
     })
   );
@@ -81,6 +102,7 @@ self.addEventListener('notificationclick', (event) => {
     (async () => {
       // Clear badge
       badgeCount = 0;
+      await setStoredBadgeCount(0);
       if (self.navigator && self.navigator.clearAppBadge) {
         try { await self.navigator.clearAppBadge(); } catch {}
       }
@@ -96,10 +118,11 @@ self.addEventListener('notificationclick', (event) => {
   );
 });
 
-// Clear badge when PWA becomes visible
+// Clear badge message handler
 self.addEventListener('message', (event) => {
   if (event.data === 'clear-badge') {
     badgeCount = 0;
+    setStoredBadgeCount(0);
     if (self.navigator && self.navigator.clearAppBadge) {
       self.navigator.clearAppBadge().catch(() => {});
     }
