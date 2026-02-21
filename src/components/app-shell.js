@@ -420,7 +420,7 @@ export class AppShell extends LitElement {
           <login-screen @login=${this._onLogin}></login-screen>
         ` : html`
           <div class="header">
-            <h1>JARVIS <span>v4.5.6</span></h1>
+            <h1>JARVIS <span>v4.5.7</span></h1>
             <div class="status">
               <span>SYSTEM</span>
               <div class="status-dot ${this.connected ? 'online' : 'connecting'}"></div>
