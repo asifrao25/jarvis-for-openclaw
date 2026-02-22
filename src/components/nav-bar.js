@@ -6,21 +6,21 @@ export class NavBar extends LitElement {
     :host {
       position: fixed;
       right: 0;
-      /* Force literal bottom flush */
+      /* Flush to absolute bottom edge */
       bottom: 0;
       width: 50px;
-      /* Exactly 40px to match input area, solid black background to hit bottom edge */
-      height: 40px;
-      padding-bottom: 2px;
+      /* Fixed height for true flush look */
+      height: 44px;
       background: #000;
       z-index: 100;
       display: flex;
       flex-direction: column;
       align-items: center;
-      justify-content: flex-end;
+      justify-content: center;
       pointer-events: none;
       transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
       box-sizing: border-box;
+      border-top: 1px solid rgba(0, 255, 255, 0.15);
     }
 
     :host([ui-hidden]) {

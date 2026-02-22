@@ -16,8 +16,10 @@
   --f-mono: 'Share Tech Mono', monospace;
 
   /* Spacing */
-  --s-safe-top: env(safe-area-inset-top, 20px);
-  --s-safe-bottom: env(safe-area-inset-bottom, 20px);
+  --s-safe-top: env(safe-area-inset-top, 0px);
+  --s-safe-bottom: env(safe-area-inset-bottom, 0px);
+  --s-safe-left: env(safe-area-inset-left, 0px);
+  --s-safe-right: env(safe-area-inset-right, 0px);
   --s-nav-h: 70px;
   --s-header-h: 60px;
 }

@@ -4,71 +4,121 @@ export class StreamIndicator extends LitElement {
   static styles = css`
     :host {
       display: block;
-      padding: 4px 14px 8px;
+      padding: 0;
+      animation: slideInUp 0.3s ease-out;
     }
 
-    .bubble {
-      display: inline-flex;
-      align-items: center;
-      gap: 10px;
-      padding: 10px 14px;
-      background: rgba(8,13,20,.78);
-      border: 1px solid rgba(0,255,238,.10);
-      border-radius: 3px 14px 14px 14px;
-      backdrop-filter: blur(12px);
-      -webkit-backdrop-filter: blur(12px);
-      box-shadow: 0 4px 20px rgba(0,0,0,.3), inset 0 1px 0 rgba(0,255,238,.06);
+    @keyframes slideInUp {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
     }
 
-    .dots {
+    .container {
       display: flex;
-      gap: 4px;
       align-items: center;
+      gap: 12px;
+      padding: 8px 20px;
+      background: rgba(0, 15, 25, 0.9);
+      border-top: 1px solid rgba(0, 255, 255, 0.2);
+      border-left: 3px solid var(--c-primary);
+      width: 100%;
+      box-sizing: border-box;
+      position: relative;
+      overflow: hidden;
+      backdrop-filter: blur(10px);
     }
-    .dots span {
-      display: inline-block;
-      width: 6px; height: 6px;
-      border-radius: 50%;
-      background: #00ffee;
-      opacity: .3;
-      animation: wave 1.3s ease-in-out infinite;
-    }
-    .dots span:nth-child(1) { animation-delay: 0s; }
-    .dots span:nth-child(2) { animation-delay: 0.18s; }
-    .dots span:nth-child(3) { animation-delay: 0.36s; }
 
-    @keyframes wave {
-      0%, 80%, 100% { transform: translateY(0) scale(0.85); opacity: .3; }
-      40% { transform: translateY(-4px) scale(1); opacity: 1; box-shadow: 0 0 6px #00ffee; }
+    .container::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; width: 100%; height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(0, 255, 255, 0.05), transparent);
+      transform: translateX(-100%);
+      animation: scan 2s linear infinite;
+    }
+
+    @keyframes scan {
+      0% { transform: translateX(-100%); }
+      100% { transform: translateX(100%); }
+    }
+
+    .scanner {
+      width: 18px;
+      height: 18px;
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .ring {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      border: 2px solid rgba(0, 255, 255, 0.2);
+      border-top-color: var(--c-primary);
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+
+    .dot {
+      width: 4px;
+      height: 4px;
+      background: var(--c-primary);
+      border-radius: 50%;
+      box-shadow: 0 0 8px var(--c-primary);
+      animation: pulse 1s ease-in-out infinite;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+    @keyframes pulse {
+      0%, 100% { opacity: 0.5; transform: scale(0.8); }
+      50% { opacity: 1; transform: scale(1.2); }
     }
 
     .label {
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 11px;
-      letter-spacing: .06em;
-      color: #4a6e82;
+      font-family: var(--f-mono);
+      font-size: 10px;
+      letter-spacing: 2px;
+      color: var(--c-primary);
+      text-transform: uppercase;
+      opacity: 0.8;
+      display: flex;
+      gap: 4px;
+    }
+
+    .label span {
+      animation: glitch 3s infinite;
+    }
+
+    @keyframes glitch {
+      0%, 90%, 100% { opacity: 1; transform: translate(0); }
+      92% { opacity: 0.5; transform: translate(2px, -1px); }
+      94% { opacity: 0.8; transform: translate(-2px, 1px); }
+      96% { opacity: 0.3; transform: translate(1px, -2px); }
     }
   `;
 
   static properties = {
-    mode: { type: String, reflect: true },
+    mode: { type: String },
   };
 
   constructor() {
     super();
-    this.mode = 'streaming';
+    this.mode = 'thinking';
   }
 
   render() {
-    const label = this.mode === 'thinking' ? 'Thinking…' : 'Responding…';
+    const text = this.mode === 'thinking' ? 'Analyzing' : 'Processing';
     return html`
-      <div class="bubble">
-        <div class="dots">
-          <span></span>
-          <span></span>
-          <span></span>
+      <div class="container">
+        <div class="scanner">
+          <div class="ring"></div>
+          <div class="dot"></div>
         </div>
-        <span class="label">${label}</span>
+        <div class="label">
+          // <span>${text}</span>...
+        </div>
       </div>
     `;
   }

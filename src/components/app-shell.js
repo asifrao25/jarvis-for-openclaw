@@ -59,7 +59,6 @@ export class AppShell extends LitElement {
       z-index: 50;
       flex-shrink: 0;
       transition: all 0.3s ease;
-      overflow: hidden;
     }
 
     :host([ui-hidden]) .header {
@@ -67,15 +66,18 @@ export class AppShell extends LitElement {
       padding-top: 0;
       opacity: 0;
       border-bottom: none;
+      overflow: hidden;
     }
 
     .header h1 {
       font-family: var(--f-display);
-      font-size: 20px;
+      font-size: 18px;
       letter-spacing: 2px;
       color: var(--c-primary);
       text-shadow: 0 0 10px var(--c-primary-dim);
       margin: 0;
+      flex: 1;
+      white-space: nowrap;
     }
 
     .header h1 span {
@@ -87,12 +89,22 @@ export class AppShell extends LitElement {
     }
 
     .status {
-      font-family: var(--f-mono);
-      font-size: 10px;
-      color: var(--c-text-dim);
       display: flex;
       align-items: center;
-      gap: 6px;
+      gap: 12px;
+      flex-shrink: 0;
+    }
+
+    .strm-badge {
+      font-family: var(--f-mono);
+      border: 1px solid rgba(0, 255, 255, 0.4);
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 11px;
+      letter-spacing: 1px;
+      color: var(--c-primary);
+      background: rgba(0, 255, 255, 0.1);
+      box-shadow: 0 0 8px rgba(0, 255, 255, 0.2);
     }
 
     .status-dot {
@@ -131,6 +143,12 @@ export class AppShell extends LitElement {
       flex-direction: column;
       z-index: 1;
       min-height: 0;
+      animation: fadeIn 0.4s ease-out;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
     }
 
     login-screen {
@@ -433,12 +451,23 @@ export class AppShell extends LitElement {
           <login-screen @login=${this._onLogin}></login-screen>
         ` : html`
           <div class="header">
-            <h1>JARVIS <span>v4.5.9</span></h1>
+            <h1>JARVIS <span>v4.6.8</span></h1>
             <div class="status">
-              <span>SYSTEM</span>
+              <div class="strm-badge">
+                STRM: ${this.messages.length.toString().padStart(3, '0')}
+              </div>
+              <span style="font-size: 9px; letter-spacing: 1px; color: ${this.connected ? 'var(--c-primary)' : 'var(--c-alert)'}; opacity: 0.8;">
+                ${this.connected ? 'ONLINE' : (this.loggedIn ? 'CONNECTING' : 'OFFLINE')}
+              </span>
               <div class="status-dot ${this.connected ? 'online' : 'connecting'}"></div>
             </div>
           </div>
+
+          ${!this.connected ? html`
+            <div style="background: var(--c-alert); color: #fff; font-family: var(--f-mono); font-size: 10px; padding: 4px 10px; text-align: center; letter-spacing: 2px; z-index: 100;">
+              // CONNECTION LOST - ATTEMPTING RECONNECT...
+            </div>
+          ` : ''}
 
           <div class="main-view">
             <div class="bg-grid"></div>

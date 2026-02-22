@@ -1,6 +1,7 @@
 import { LitElement, html, css } from 'lit';
 import { hapticMedium, hapticLight } from '../services/haptics.js';
 import './message-item.js';
+import './stream-indicator.js';
 
 export class ChatView extends LitElement {
   static styles = css`
@@ -19,8 +20,8 @@ export class ChatView extends LitElement {
       overflow-y: scroll;
       -webkit-overflow-scrolling: touch;
       padding: 15px 20px;
-      /* Default padding to clear the 40px input bar */
-      padding-bottom: 50px;
+      /* Only enough padding to clear the 44px bar - no extra gap */
+      padding-bottom: 44px;
       display: flex;
       flex-direction: column;
       gap: 12px;
@@ -40,16 +41,17 @@ export class ChatView extends LitElement {
     .input-area {
       flex-shrink: 0;
       /* Exactly 50px on the right for the FAB zone, and 12px on left */
-      padding: 0 50px 2px 12px;
-      /* Absolute bottom flush: reliance on flex-end to push content to the very bottom edge */
+      padding: 0 50px 0 12px;
+      /* Center items vertically within the bar */
       background: #000;
       border-top: 1px solid rgba(0, 255, 255, 0.15);
       display: flex;
-      align-items: flex-end;
+      align-items: center;
       z-index: 30;
       overflow: hidden;
-      height: 40px;
-      min-height: 40px;
+      /* Fixed height for true flush look */
+      height: 44px;
+      min-height: 44px;
       box-sizing: border-box;
       transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     }
@@ -109,10 +111,11 @@ export class ChatView extends LitElement {
 
     .scroll-bottom-btn {
       position: absolute;
-      bottom: 50px;
+      /* Fixed 56px from bottom (44px bar + 12px gap) */
+      bottom: 56px;
       left: 50%;
       transform: translateX(-50%);
-      background: rgba(0, 30, 40, 0.85);
+      background: rgba(0, 30, 40, 0.9);
       border: 1px solid var(--c-primary-dim);
       color: var(--c-primary);
       border-radius: 20px;
@@ -125,12 +128,12 @@ export class ChatView extends LitElement {
       gap: 6px;
       cursor: pointer;
       z-index: 40;
-      backdrop-filter: blur(10px);
-      box-shadow: 0 0 15px rgba(0, 255, 255, 0.1);
+      backdrop-filter: blur(15px);
+      box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
       transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
       opacity: 0;
       pointer-events: none;
-      transform: translate(-50%, 20px) scale(0.9);
+      transform: translate(-50%, 15px) scale(0.9);
     }
 
     .scroll-bottom-btn.visible {
@@ -148,6 +151,15 @@ export class ChatView extends LitElement {
     .scroll-bottom-btn svg {
       width: 12px; height: 12px;
       fill: currentColor;
+    }
+
+    .indicator-container {
+      position: absolute;
+      bottom: 44px; /* Exactly on top of the input bar */
+      left: 0;
+      width: 100%;
+      z-index: 25;
+      pointer-events: none;
     }
   `;
 
@@ -170,7 +182,9 @@ export class ChatView extends LitElement {
     const el = this.shadowRoot.querySelector('.messages');
     const input = this.shadowRoot.querySelector('input');
 
-    this.scrollToBottom();
+    // Robust scroll to bottom on mount
+    setTimeout(() => this.scrollToBottom(false), 50);
+    setTimeout(() => this.scrollToBottom(false), 200);
 
     el.addEventListener('scroll', () => {
       if (this._isAutoScrolling) return;
@@ -198,20 +212,30 @@ export class ChatView extends LitElement {
 
   updated(changed) {
     if (changed.has('messages')) {
-      this.scrollToBottom();
+      this.scrollToBottom(false);
+      // Secondary scrolls to handle layout shifts from images or font rendering
+      setTimeout(() => this.scrollToBottom(false), 100);
+      setTimeout(() => this.scrollToBottom(false), 300);
     }
   }
 
-  scrollToBottom() {
+  scrollToBottom(smooth = false) {
     const el = this.shadowRoot.querySelector('.messages');
     if (el) {
       this._isAutoScrolling = true;
-      requestAnimationFrame(() => {
-        requestAnimationFrame(() => {
-          el.scrollTop = el.scrollHeight;
-          setTimeout(() => { this._isAutoScrolling = false; }, 150);
+      if (smooth) {
+        el.scrollTo({
+          top: el.scrollHeight,
+          behavior: 'smooth'
         });
-      });
+      } else {
+        el.scrollTop = el.scrollHeight;
+      }
+      
+      // Release auto-scrolling lock after a delay
+      setTimeout(() => { 
+        this._isAutoScrolling = false; 
+      }, smooth ? 500 : 150);
     }
   }
 
@@ -224,6 +248,8 @@ export class ChatView extends LitElement {
     hapticMedium();
     this.dispatchEvent(new CustomEvent('send-message', { detail: text, bubbles: true, composed: true }));
     input.value = '';
+    // Scroll smoothly after sending a message
+    setTimeout(() => this.scrollToBottom(true), 100);
   }
 
   render() {
@@ -246,11 +272,15 @@ export class ChatView extends LitElement {
             .seen=${m.seen}
           ></message-item>
         `)}
-        
-        ${this.thinking ? html`<div style="color:var(--c-primary); font-family:var(--f-mono); margin-left:10px; font-size:12px; letter-spacing:1px; margin-bottom: 20px;">ANALYZING...</div>` : ''}
       </div>
 
-      <div class="scroll-bottom-btn ${this._showScrollBtn ? 'visible' : ''}" @click=${() => { hapticMedium(); this.scrollToBottom(); }}>
+      ${this.thinking ? html`
+        <div class="indicator-container">
+          <stream-indicator mode="thinking"></stream-indicator>
+        </div>
+      ` : ''}
+
+      <div class="scroll-bottom-btn ${this._showScrollBtn ? 'visible' : ''}" @click=${() => { hapticMedium(); this.scrollToBottom(true); }}>
         <svg viewBox="0 0 24 24"><path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6 1.41-1.41z"/></svg>
         <span>NEW MESSAGES BELOW</span>
       </div>
