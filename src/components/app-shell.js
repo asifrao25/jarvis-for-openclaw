@@ -236,12 +236,16 @@ export class AppShell extends LitElement {
     this.addEventListener('ui-toggle', (e) => { this.uiHidden = e.detail; });
     this.addEventListener('message-seen', this._onMessageSeen);
 
-    // Clear badge when app is focused or becomes visible
-    window.addEventListener('focus', () => this._clearBadge());
+    // Clear badge and notifications when app is focused or becomes visible
+    window.addEventListener('focus', () => this._clearBadgeAndNotifications());
     document.addEventListener('visibilitychange', () => {
-      if (document.visibilityState === 'visible') this._clearBadge();
+      if (document.visibilityState === 'visible') {
+        this._clearBadgeAndNotifications();
+      } else {
+        wsClient.sendVisibility(false);
+      }
     });
-    this._clearBadge();
+    this._clearBadgeAndNotifications();
   }
 
   _handleSharedData() {
@@ -263,9 +267,13 @@ export class AppShell extends LitElement {
   }
 
 
-  _clearBadge() {
+  _clearBadgeAndNotifications() {
+    // Report visibility to server for push suppression
+    wsClient.sendVisibility(true);
+
     if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
       navigator.serviceWorker.controller.postMessage('clear-badge');
+      navigator.serviceWorker.controller.postMessage('clear-notifications');
     }
   }
 
@@ -573,7 +581,7 @@ export class AppShell extends LitElement {
           <login-screen @login=${this._onLogin}></login-screen>
         ` : html`
           <div class="header">
-            <h1>JARVIS <span>v4.9.0</span></h1>
+            <h1>JARVIS <span>v4.9.3</span></h1>
             <div class="status">
               <div class="strm-badge">
                 STRM: ${this.messages.length.toString().padStart(3, '0')}

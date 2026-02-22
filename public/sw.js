@@ -1,6 +1,6 @@
 // Service Worker for Jarvis PWA
 
-const CACHE_NAME = 'openclaw-pwa-v181';
+const CACHE_NAME = 'openclaw-pwa-v184';
 const SHELL_FILES = ['/pwa/', '/pwa/index.html'];
 
 // Badge count tracker (simple in-memory, but will try to persist via Cache API for resilience)
@@ -86,11 +86,9 @@ self.addEventListener('push', (event) => {
   const tag = data.category || 'chat';
   event.waitUntil(
     self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(async (clients) => {
-      // Find ANY client window that belongs to the PWA and is visible/focused
+      // Find ANY client window that belongs to the PWA and is truly visible or focused
       const hasForeground = clients.some(c => {
-        const isOurApp = c.url.includes('/pwa/') || c.url.includes(self.location.origin);
-        const isVisible = c.visibilityState === 'visible' || c.focused;
-        return isOurApp && isVisible;
+        return c.visibilityState === 'visible' || c.focused;
       });
       
       console.log('[SW] Push received. hasForeground:', hasForeground, 'clientCount:', clients.length);
@@ -111,14 +109,29 @@ self.addEventListener('push', (event) => {
         return;
       }
 
-      console.log('[SW] App in background, showing notification');
-      return self.registration.showNotification(data.title, {
-        body: data.body,
-        icon: '/pwa/icons/icon-192.png',
-        badge: '/pwa/icons/icon-192.png',
-        tag,
-        data: { url: data.url || '/pwa/' },
-        vibrate: [100, 50, 100],
+      console.log('[SW] App in background, showing notification after verification delay');
+      
+      // 500ms delay to double-check if the app has been brought to the foreground
+      // while the push was being processed.
+      return new Promise(resolve => {
+        setTimeout(async () => {
+          const freshClients = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
+          const isActuallyForeground = freshClients.some(c => c.visibilityState === 'visible' || c.focused);
+          
+          if (isActuallyForeground) {
+            console.log('[SW] App became active during delay, suppressing');
+            return resolve();
+          }
+
+          resolve(self.registration.showNotification(data.title, {
+            body: data.body,
+            icon: '/pwa/icons/icon-192.png',
+            badge: '/pwa/icons/icon-192.png',
+            tag,
+            data: { url: data.url || '/pwa/' },
+            vibrate: [100, 50, 100],
+          }));
+        }, 500);
       });
     })
   );
@@ -149,7 +162,7 @@ self.addEventListener('notificationclick', (event) => {
   );
 });
 
-// Clear badge message handler
+// Message handler
 self.addEventListener('message', (event) => {
   if (event.data === 'clear-badge') {
     badgeCount = 0;
@@ -157,6 +170,12 @@ self.addEventListener('message', (event) => {
     if (self.navigator && self.navigator.clearAppBadge) {
       self.navigator.clearAppBadge().catch(() => {});
     }
+  }
+  
+  if (event.data === 'clear-notifications') {
+    self.registration.getNotifications().then(notifications => {
+      notifications.forEach(notification => notification.close());
+    });
   }
 });
 

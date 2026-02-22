@@ -12,10 +12,10 @@ A Progressive Web App client for the [OpenClaw](https://github.com/asifrao25/ope
   - **Visual Swipe Trails**: Real-time touch tracking for intuitive feedback.
   - **Edge-to-Edge Design**: Custom 'flushed' layout that utilizes every pixel of the iPhone display.
 - ⚡ **High-Performance UI**:
-  - **Single-Tap Action Menu**: Quickly copy or delete messages with immediate visual feedback toasts.
+  - **Single-Tap Action Menu**: Quickly copy or delete messages with high-visibility white-text feedback toasts.
   - **Skeleton Loading**: Perception-speed optimizations for instant app startups.
   - **High-Tech Visuals**: Animated 'thinking' indicators and glitch-effect typography consistent with the JARVIS aesthetic.
-- 🔔 **iOS Push Support**: Reliable background notifications via VAPID and a specialized Node.js relay buffer.
+- 🔔 **iOS Push Support**: Reliable background notifications with a **Triple-Lock Suppression System** that prevents duplicate banners while the app is active via real-time visibility sync.
 - 📤 **iOS Share Target**: Share text or links from any app (Safari, Notes, etc.) directly into JARVIS as a command.
 
 ---

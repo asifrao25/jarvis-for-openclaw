@@ -104,6 +104,10 @@ export class WSClient extends EventTarget {
     return id;
   }
 
+  sendVisibility(visible) {
+    this.send({ type: 'visibility', visible });
+  }
+
   disconnect() {
     this.shouldReconnect = false;
     if (this.ws) this.ws.close();

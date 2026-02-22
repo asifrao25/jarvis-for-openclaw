@@ -18,8 +18,8 @@ const eventBuffer = new EventBuffer();
 const gatewayClient = new GatewayClient(eventBuffer);
 const pushManager = new PushManager();
 
-// Track connected PWA clients
-const pwaClients = new Map();
+// Track connected PWA clients and their visibility
+const pwaClients = new Map(); // id -> { ws, isVisible }
 
 // Express app
 const app = express();
@@ -91,23 +91,31 @@ wss.on('connection', (ws, req) => {
 
   let authenticated = false;
   ws.isAlive = true;
+  let isVisible = true; // Assume visible on connect
 
   ws.on('pong', () => { ws.isAlive = true; });
 
-  // Parse lastSeq from query
-  const url = new URL(req.url, 'http://localhost');
-  const lastSeq = parseInt(url.searchParams.get('lastSeq') || '0', 10);
+  // ... (lastSeq logic)
 
   ws.on('message', (data) => {
     ws.isAlive = true;
     try {
       const msg = JSON.parse(data.toString());
 
+      // Visibility update
+      if (msg.type === 'visibility') {
+        isVisible = msg.visible;
+        if (authenticated) {
+          pwaClients.set(clientId, { ws, isVisible });
+        }
+        return;
+      }
+
       // Auth: client sends { type: "auth", password: "..." }
       if (msg.type === 'auth') {
         if (msg.password === config.gatewayPassword) {
           authenticated = true;
-          pwaClients.set(clientId, ws);
+          pwaClients.set(clientId, { ws, isVisible });
           ws.send(JSON.stringify({ type: 'auth', ok: true }));
           console.log(`[WS] ${clientId} authenticated`);
 
@@ -161,15 +169,15 @@ wss.on('connection', (ws, req) => {
 
 // Ping all PWA clients every 15s, kill dead connections after 20s
 const pingInterval = setInterval(() => {
-  for (const [id, ws] of pwaClients) {
-    if (!ws.isAlive) {
+  for (const [id, client] of pwaClients) {
+    if (!client.ws.isAlive) {
       console.log(`[WS] ${id} dead (no pong), terminating`);
       pwaClients.delete(id);
-      ws.terminate();
+      client.ws.terminate();
       continue;
     }
-    ws.isAlive = false;
-    ws.ping();
+    client.ws.isAlive = false;
+    client.ws.ping();
   }
 }, 15000);
 
@@ -177,21 +185,30 @@ const pingInterval = setInterval(() => {
 gatewayClient.on('event', (event) => {
   const data = JSON.stringify(event);
 
-  // Forward to connected clients, count truly alive ones
-  let aliveCount = 0;
-  for (const [id, ws] of pwaClients) {
-    if (ws.readyState === WebSocket.OPEN && ws.isAlive !== false) {
+  // Forward to connected clients, count active ones
+  let activeCount = 0;
+  let visibleCount = 0;
+
+  for (const [id, client] of pwaClients) {
+    if (client.ws.readyState === WebSocket.OPEN) {
       try {
-        ws.send(data);
-        aliveCount++;
+        client.ws.send(data);
+        activeCount++;
+        if (client.isVisible) visibleCount++;
       } catch {
         // Send failed, connection is dead
       }
     }
   }
 
-  // Always send push for final chat messages — iOS backgrounds PWA but keeps WS alive
+  // Send push for final chat messages if no visible clients are currently connected
   if (event.event === 'chat' && event.payload?.state === 'final') {
+    // If ANY client is visible or we have active sockets, skip push
+    if (visibleCount > 0 || activeCount > 0) {
+      console.log(`[Push] Suppressing. Active: ${activeCount}, Visible: ${visibleCount}`);
+      return;
+    }
+
     const text = extractText(event);
     if (text.trim()) {
       const category = categorize(event);
