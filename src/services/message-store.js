@@ -1,3 +1,6 @@
+import { getAuth } from './auth.js';
+import { encrypt, decrypt } from './encryption.js';
+
 const DB_NAME = 'openclaw-pwa';
 const STORE_NAME = 'messages';
 const DB_VERSION = 1;
@@ -20,13 +23,27 @@ function openDB() {
 }
 
 export async function addMessage(msg) {
+  const password = getAuth();
+  const encryptedText = await encrypt(msg.text, password);
+  const encryptedMsg = { ...msg, text: encryptedText, encrypted: true };
+
   const db = await openDB();
   return new Promise((resolve, reject) => {
     const tx = db.transaction(STORE_NAME, 'readwrite');
-    const req = tx.objectStore(STORE_NAME).add(msg);
+    const req = tx.objectStore(STORE_NAME).add(encryptedMsg);
     tx.oncomplete = () => resolve(req.result);
     tx.onerror = () => reject(tx.error);
   });
+}
+
+async function decryptMessages(messages) {
+  const password = getAuth();
+  return Promise.all(messages.map(async m => {
+    if (m.encrypted) {
+      return { ...m, text: await decrypt(m.text, password), encrypted: false };
+    }
+    return m;
+  }));
 }
 
 export async function getByCategory(category, limit = 100) {
@@ -35,9 +52,10 @@ export async function getByCategory(category, limit = 100) {
     const tx = db.transaction(STORE_NAME, 'readonly');
     const index = tx.objectStore(STORE_NAME).index('category');
     const req = index.getAll(category);
-    req.onsuccess = () => {
+    req.onsuccess = async () => {
       const results = req.result;
-      resolve(results.slice(-limit));
+      const decrypted = await decryptMessages(results.slice(-limit));
+      resolve(decrypted);
     };
     req.onerror = () => reject(req.error);
   });
@@ -48,9 +66,10 @@ export async function getLatest(limit = 100) {
   return new Promise((resolve, reject) => {
     const tx = db.transaction(STORE_NAME, 'readonly');
     const req = tx.objectStore(STORE_NAME).getAll();
-    req.onsuccess = () => {
+    req.onsuccess = async () => {
       const results = req.result;
-      resolve(results.slice(-limit));
+      const decrypted = await decryptMessages(results.slice(-limit));
+      resolve(decrypted);
     };
     req.onerror = () => reject(req.error);
   });
