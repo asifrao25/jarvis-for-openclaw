@@ -67,6 +67,53 @@ export class MessageItem extends LitElement {
       text-align: right;
       font-family: var(--f-mono);
       font-weight: 500;
+      opacity: 0.5;
+    }
+
+    .action-menu {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%) scale(0.9);
+      background: rgba(0, 20, 30, 0.95);
+      border: 1px solid var(--c-primary);
+      border-radius: 8px;
+      padding: 4px;
+      display: flex;
+      gap: 8px;
+      z-index: 100;
+      opacity: 0;
+      pointer-events: none;
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+      backdrop-filter: blur(10px);
+      box-shadow: 0 0 20px rgba(0, 255, 255, 0.2);
+    }
+
+    .action-menu.visible {
+      opacity: 1;
+      pointer-events: auto;
+      transform: translate(-50%, -50%) scale(1);
+    }
+
+    .action-btn {
+      background: transparent;
+      border: none;
+      color: var(--c-primary);
+      font-family: var(--f-mono);
+      font-size: 10px;
+      padding: 8px 12px;
+      cursor: pointer;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      border-radius: 4px;
+    }
+
+    .action-btn:active {
+      background: rgba(0, 255, 255, 0.1);
+    }
+
+    .action-btn.delete {
+      color: var(--c-alert);
     }
   `;
 
@@ -76,50 +123,28 @@ export class MessageItem extends LitElement {
     text: { type: String },
     timestamp: { type: Number },
     seen: { type: Boolean },
+    _menuOpen: { type: Boolean, state: true },
   };
 
   constructor() {
     super();
     this.seen = true;
+    this._menuOpen = false;
     this._observer = null;
+    this._pressTimer = null;
   }
 
-  firstUpdated() {
+  _handleMessageClick(e) {
+    // If it's a new/unread message, first tap marks it as seen
     if (this.role === 'assistant' && !this.seen) {
-      this._setupObserver();
+      this._markAsSeen();
+      hapticLight();
+      return;
     }
-  }
 
-  _setupObserver() {
-    this._observer = new IntersectionObserver((entries) => {
-      if (entries[0].isIntersecting) {
-        this._markAsSeen();
-      }
-    }, { threshold: 0.5 });
-    this._observer.observe(this.shadowRoot.querySelector('.message-container'));
-  }
-
-  _markAsSeen() {
-    if (this._observer) {
-      this._observer.disconnect();
-      this._observer = null;
-    }
-    
-    // Only trigger if still unseen
-    if (!this.seen) {
-      this.dispatchEvent(new CustomEvent('message-seen', {
-        detail: { id: this.msgId, timestamp: this.timestamp },
-        bubbles: true,
-        composed: true
-      }));
-    }
-  }
-
-  disconnectedCallback() {
-    super.disconnectedCallback();
-    if (this._observer) {
-      this._observer.disconnect();
-    }
+    // Otherwise, toggle the action menu
+    this._menuOpen = !this._menuOpen;
+    if (this._menuOpen) hapticMedium();
   }
 
   render() {
@@ -129,10 +154,18 @@ export class MessageItem extends LitElement {
     }
 
     return html`
-      <div class="${containerClasses.join(' ')}" @click=${this._markAsSeen}>
+      <div class="${containerClasses.join(' ')}" 
+           @click=${this._handleMessageClick}>
         <div class="text">${this.text}</div>
         <div class="meta">${new Date(this.timestamp).toLocaleTimeString()}</div>
+
+        <div class="action-menu ${this._menuOpen ? 'visible' : ''}" @click=${(e) => e.stopPropagation()}>
+          <button class="action-btn" @click=${this._copy}>Copy</button>
+          <button class="action-btn delete" @click=${this._delete}>Delete</button>
+          <button class="action-btn" @click=${() => this._menuOpen = false}>Close</button>
+        </div>
       </div>
+      ${this._menuOpen ? html`<div style="position:fixed; inset:0; z-index:90;" @click=${() => this._menuOpen = false}></div>` : ''}
     `;
   }
 }

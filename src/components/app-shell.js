@@ -35,8 +35,10 @@ export class AppShell extends LitElement {
       flex-direction: column;
       position: fixed;
       inset: 0;
+      width: 100vw;
       background: #000;
       overflow: hidden;
+      overflow-x: hidden;
     }
 
     .header {
@@ -117,6 +119,7 @@ export class AppShell extends LitElement {
       display: flex;
       flex-direction: column;
       min-height: 0;
+      overflow: hidden;
     }
 
     .bg-grid {
@@ -193,6 +196,7 @@ export class AppShell extends LitElement {
     _slideDir: { type: String, state: true },
     _swipeX: { type: Number, state: true },
     _isSwiping: { type: Boolean, state: true },
+    _loadingStore: { type: Boolean, state: true },
   };
 
   constructor() {
@@ -210,6 +214,7 @@ export class AppShell extends LitElement {
     this._slideDir = '';
     this._swipeX = 0;
     this._isSwiping = false;
+    this._loadingStore = true;
     this._streamingRuns = new Map();
     this._touchStart = null;
   }
@@ -220,6 +225,7 @@ export class AppShell extends LitElement {
     this._setupWebSocket();
     this._checkLogin();
     this._applyGlobalSettings();
+    this._handleSharedData();
 
     this.addEventListener('navigate', this._onNavigate);
     this.addEventListener('send-message', this._onSendMessage);
@@ -237,6 +243,25 @@ export class AppShell extends LitElement {
     });
     this._clearBadge();
   }
+
+  _handleSharedData() {
+    const url = new URL(window.location.href);
+    const text = url.searchParams.get('text');
+    const sharedUrl = url.searchParams.get('url');
+    
+    if (text || sharedUrl) {
+      const command = (text || '') + (sharedUrl ? '\n' + sharedUrl : '');
+      // Wait for app to be ready/connected before sending
+      setTimeout(() => {
+        if (this.loggedIn && command.trim()) {
+          this._onSendMessage({ detail: command.trim() });
+          // Clear URL params without reloading
+          window.history.replaceState({}, document.title, '/pwa/');
+        }
+      }, 1000);
+    }
+  }
+
 
   _clearBadge() {
     if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
@@ -386,10 +411,15 @@ export class AppShell extends LitElement {
   }
 
   async _loadStoredMessages() {
+    this._loadingStore = true;
     try {
       const all = await getLatest(200);
       if (all.length > 0) this.messages = all;
-    } catch (err) { console.error('Failed to load stored messages:', err); }
+    } catch (err) { 
+      console.error('Failed to load stored messages:', err); 
+    } finally {
+      setTimeout(() => { this._loadingStore = false; }, 400);
+    }
   }
 
   _handleMessage(msg) {
@@ -543,7 +573,7 @@ export class AppShell extends LitElement {
           <login-screen @login=${this._onLogin}></login-screen>
         ` : html`
           <div class="header">
-            <h1>JARVIS <span>v4.7.1</span></h1>
+            <h1>JARVIS <span>v4.8.3</span></h1>
             <div class="status">
               <div class="strm-badge">
                 STRM: ${this.messages.length.toString().padStart(3, '0')}
@@ -577,6 +607,7 @@ export class AppShell extends LitElement {
                   .thinking=${this.thinking}
                   .streaming=${this.streaming}
                   .uiHidden=${this.uiHidden}
+                  .loading=${this._loadingStore}
                 ></chat-view>
               ` : ''}
               ${this.view === 'alert' ? html`

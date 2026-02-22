@@ -1,6 +1,6 @@
 // Service Worker for Jarvis PWA
 
-const CACHE_NAME = 'openclaw-pwa-v170';
+const CACHE_NAME = 'openclaw-pwa-v174';
 const SHELL_FILES = ['/pwa/', '/pwa/index.html'];
 
 // Badge count tracker (simple in-memory, but will try to persist via Cache API for resilience)
@@ -40,11 +40,31 @@ self.addEventListener('activate', (event) => {
   self.clients.claim();
 });
 
-// Fetch: network-first for API/WS, cache-first for shell
+// Fetch: network-first for API/WS, cache-first for shell and static assets
 self.addEventListener('fetch', (event) => {
   const url = new URL(event.request.url);
+  
+  // Never cache API or WebSocket
   if (url.pathname.startsWith('/pwa/api/') || url.pathname.startsWith('/pwa/ws')) return;
 
+  // Cache-First with Network Update for assets
+  if (url.pathname.endsWith('.css') || url.pathname.includes('/assets/') || url.pathname.includes('/icons/')) {
+    event.respondWith(
+      caches.match(event.request).then(cached => {
+        const networked = fetch(event.request).then(response => {
+          if (response.ok) {
+            const clone = response.clone();
+            caches.open(CACHE_NAME).then(cache => cache.put(event.request, clone));
+          }
+          return response;
+        }).catch(() => null);
+        return cached || networked;
+      })
+    );
+    return;
+  }
+
+  // Network-First for index/shell
   event.respondWith(
     fetch(event.request).then(response => {
       if (response.ok && event.request.method === 'GET') {

@@ -161,13 +161,56 @@ export class ChatView extends LitElement {
       z-index: 25;
       pointer-events: none;
     }
+
+    .skeleton-message {
+      width: 70%;
+      height: 40px;
+      background: rgba(0, 255, 255, 0.05);
+      border: 1px solid rgba(0, 255, 255, 0.1);
+      border-radius: 8px;
+      margin-bottom: 12px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .skeleton-message::after {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; width: 100%; height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(0, 255, 255, 0.1), transparent);
+      animation: skeleton-sweep 1.5s infinite;
+    }
+
+    @keyframes skeleton-sweep {
+      0% { transform: translateX(-100%); }
+      100% { transform: translateX(100%); }
+    }
+
+    .refresh-indicator {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 10px;
+      color: var(--c-primary);
+      font-family: var(--f-mono);
+      font-size: 10px;
+      letter-spacing: 2px;
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+
+    .refresh-indicator.visible {
+      opacity: 0.6;
+    }
   `;
 
   static properties = {
     messages: { type: Array },
     thinking: { type: Boolean },
+    loading: { type: Boolean },
     uiHidden: { type: Boolean, reflect: true, attribute: 'ui-hidden' },
     _showScrollBtn: { type: Boolean, state: true },
+    _isPulling: { type: Boolean, state: true },
   };
 
   constructor() {
@@ -176,6 +219,8 @@ export class ChatView extends LitElement {
     this.uiHidden = false;
     this._isAutoScrolling = false;
     this._showScrollBtn = false;
+    this._isPulling = false;
+    this.loading = false;
   }
 
   firstUpdated() {
@@ -201,11 +246,25 @@ export class ChatView extends LitElement {
     el.addEventListener('touchmove', (e) => {
       const currentY = e.touches[0].clientY;
       const deltaY = currentY - this._touchStartY;
+
+      // Pull to refresh detection
+      if (el.scrollTop === 0 && deltaY > 40) {
+        this._isPulling = true;
+      }
+
       if (deltaY > 60) {
         if (this.shadowRoot.activeElement === input) {
           input.blur();
           hapticLight();
         }
+      }
+    }, { passive: true });
+
+    el.addEventListener('touchend', (e) => {
+      if (this._isPulling) {
+        hapticMedium();
+        this.dispatchEvent(new CustomEvent('refresh', { bubbles: true, composed: true }));
+        this._isPulling = false;
       }
     }, { passive: true });
   }
@@ -255,7 +314,18 @@ export class ChatView extends LitElement {
   render() {
     return html`
       <div class="messages">
-        ${this.messages.length === 0 ? html`
+        <div class="refresh-indicator ${this._isPulling ? 'visible' : ''}">
+          // SYNCING STREAM...
+        </div>
+
+        ${this.loading ? html`
+          <div class="skeleton-message" style="width: 60%"></div>
+          <div class="skeleton-message" style="width: 85%; align-self: flex-end; background: rgba(0, 153, 255, 0.05);"></div>
+          <div class="skeleton-message" style="width: 40%"></div>
+          <div class="skeleton-message" style="width: 75%"></div>
+        ` : ''}
+
+        ${!this.loading && this.messages.length === 0 ? html`
           <div class="empty-state">
             <div class="logo-spin"></div>
             <div>// JARVIS ONLINE</div>
