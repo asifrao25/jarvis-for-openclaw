@@ -18,16 +18,19 @@ export class ChatView extends LitElement {
     .messages {
       flex: 1;
       overflow-y: scroll;
+      overflow-x: hidden;
       -webkit-overflow-scrolling: touch;
       padding: 15px 20px;
-      /* Exactly 44px (input bar) + 12px gap */
-      padding-bottom: 56px;
+      /* Exactly 44px (input bar) - flushed */
+      padding-bottom: 44px;
       display: flex;
       flex-direction: column;
       gap: 12px;
       min-height: 0;
       touch-action: pan-y;
       transition: padding 0.3s ease;
+      width: 100%;
+      box-sizing: border-box;
     }
     
     /* When UI is hidden, utilize EVERY pixel including the bottom bezel area */

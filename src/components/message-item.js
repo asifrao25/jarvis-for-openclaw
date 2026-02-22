@@ -21,6 +21,17 @@ export class MessageItem extends LitElement {
       border-radius: 8px;
       position: relative;
       transition: all 0.5s ease;
+      box-sizing: border-box;
+      word-wrap: break-word;
+      overflow-wrap: break-word;
+      word-break: break-word;
+    }
+
+    .text {
+      white-space: pre-wrap;
+      word-wrap: break-word;
+      overflow-wrap: break-word;
+      word-break: break-word;
     }
     
     .role-user {
@@ -75,18 +86,20 @@ export class MessageItem extends LitElement {
       top: 50%;
       left: 50%;
       transform: translate(-50%, -50%) scale(0.9);
-      background: rgba(0, 20, 30, 0.95);
+      background: rgba(0, 20, 30, 0.98);
       border: 1px solid var(--c-primary);
       border-radius: 8px;
-      padding: 4px;
+      padding: 4px 8px;
       display: flex;
-      gap: 8px;
-      z-index: 100;
+      gap: 4px;
+      z-index: 120;
       opacity: 0;
       pointer-events: none;
       transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-      backdrop-filter: blur(10px);
-      box-shadow: 0 0 20px rgba(0, 255, 255, 0.2);
+      backdrop-filter: blur(15px);
+      box-shadow: 0 0 30px rgba(0, 0, 0, 0.8);
+      white-space: nowrap;
+      width: max-content;
     }
 
     .action-menu.visible {
@@ -100,12 +113,13 @@ export class MessageItem extends LitElement {
       border: none;
       color: var(--c-primary);
       font-family: var(--f-mono);
-      font-size: 10px;
-      padding: 8px 12px;
+      font-size: 11px;
+      padding: 10px 14px;
       cursor: pointer;
       text-transform: uppercase;
       letter-spacing: 1px;
       border-radius: 4px;
+      white-space: nowrap;
     }
 
     .action-btn:active {
@@ -114,6 +128,37 @@ export class MessageItem extends LitElement {
 
     .action-btn.delete {
       color: var(--c-alert);
+    }
+
+    .copy-toast {
+      position: absolute;
+      top: 0;
+      left: 50%;
+      transform: translate(-50%, 0);
+      background: var(--c-primary);
+      color: #fff;
+      font-family: var(--f-mono);
+      font-size: 12px;
+      font-weight: 900;
+      padding: 6px 16px;
+      border-radius: 4px;
+      opacity: 0;
+      transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      pointer-events: none;
+      z-index: 200;
+      box-shadow: 0 0 20px rgba(0, 255, 255, 0.4);
+      letter-spacing: 1px;
+    }
+
+    .copy-toast.visible {
+      opacity: 1;
+      transform: translate(-50%, -45px);
+    }
+
+    .copy-toast.delete {
+      background: var(--c-alert);
+      color: #fff;
+      box-shadow: 0 0 20px rgba(255, 51, 51, 0.4);
     }
   `;
 
@@ -124,27 +169,101 @@ export class MessageItem extends LitElement {
     timestamp: { type: Number },
     seen: { type: Boolean },
     _menuOpen: { type: Boolean, state: true },
+    _showCopied: { type: Boolean, state: true },
+    _toastText: { type: String, state: true },
+    _isDeleteToast: { type: Boolean, state: true },
   };
 
   constructor() {
     super();
     this.seen = true;
     this._menuOpen = false;
+    this._showCopied = false;
+    this._toastText = 'COPIED';
+    this._isDeleteToast = false;
     this._observer = null;
-    this._pressTimer = null;
+  }
+
+  firstUpdated() {
+    if (this.role === 'assistant' && !this.seen) {
+      this._setupObserver();
+    }
+  }
+
+  _setupObserver() {
+    this._observer = new IntersectionObserver((entries) => {
+      if (entries[0].isIntersecting) {
+        // Automatically mark as seen when scrolled into view
+        setTimeout(() => this._markAsSeen(), 500);
+      }
+    }, { threshold: 0.5 });
+    this._observer.observe(this.shadowRoot.querySelector('.message-container'));
   }
 
   _handleMessageClick(e) {
-    // If it's a new/unread message, first tap marks it as seen
     if (this.role === 'assistant' && !this.seen) {
       this._markAsSeen();
-      hapticLight();
+      hapticMedium();
       return;
     }
 
-    // Otherwise, toggle the action menu
     this._menuOpen = !this._menuOpen;
     if (this._menuOpen) hapticMedium();
+  }
+
+  async _copy() {
+    try {
+      await navigator.clipboard.writeText(this.text);
+      this._toastText = 'COPIED';
+      this._isDeleteToast = false;
+      this._showCopied = true;
+      this.requestUpdate();
+      
+      const { hapticSuccess } = await import('../services/haptics.js');
+      hapticSuccess();
+      
+      // Delay closing the menu so the toast is visible above it for a moment
+      setTimeout(() => {
+        this._showCopied = false;
+        this._menuOpen = false;
+      }, 1200);
+    } catch (err) {
+      console.error('Failed to copy:', err);
+    }
+  }
+
+  _delete() {
+    this._toastText = 'DELETED';
+    this._isDeleteToast = true;
+    this._showCopied = true;
+    hapticMedium();
+
+    setTimeout(() => {
+      this.dispatchEvent(new CustomEvent('delete-message', {
+        detail: { id: this.msgId, timestamp: this.timestamp },
+        bubbles: true,
+        composed: true
+      }));
+      this._showCopied = false;
+      this._menuOpen = false;
+    }, 800);
+  }
+
+  _markAsSeen() {
+    if (this._observer) {
+      this._observer.disconnect();
+      this._observer = null;
+    }
+    
+    if (!this.seen) {
+      this.seen = true;
+      this.dispatchEvent(new CustomEvent('message-seen', {
+        detail: { id: this.msgId, timestamp: this.timestamp },
+        bubbles: true,
+        composed: true
+      }));
+      this.requestUpdate();
+    }
   }
 
   render() {
@@ -154,8 +273,10 @@ export class MessageItem extends LitElement {
     }
 
     return html`
-      <div class="${containerClasses.join(' ')}" 
-           @click=${this._handleMessageClick}>
+      <div class="${containerClasses.join(' ')}" @click=${this._handleMessageClick}>
+        <div class="copy-toast ${this._showCopied ? 'visible' : ''} ${this._isDeleteToast ? 'delete' : ''}">
+          ${this._toastText}
+        </div>
         <div class="text">${this.text}</div>
         <div class="meta">${new Date(this.timestamp).toLocaleTimeString()}</div>
 
