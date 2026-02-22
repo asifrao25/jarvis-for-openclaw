@@ -25,24 +25,18 @@ function extractText(msg) {
 export class AppShell extends LitElement {
   static styles = css`
     :host {
-      display: flex;
-      flex-direction: column;
-      position: fixed;
-      top: 0;
-      left: 0;
+      display: block;
       width: 100%;
-      height: 100dvh;
-      background: #000;
-      overflow: hidden;
+      height: 100%;
     }
 
     .app-wrapper {
       display: flex;
       flex-direction: column;
-      width: 100%;
-      height: 100dvh;
+      position: fixed;
+      inset: 0;
       background: #000;
-      min-height: 0;
+      overflow: hidden;
     }
 
     .header {
@@ -143,7 +137,36 @@ export class AppShell extends LitElement {
       flex-direction: column;
       z-index: 1;
       min-height: 0;
-      animation: fadeIn 0.4s ease-out;
+    }
+
+    .view-container.slide-left { animation: slideLeft 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+    .view-container.slide-right { animation: slideRight 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+
+    .swipe-trail {
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      width: 2px;
+      background: linear-gradient(to bottom, transparent, var(--c-primary), transparent);
+      box-shadow: 0 0 15px var(--c-primary);
+      z-index: 100;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.2s;
+    }
+
+    .swipe-trail.active {
+      opacity: 0.4;
+    }
+
+    @keyframes slideLeft {
+      from { transform: translateX(30px); opacity: 0; }
+      to { transform: translateX(0); opacity: 1; }
+    }
+
+    @keyframes slideRight {
+      from { transform: translateX(-30px); opacity: 0; }
+      to { transform: translateX(0); opacity: 1; }
     }
 
     @keyframes fadeIn {
@@ -167,6 +190,9 @@ export class AppShell extends LitElement {
     reportCount: { type: Number },
     uiHidden: { type: Boolean, reflect: true, attribute: 'ui-hidden' },
     _keyboardOpen: { type: Boolean, reflect: true, attribute: 'keyboard-open' },
+    _slideDir: { type: String, state: true },
+    _swipeX: { type: Number, state: true },
+    _isSwiping: { type: Boolean, state: true },
   };
 
   constructor() {
@@ -181,7 +207,11 @@ export class AppShell extends LitElement {
     this.reportCount = 0;
     this.uiHidden = false;
     this._keyboardOpen = false;
+    this._slideDir = '';
+    this._swipeX = 0;
+    this._isSwiping = false;
     this._streamingRuns = new Map();
+    this._touchStart = null;
   }
 
   connectedCallback() {
@@ -214,6 +244,53 @@ export class AppShell extends LitElement {
     }
   }
 
+  _handleTouchStart(e) {
+    if (this._keyboardOpen) return;
+    this._touchStart = {
+      x: e.touches[0].clientX,
+      y: e.touches[0].clientY,
+      time: Date.now()
+    };
+    this._swipeX = e.touches[0].clientX;
+  }
+
+  _handleTouchMove(e) {
+    if (!this._touchStart) return;
+    this._swipeX = e.touches[0].clientX;
+    this._isSwiping = true;
+  }
+
+  _handleTouchEnd(e) {
+    this._isSwiping = false;
+    if (!this._touchStart) return;
+    
+    const endX = e.changedTouches[0].clientX;
+    const endY = e.changedTouches[0].clientY;
+    const diffX = endX - this._touchStart.x;
+    const diffY = endY - this._touchStart.y;
+    const duration = Date.now() - this._touchStart.time;
+
+    const startX = this._touchStart.x;
+    this._touchStart = null;
+
+    // Reject if: too slow (>300ms), too vertical, or starts at screen edges (iOS system gestures)
+    if (duration > 300 || Math.abs(diffY) > Math.abs(diffX) || startX < 25 || startX > window.innerWidth - 25) return;
+
+    const threshold = 60;
+    if (Math.abs(diffX) > threshold) {
+      const order = ['settings', 'chat', 'alert', 'report'];
+      const currentIdx = order.indexOf(this.view);
+      
+      if (diffX < 0 && currentIdx < order.length - 1) {
+        // Swipe Left -> Next Tab (Right)
+        this._onNavigate({ detail: order[currentIdx + 1] });
+      } else if (diffX > 0 && currentIdx > 0) {
+        // Swipe Right -> Prev Tab (Left)
+        this._onNavigate({ detail: order[currentIdx - 1] });
+      }
+    }
+  }
+
   _onMessageSeen(e) {
     const { id, timestamp } = e.detail;
     // Update in-memory state
@@ -234,11 +311,17 @@ export class AppShell extends LitElement {
         const isKeyboard = (window.innerHeight - vv.height) > 150;
         
         if (isKeyboard) {
-          this.style.height = `${vv.height}px`;
-          this.style.top = `${vv.offsetTop}px`;
+          const wrapper = this.shadowRoot.querySelector('.app-wrapper');
+          if (wrapper) {
+            wrapper.style.height = `${vv.height}px`;
+            wrapper.style.bottom = 'auto';
+          }
         } else {
-          this.style.height = '100dvh';
-          this.style.top = '0';
+          const wrapper = this.shadowRoot.querySelector('.app-wrapper');
+          if (wrapper) {
+            wrapper.style.height = '';
+            wrapper.style.bottom = '';
+          }
         }
         
         if (isKeyboard !== this._keyboardOpen) {
@@ -394,7 +477,16 @@ export class AppShell extends LitElement {
   }
 
   _onNavigate(e) {
-    this.view = e.detail;
+    const nextView = e.detail;
+    if (nextView === this.view) return;
+
+    const order = ['settings', 'chat', 'alert', 'report'];
+    const oldIdx = order.indexOf(this.view);
+    const nextIdx = order.indexOf(nextView);
+
+    this._slideDir = nextIdx > oldIdx ? 'slide-left' : 'slide-right';
+    this.view = nextView;
+
     if (this.view === 'alert') this.alertCount = 0;
     if (this.view === 'report') this.reportCount = 0;
     this.uiHidden = false;
@@ -451,7 +543,7 @@ export class AppShell extends LitElement {
           <login-screen @login=${this._onLogin}></login-screen>
         ` : html`
           <div class="header">
-            <h1>JARVIS <span>v4.6.8</span></h1>
+            <h1>JARVIS <span>v4.7.1</span></h1>
             <div class="status">
               <div class="strm-badge">
                 STRM: ${this.messages.length.toString().padStart(3, '0')}
@@ -469,9 +561,16 @@ export class AppShell extends LitElement {
             </div>
           ` : ''}
 
-          <div class="main-view">
+          <div class="main-view" 
+               @touchstart=${this._handleTouchStart}
+               @touchmove=${this._handleTouchMove}
+               @touchend=${this._handleTouchEnd}>
             <div class="bg-grid"></div>
-            <div class="view-container">
+            
+            <div class="swipe-trail ${this._isSwiping ? 'active' : ''}" 
+                 style="left: ${this._swipeX}px;"></div>
+
+            <div class="view-container ${this._slideDir}">
               ${this.view === 'chat' ? html`
                 <chat-view
                   .messages=${this.messages}

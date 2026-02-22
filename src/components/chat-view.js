@@ -20,8 +20,8 @@ export class ChatView extends LitElement {
       overflow-y: scroll;
       -webkit-overflow-scrolling: touch;
       padding: 15px 20px;
-      /* Only enough padding to clear the 44px bar - no extra gap */
-      padding-bottom: 44px;
+      /* Exactly 44px (input bar) + 12px gap */
+      padding-bottom: 56px;
       display: flex;
       flex-direction: column;
       gap: 12px;
