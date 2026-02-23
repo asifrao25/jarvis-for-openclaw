@@ -6,7 +6,7 @@ export class MessageItem extends LitElement {
     :host {
       display: flex;
       flex-direction: column;
-      margin-bottom: 8px;
+      margin-bottom: 24px;
       font-family: var(--f-body);
       font-size: var(--chat-font-size, 14px);
       line-height: 1.4;

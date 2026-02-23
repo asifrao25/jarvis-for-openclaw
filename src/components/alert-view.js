@@ -150,6 +150,39 @@ export class AlertView extends LitElement {
       padding-top: 10px;
     }
 
+    /* Action Styles */
+    .entry-actions {
+      display: flex;
+      gap: 12px;
+      margin-top: 14px;
+      padding-top: 12px;
+      border-top: 1px solid rgba(255,77,109,.10);
+    }
+
+    .action-btn {
+      background: rgba(255,77,109,.06);
+      border: 1px solid rgba(255,77,109,.2);
+      color: #FECDD3;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px;
+      padding: 6px 12px;
+      border-radius: 6px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .action-btn:active {
+      background: rgba(255,77,109,.15);
+      border-color: rgba(255,77,109,.4);
+    }
+
+    .action-btn.delete {
+      border-color: rgba(255, 0, 0, 0.2);
+      color: #ff4d4d;
+    }
+
     .empty {
       display: flex;
       flex-direction: column;
@@ -204,56 +237,6 @@ export class AlertView extends LitElement {
     .scroll-bottom:active { opacity: 0.7; }
     .scroll-bottom svg { width: 18px; height: 18px; fill: currentColor; }
 
-    /* Action Menu Styles */
-    .action-menu {
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%) scale(0.9);
-      background: rgba(0, 20, 30, 0.98);
-      border: 1px solid var(--c-primary);
-      border-radius: 8px;
-      padding: 4px 8px;
-      display: flex;
-      gap: 4px;
-      z-index: 120;
-      opacity: 0;
-      pointer-events: none;
-      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-      backdrop-filter: blur(15px);
-      box-shadow: 0 0 30px rgba(0, 0, 0, 0.8);
-      white-space: nowrap;
-      width: max-content;
-    }
-
-    .action-menu.visible {
-      opacity: 1;
-      pointer-events: auto;
-      transform: translate(-50%, -50%) scale(1);
-    }
-
-    .action-btn {
-      background: transparent;
-      border: none;
-      color: var(--c-primary);
-      font-family: var(--f-mono);
-      font-size: 11px;
-      padding: 10px 14px;
-      cursor: pointer;
-      text-transform: uppercase;
-      letter-spacing: 1px;
-      border-radius: 4px;
-      white-space: nowrap;
-    }
-
-    .action-btn:active {
-      background: rgba(0, 255, 255, 0.1);
-    }
-
-    .action-btn.delete {
-      color: var(--c-alert);
-    }
-
     .copy-toast {
       position: fixed;
       top: 50%;
@@ -292,8 +275,6 @@ export class AlertView extends LitElement {
     _pullHeight:    { type: Number,  state: true },
     _showScrollBtn: { type: Boolean, state: true },
     _expanded:      { type: Object,  state: true },
-    _menuOpen:      { type: Boolean, state: true },
-    _activeKey:     { type: String,  state: true },
     _showCopied:    { type: Boolean, state: true },
     _toastText:     { type: String,  state: true },
     _isDeleteToast: { type: Boolean, state: true },
@@ -308,8 +289,6 @@ export class AlertView extends LitElement {
     this._pulling = false;
     this._showScrollBtn = false;
     this._expanded = {};
-    this._menuOpen = false;
-    this._activeKey = null;
     this._showCopied = false;
     this._toastText = 'COPIED';
     this._isDeleteToast = false;
@@ -366,27 +345,13 @@ export class AlertView extends LitElement {
   }
 
   _toggle(key) {
-    if (this._menuOpen) {
-      this._menuOpen = false;
-      return;
-    }
     hapticLight();
     this._expanded = { ...this._expanded, [key]: !this._expanded[key] };
   }
 
-  _handleLongPress(e, key) {
-    e.preventDefault();
-    this._activeKey = String(key);
-    this._menuOpen = true;
-    hapticMedium();
-  }
-
-  async _copy() {
-    const msg = this.messages.find(m => String(m.id || m.timestamp) === this._activeKey);
-    if (!msg) return;
-
+  async _copy(text) {
     try {
-      await navigator.clipboard.writeText(msg.text);
+      await navigator.clipboard.writeText(text);
       this._toastText = 'COPIED';
       this._isDeleteToast = false;
       this._showCopied = true;
@@ -396,17 +361,13 @@ export class AlertView extends LitElement {
       
       setTimeout(() => {
         this._showCopied = false;
-        this._menuOpen = false;
       }, 1200);
     } catch (err) {
       console.error('Failed to copy:', err);
     }
   }
 
-  _delete() {
-    const msg = this.messages.find(m => String(m.id || m.timestamp) === this._activeKey);
-    if (!msg) return;
-
+  _delete(id, timestamp) {
     this._toastText = 'DELETED';
     this._isDeleteToast = true;
     this._showCopied = true;
@@ -414,12 +375,11 @@ export class AlertView extends LitElement {
 
     setTimeout(() => {
       this.dispatchEvent(new CustomEvent('delete-message', {
-        detail: { id: msg.id, timestamp: msg.timestamp },
+        detail: { id, timestamp },
         bubbles: true,
         composed: true
       }));
       this._showCopied = false;
-      this._menuOpen = false;
     }, 800);
   }
 
@@ -481,10 +441,8 @@ export class AlertView extends LitElement {
           const key = String(m.id || m.timestamp || i);
           const expanded = this._expanded[key];
           return html`
-            <div class="entry ${expanded ? 'expanded' : ''}" style="position: relative;">
-              <div class="entry-header" 
-                   @click=${() => this._toggle(key)}
-                   @contextmenu=${(e) => this._handleLongPress(e, key)}>
+            <div class="entry ${expanded ? 'expanded' : ''}">
+              <div class="entry-header" @click=${() => this._toggle(key)}>
                 <div class="entry-icon">
                   <svg viewBox="0 0 24 24"><path d="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z"/></svg>
                 </div>
@@ -498,12 +456,10 @@ export class AlertView extends LitElement {
               </div>
               <div class="entry-body">
                 <div class="entry-text">${this._getBody(m.text)}</div>
-              </div>
-
-              <div class="action-menu ${this._menuOpen && this._activeKey === key ? 'visible' : ''}" @click=${(e) => e.stopPropagation()}>
-                <button class="action-btn" @click=${this._copy}>Copy</button>
-                <button class="action-btn delete" @click=${this._delete}>Delete</button>
-                <button class="action-btn" @click=${() => this._menuOpen = false}>Close</button>
+                <div class="entry-actions">
+                  <button class="action-btn" @click=${() => this._copy(m.text)}>Copy</button>
+                  <button class="action-btn delete" @click=${() => this._delete(m.id, m.timestamp)}>Delete</button>
+                </div>
               </div>
             </div>
           `;
@@ -514,7 +470,6 @@ export class AlertView extends LitElement {
           <svg viewBox="0 0 24 24"><path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6 1.41-1.41z"/></svg>
         </button>
       ` : ''}
-      ${this._menuOpen ? html`<div style="position:fixed; inset:0; z-index:90;" @click=${() => this._menuOpen = false}></div>` : ''}
     `;
   }
 }
