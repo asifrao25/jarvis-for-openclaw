@@ -175,12 +175,19 @@ export class SettingsView extends LitElement {
   }
 
   _clear(category) {
-    if (confirm(`Clear all ${category} entries?`)) {
+    if (confirm(`ARE YOU SURE YOU WANT TO CLEAR ALL ${category.toUpperCase()} ENTRIES?\n\nThis action cannot be undone.`)) {
       this.dispatchEvent(new CustomEvent('clear-category', { 
         detail: category, 
         bubbles: true, 
         composed: true 
       }));
+      hapticMedium();
+    }
+  }
+
+  _logout() {
+    if (confirm('LOGOUT OF JARVIS?\n\nThis will clear your local session and message sequence tracking.')) {
+      this.dispatchEvent(new CustomEvent('logout', { bubbles: true, composed: true }));
       hapticMedium();
     }
   }
@@ -235,6 +242,7 @@ export class SettingsView extends LitElement {
           <button class="clear-btn" @click=${() => this._clear('chat')}>Clear Chat History</button>
           <button class="clear-btn" @click=${() => this._clear('alert')}>Clear Alerts</button>
           <button class="clear-btn" @click=${() => this._clear('report')}>Clear Reports</button>
+          <button class="clear-btn" style="background: rgba(255,255,255,0.05); border-color: rgba(255,255,255,0.2); color: #FFF; margin-top: 20px;" @click=${this._logout}>Logout Session</button>
         </div>
         <div class="hint">// Actions cannot be undone</div>
       </div>

@@ -233,6 +233,7 @@ export class AppShell extends LitElement {
     this.addEventListener('delete-message', this._onDeleteMessage);
     this.addEventListener('clear-category', this._onClearCategory);
     this.addEventListener('login', this._onLogin);
+    this.addEventListener('logout', this._onLogout);
     this.addEventListener('ui-toggle', (e) => { this.uiHidden = e.detail; });
     this.addEventListener('message-seen', this._onMessageSeen);
 
@@ -530,6 +531,15 @@ export class AppShell extends LitElement {
     wsClient.connect(password);
     this._loadStoredMessages();
     hapticSuccess();
+  }
+
+  _onLogout() {
+    clearAuth();
+    wsClient.disconnect();
+    this.loggedIn = false;
+    this.messages = [];
+    this.view = 'chat';
+    hapticMedium();
   }
 
   _onNavigate(e) {
