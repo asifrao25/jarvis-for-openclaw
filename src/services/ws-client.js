@@ -53,8 +53,8 @@ export class WSClient extends EventTarget {
         }
 
         // Track seq
-        if (typeof msg.seq === 'number' && msg.seq > this.lastSeq) {
-          this.lastSeq = msg.seq;
+        if (typeof msg.seq === 'number') {
+          this.lastSeq = Math.max(this.lastSeq, msg.seq);
           localStorage.setItem('openclaw-lastSeq', String(this.lastSeq));
         }
 

@@ -234,7 +234,11 @@ gatewayClient.on('event', (event) => {
 
 // Forward gateway responses (e.g. chat.send results) to PWA clients
 gatewayClient.on('response', (msg) => {
-  const data = JSON.stringify(msg);
+  // Use the internal bufferSeq for PWA client sync
+  const enrichedMsg = { ...msg };
+  if (msg.bufferSeq) enrichedMsg.seq = msg.bufferSeq;
+  const data = JSON.stringify(enrichedMsg);
+
   for (const [id, client] of pwaClients) {
     if (client.ws.readyState === WebSocket.OPEN) {
       client.ws.send(data);

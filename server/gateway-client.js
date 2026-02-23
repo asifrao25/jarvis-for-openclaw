@@ -93,15 +93,11 @@ export default class GatewayClient extends EventEmitter {
       return;
     }
 
-    // Buffer and emit all events
-    if (msg.type === 'event') {
+    // Buffer and emit all events/responses
+    if (msg.type === 'event' || (msg.type === 'res' && msg.id !== this.pendingConnectId)) {
       this.eventBuffer.addEvent(msg);
-      this.emit('event', msg);
-    }
-
-    // Forward responses (e.g. chat.send results) to PWA clients
-    if (msg.type === 'res' && msg.id !== this.pendingConnectId) {
-      this.emit('response', msg);
+      if (msg.type === 'event') this.emit('event', msg);
+      else this.emit('response', msg);
     }
   }
 

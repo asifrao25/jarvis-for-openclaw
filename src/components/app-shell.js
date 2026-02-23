@@ -477,6 +477,14 @@ export class AppShell extends LitElement {
     } else if (state === 'final') {
       this.thinking = false;
       this.streaming = false;
+      
+      // Deduplicate: check if we already have this message by seq or runId
+      const isDuplicate = this.messages.some(m => 
+        (msg.seq && m.seq === msg.seq) || 
+        (runId && m.runId === runId && !m.streaming)
+      );
+      if (isDuplicate) return;
+
       const existingIdx = this._streamingRuns.get(runId);
       const finalMsg = { role, text, category, timestamp: Date.now(), streaming: false, runId, seq: msg.seq, seen: false };
 
