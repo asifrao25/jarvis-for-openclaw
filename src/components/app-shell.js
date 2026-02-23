@@ -461,6 +461,8 @@ export class AppShell extends LitElement {
     const text = extractText(msg);
     const category = categorize(text);
 
+    console.log(`[AppShell] Recv Chat: state=${state} runId=${runId} seq=${msg.seq} text="${text.substring(0, 30)}..." replayed=${!!msg._replayed}`);
+
     if (state === 'delta') {
       this.thinking = false;
       this.streaming = true;
@@ -483,7 +485,10 @@ export class AppShell extends LitElement {
         (msg.seq && m.seq === msg.seq) || 
         (runId && m.runId === runId && !m.streaming)
       );
-      if (isDuplicate) return;
+      if (isDuplicate) {
+        console.log(`[AppShell] Ignoring duplicate: seq=${msg.seq} runId=${runId}`);
+        return;
+      }
 
       const existingIdx = this._streamingRuns.get(runId);
       const finalMsg = { role, text, category, timestamp: Date.now(), streaming: false, runId, seq: msg.seq, seen: false };
@@ -589,7 +594,7 @@ export class AppShell extends LitElement {
           <login-screen @login=${this._onLogin}></login-screen>
         ` : html`
           <div class="header">
-            <h1>JARVIS <span>v4.2.0</span></h1>
+            <h1>JARVIS <span>v4.2.1</span></h1>
             <div class="status">
               <div class="strm-badge">
                 STRM: ${this.messages.length.toString().padStart(3, '0')}

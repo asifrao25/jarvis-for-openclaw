@@ -95,7 +95,21 @@ export default class GatewayClient extends EventEmitter {
 
     // Buffer and emit all events/responses
     if (msg.type === 'event' || (msg.type === 'res' && msg.id !== this.pendingConnectId)) {
-      this.eventBuffer.addEvent(msg);
+      // Filter out high-frequency noise events from the replay buffer
+      const isNoise = msg.type === 'event' && (msg.event === 'tick' || msg.event === 'health');
+      
+      if (!isNoise) {
+        this.eventBuffer.addEvent(msg);
+        
+        // Log interesting messages
+        if (msg.event === 'chat') {
+          const text = msg.payload?.message?.content?.[0]?.text || '';
+          console.log(`[Gateway] Buffered Chat: seq=${msg.bufferSeq} state=${msg.payload?.state} text="${text.substring(0, 50)}..."`);
+        } else {
+          console.log(`[Gateway] Buffered ${msg.type}${msg.event ? ':' + msg.event : ''} seq=${msg.bufferSeq}`);
+        }
+      }
+
       if (msg.type === 'event') this.emit('event', msg);
       else this.emit('response', msg);
     }
