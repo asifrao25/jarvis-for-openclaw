@@ -10,6 +10,7 @@ export function getAuth() {
 
 export function clearAuth() {
   localStorage.removeItem(STORAGE_KEY);
+  localStorage.removeItem('openclaw-lastSeq');
 }
 
 export function isLoggedIn() {

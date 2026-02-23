@@ -120,7 +120,13 @@ wss.on('connection', (ws, req) => {
           console.log(`[WS] ${clientId} authenticated`);
 
           // Replay missed events
-          if (lastSeq > 0) {
+          const stats = eventBuffer.getStats();
+          if (lastSeq > stats.newestSeq) {
+            console.log(`[WS] ${clientId} lastSeq (${lastSeq}) ahead of buffer (${stats.newestSeq}), triggering client reset`);
+            ws.send(JSON.stringify({ type: 'buffer-reset', newestSeq: stats.newestSeq }));
+          }
+
+          if (lastSeq > 0 || (lastSeq > stats.newestSeq)) {
             const missed = eventBuffer.getEventsSince(lastSeq, clientId);
             console.log(`[WS] Replaying ${missed.length} events for ${clientId}`);
             for (const event of missed) {

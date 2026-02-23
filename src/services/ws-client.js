@@ -52,6 +52,15 @@ export class WSClient extends EventTarget {
           return;
         }
 
+        // Buffer reset (server restart)
+        if (msg.type === 'buffer-reset') {
+          console.log('[WS] Server buffer reset, catching up from 0');
+          this.lastSeq = 0;
+          localStorage.setItem('openclaw-lastSeq', '0');
+          this.dispatchEvent(new CustomEvent('buffer-reset'));
+          return;
+        }
+
         // Track seq
         if (typeof msg.seq === 'number') {
           // Detect sequence reset (server restarted)
