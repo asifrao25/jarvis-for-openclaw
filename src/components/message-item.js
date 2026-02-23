@@ -44,10 +44,10 @@ export class MessageItem extends LitElement {
 
     .role-assistant {
       align-self: flex-start;
-      background: rgba(0, 20, 30, 0.8);
-      border: 1px solid var(--c-primary-dim);
+      background: rgba(0, 20, 30, 0.95);
+      border: 1px solid var(--c-primary);
       color: var(--chat-agent-color, var(--c-text));
-      box-shadow: 0 0 15px rgba(0, 255, 255, 0.05);
+      box-shadow: 0 0 15px rgba(0, 255, 255, 0.1);
     }
     
     .role-assistant::before {
