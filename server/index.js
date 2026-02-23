@@ -86,16 +86,16 @@ server.on('upgrade', (req, socket, head) => {
 });
 
 wss.on('connection', (ws, req) => {
+  const url = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
+  const lastSeq = parseInt(url.searchParams.get('lastSeq') || '0', 10);
   const clientId = `pwa-${Date.now()}-${crypto.randomBytes(4).toString('hex')}`;
-  console.log(`[WS] New connection: ${clientId}`);
+  console.log(`[WS] New connection: ${clientId}, lastSeq: ${lastSeq}`);
 
   let authenticated = false;
   ws.isAlive = true;
   let isVisible = true; // Assume visible on connect
 
   ws.on('pong', () => { ws.isAlive = true; });
-
-  // ... (lastSeq logic)
 
   ws.on('message', (data) => {
     ws.isAlive = true;
@@ -127,7 +127,7 @@ wss.on('connection', (ws, req) => {
               ws.send(JSON.stringify({
                 type: event.type,
                 event: event.event,
-                seq: event.seq,
+                seq: event.bufferSeq, // Use stable bufferSeq for PWA clients
                 payload: event.payload,
                 _replayed: true,
               }));
@@ -183,7 +183,10 @@ const pingInterval = setInterval(() => {
 
 // Forward gateway events to all PWA clients
 gatewayClient.on('event', (event) => {
-  const data = JSON.stringify(event);
+  // Use the internal bufferSeq for PWA client sync
+  const enrichedEvent = { ...event };
+  if (event.bufferSeq) enrichedEvent.seq = event.bufferSeq;
+  const data = JSON.stringify(enrichedEvent);
 
   // Forward to connected clients, count active ones
   let activeCount = 0;
@@ -232,9 +235,9 @@ gatewayClient.on('event', (event) => {
 // Forward gateway responses (e.g. chat.send results) to PWA clients
 gatewayClient.on('response', (msg) => {
   const data = JSON.stringify(msg);
-  for (const [id, ws] of pwaClients) {
-    if (ws.readyState === WebSocket.OPEN) {
-      ws.send(data);
+  for (const [id, client] of pwaClients) {
+    if (client.ws.readyState === WebSocket.OPEN) {
+      client.ws.send(data);
     }
   }
 });

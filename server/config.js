@@ -47,10 +47,10 @@ export default {
   gatewayPassword: process.env.GATEWAY_PASSWORD,
 
   // Event buffer
-  maxEvents: 500,
-  maxAgeMs: 2 * 60 * 60 * 1000, // 2 hours
+  maxEvents: 2000,
+  maxAgeMs: 24 * 60 * 60 * 1000, // 24 hours
   rateLimitWindowMs: 60000,
-  maxReplayPerMinute: 10,
+  maxReplayPerMinute: 500,
 
   // VAPID
   vapidKeys,

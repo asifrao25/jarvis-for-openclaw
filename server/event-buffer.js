@@ -21,6 +21,9 @@ export default class EventBuffer {
       payload: event.payload,
     };
 
+    // Attach bufferSeq to the original event for immediate use by GatewayClient listeners
+    event.bufferSeq = bufferSeq;
+
     this.buffer.push(bufferedEvent);
     this._cleanup();
     return gatewaySeq;
@@ -32,7 +35,8 @@ export default class EventBuffer {
       return [];
     }
 
-    const missed = this.buffer.filter(e => e.seq > lastSeq);
+    // Use bufferSeq for more stable replay across gateway restarts/resets
+    const missed = this.buffer.filter(e => e.bufferSeq > lastSeq);
     this._updateRateLimit(clientId, missed.length);
     return missed;
   }
@@ -72,8 +76,8 @@ export default class EventBuffer {
   getStats() {
     return {
       totalEvents: this.buffer.length,
-      oldestSeq: this.buffer.length > 0 ? this.buffer[0].seq : 0,
-      newestSeq: this.buffer.length > 0 ? this.buffer[this.buffer.length - 1].seq : 0,
+      oldestSeq: this.buffer.length > 0 ? this.buffer[0].bufferSeq : 0,
+      newestSeq: this.buffer.length > 0 ? this.buffer[this.buffer.length - 1].bufferSeq : 0,
       nextSeq: this.nextSeq,
     };
   }

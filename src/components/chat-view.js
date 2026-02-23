@@ -210,6 +210,7 @@ export class ChatView extends LitElement {
   static properties = {
     messages: { type: Array },
     thinking: { type: Boolean },
+    streaming: { type: Boolean },
     loading: { type: Boolean },
     uiHidden: { type: Boolean, reflect: true, attribute: 'ui-hidden' },
     _showScrollBtn: { type: Boolean, state: true },
@@ -218,6 +219,8 @@ export class ChatView extends LitElement {
 
   constructor() {
     super();
+    this.thinking = false;
+    this.streaming = false;
     this._touchStartY = 0;
     this.uiHidden = false;
     this._isAutoScrolling = false;
@@ -274,10 +277,16 @@ export class ChatView extends LitElement {
 
   updated(changed) {
     if (changed.has('messages')) {
+      const oldMessages = changed.get('messages') || [];
+      if (this.messages.length > oldMessages.length) {
+        this.scrollToBottom(false);
+        // Secondary scrolls to handle layout shifts from images or font rendering
+        setTimeout(() => this.scrollToBottom(false), 100);
+        setTimeout(() => this.scrollToBottom(false), 300);
+      }
+    }
+    if ((changed.has('thinking') && this.thinking) || (changed.has('streaming') && this.streaming)) {
       this.scrollToBottom(false);
-      // Secondary scrolls to handle layout shifts from images or font rendering
-      setTimeout(() => this.scrollToBottom(false), 100);
-      setTimeout(() => this.scrollToBottom(false), 300);
     }
   }
 
