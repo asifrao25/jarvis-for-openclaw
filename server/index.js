@@ -203,9 +203,10 @@ gatewayClient.on('event', (event) => {
 
   // Send push for final chat messages if no visible clients are currently connected
   if (event.event === 'chat' && event.payload?.state === 'final') {
-    // If ANY client is visible or we have active sockets, skip push
-    if (visibleCount > 0 || activeCount > 0) {
-      console.log(`[Push] Suppressing. Active: ${activeCount}, Visible: ${visibleCount}`);
+    // Only suppress if a client is explicitly VISIBLE. 
+    // Having an active socket while hidden (common on iOS) should not block notifications.
+    if (visibleCount > 0) {
+      console.log(`[Push] Suppressing. Visible clients: ${visibleCount}`);
       return;
     }
 

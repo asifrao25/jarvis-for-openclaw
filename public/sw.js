@@ -1,6 +1,6 @@
 // Service Worker for Jarvis PWA
 
-const CACHE_NAME = 'openclaw-pwa-v184';
+const CACHE_NAME = 'openclaw-pwa-v185';
 const SHELL_FILES = ['/pwa/', '/pwa/index.html'];
 
 // Badge count tracker (simple in-memory, but will try to persist via Cache API for resilience)
@@ -109,29 +109,14 @@ self.addEventListener('push', (event) => {
         return;
       }
 
-      console.log('[SW] App in background, showing notification after verification delay');
-      
-      // 500ms delay to double-check if the app has been brought to the foreground
-      // while the push was being processed.
-      return new Promise(resolve => {
-        setTimeout(async () => {
-          const freshClients = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
-          const isActuallyForeground = freshClients.some(c => c.visibilityState === 'visible' || c.focused);
-          
-          if (isActuallyForeground) {
-            console.log('[SW] App became active during delay, suppressing');
-            return resolve();
-          }
-
-          resolve(self.registration.showNotification(data.title, {
-            body: data.body,
-            icon: '/pwa/icons/icon-192.png',
-            badge: '/pwa/icons/icon-192.png',
-            tag,
-            data: { url: data.url || '/pwa/' },
-            vibrate: [100, 50, 100],
-          }));
-        }, 500);
+      console.log('[SW] App in background, showing notification');
+      return self.registration.showNotification(data.title, {
+        body: data.body,
+        icon: '/pwa/icons/icon-192.png',
+        badge: '/pwa/icons/icon-192.png',
+        tag,
+        data: { url: data.url || '/pwa/' },
+        vibrate: [100, 50, 100],
       });
     })
   );
