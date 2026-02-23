@@ -35,8 +35,18 @@ export default class EventBuffer {
       return [];
     }
 
+    const oldest = this.buffer.length > 0 ? this.buffer[0].bufferSeq : 0;
+    const newest = this.buffer.length > 0 ? this.buffer[this.buffer.length - 1].bufferSeq : 0;
+
+    let effectiveLastSeq = lastSeq;
+    // If client's lastSeq is in the future (server restarted), reset to catch up from buffer start
+    if (lastSeq > newest) {
+      console.log(`[EventBuffer] ${clientId} lastSeq (${lastSeq}) ahead of buffer (${newest}), resetting to ${oldest - 1}`);
+      effectiveLastSeq = Math.max(0, oldest - 1);
+    }
+
     // Use bufferSeq for more stable replay across gateway restarts/resets
-    const missed = this.buffer.filter(e => e.bufferSeq > lastSeq);
+    const missed = this.buffer.filter(e => e.bufferSeq > effectiveLastSeq);
     this._updateRateLimit(clientId, missed.length);
     return missed;
   }

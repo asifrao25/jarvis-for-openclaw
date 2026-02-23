@@ -54,7 +54,13 @@ export class WSClient extends EventTarget {
 
         // Track seq
         if (typeof msg.seq === 'number') {
-          this.lastSeq = Math.max(this.lastSeq, msg.seq);
+          // Detect sequence reset (server restarted)
+          if (msg.seq < this.lastSeq - 1000) {
+            console.log(`[WS] Sequence reset detected: ${this.lastSeq} -> ${msg.seq}`);
+            this.lastSeq = msg.seq;
+          } else {
+            this.lastSeq = Math.max(this.lastSeq, msg.seq);
+          }
           localStorage.setItem('openclaw-lastSeq', String(this.lastSeq));
         }
 
