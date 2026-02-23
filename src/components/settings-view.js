@@ -123,13 +123,105 @@ export class SettingsView extends LitElement {
     }
     .status-enabled { background: rgba(0, 255, 0, 0.2); color: #00FF00; }
     .status-disabled { background: rgba(255, 0, 0, 0.2); color: #FF3333; }
+
+    /* Custom Confirmation Modal */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.85);
+      backdrop-filter: blur(10px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.3s ease;
+      padding: 20px;
+    }
+
+    .modal-overlay.visible {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .modal-content {
+      background: #000;
+      border: 1px solid var(--c-primary);
+      box-shadow: 0 0 30px rgba(0, 255, 255, 0.2);
+      border-radius: 16px;
+      width: 100%;
+      max-width: 320px;
+      padding: 24px;
+      text-align: center;
+      transform: scale(0.9);
+      transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+
+    .modal-overlay.visible .modal-content {
+      transform: scale(1);
+    }
+
+    .modal-title {
+      font-family: var(--f-display);
+      font-size: 16px;
+      letter-spacing: 2px;
+      color: var(--c-alert);
+      margin-bottom: 12px;
+      text-transform: uppercase;
+    }
+
+    .modal-text {
+      font-family: var(--f-mono);
+      font-size: 12px;
+      line-height: 1.6;
+      color: #FFF;
+      margin-bottom: 24px;
+      opacity: 0.9;
+    }
+
+    .modal-actions {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .modal-btn {
+      padding: 12px;
+      border-radius: 8px;
+      font-family: var(--f-mono);
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      cursor: pointer;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      background: rgba(255, 255, 255, 0.05);
+      color: #FFF;
+      transition: all 0.2s;
+    }
+
+    .modal-btn.confirm {
+      background: rgba(255, 51, 51, 0.15);
+      border-color: #FF3333;
+      color: #FF3333;
+      font-weight: bold;
+    }
+
+    .modal-btn:active {
+      transform: scale(0.95);
+      background: rgba(255, 255, 255, 0.1);
+    }
   `;
 
   static properties = {
     fontSize: { type: String },
     userColor: { type: String },
     agentColor: { type: String },
-    pushStatus: { type: String, state: true }
+    pushStatus: { type: String, state: true },
+    _confirming: { type: Boolean, state: true },
+    _confirmTitle: { type: String, state: true },
+    _confirmText: { type: String, state: true },
+    _confirmAction: { type: Object, state: true }
   };
 
   constructor() {
@@ -138,6 +230,10 @@ export class SettingsView extends LitElement {
     this.userColor = localStorage.getItem('settings-user-color') || '#00FFFF';
     this.agentColor = localStorage.getItem('settings-agent-color') || '#E0FFFF';
     this.pushStatus = Notification.permission;
+    this._confirming = false;
+    this._confirmTitle = '';
+    this._confirmText = '';
+    this._confirmAction = null;
     this._applySettings();
   }
 
@@ -175,21 +271,39 @@ export class SettingsView extends LitElement {
   }
 
   _clear(category) {
-    if (confirm(`ARE YOU SURE YOU WANT TO CLEAR ALL ${category.toUpperCase()} ENTRIES?\n\nThis action cannot be undone.`)) {
+    this._confirmTitle = 'CONFIRM WIPE';
+    this._confirmText = `ARE YOU SURE YOU WANT TO CLEAR ALL ${category.toUpperCase()} ENTRIES?\n\nThis action cannot be undone and data will be permanently removed from local storage.`;
+    this._confirmAction = () => {
       this.dispatchEvent(new CustomEvent('clear-category', { 
         detail: category, 
         bubbles: true, 
         composed: true 
       }));
       hapticMedium();
-    }
+    };
+    this._confirming = true;
+    hapticMedium();
   }
 
   _logout() {
-    if (confirm('LOGOUT OF JARVIS?\n\nThis will clear your local session and message sequence tracking.')) {
+    this._confirmTitle = 'SYSTEM LOGOUT';
+    this._confirmText = 'LOGOUT OF JARVIS?\n\nThis will clear your local session, message history, and sequence tracking. You will need to re-authenticate to use the system.';
+    this._confirmAction = () => {
       this.dispatchEvent(new CustomEvent('logout', { bubbles: true, composed: true }));
       hapticMedium();
-    }
+    };
+    this._confirming = true;
+    hapticMedium();
+  }
+
+  _handleConfirm() {
+    if (this._confirmAction) this._confirmAction();
+    this._confirming = false;
+  }
+
+  _handleCancel() {
+    this._confirming = false;
+    hapticLight();
   }
 
   render() {
@@ -245,6 +359,18 @@ export class SettingsView extends LitElement {
           <button class="clear-btn" style="background: rgba(255,255,255,0.05); border-color: rgba(255,255,255,0.2); color: #FFF; margin-top: 20px;" @click=${this._logout}>Logout Session</button>
         </div>
         <div class="hint">// Actions cannot be undone</div>
+      </div>
+
+      <!-- Custom Confirmation Modal -->
+      <div class="modal-overlay ${this._confirming ? 'visible' : ''}" @click=${this._handleCancel}>
+        <div class="modal-content" @click=${(e) => e.stopPropagation()}>
+          <div class="modal-title">${this._confirmTitle}</div>
+          <div class="modal-text">${this._confirmText}</div>
+          <div class="modal-actions">
+            <button class="modal-btn confirm" @click=${this._handleConfirm}>Confirm Action</button>
+            <button class="modal-btn" @click=${this._handleCancel}>Cancel</button>
+          </div>
+        </div>
       </div>
     `;
   }
