@@ -72,7 +72,10 @@ app.use(spaFallback);
 const server = createServer(app);
 
 // WebSocket server — accept at both /pwa/ws and /ws
-const wss = new WebSocketServer({ noServer: true });
+const wss = new WebSocketServer({ 
+  noServer: true,
+  maxPayload: 150 * 1024 * 1024 // 150MB limit
+});
 
 server.on('upgrade', (req, socket, head) => {
   const pathname = new URL(req.url, 'http://localhost').pathname;

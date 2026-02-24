@@ -342,8 +342,9 @@ export class ChatView extends LitElement {
     const file = e.target.files[0];
     if (!file) return;
 
-    if (file.size > 5 * 1024 * 1024) {
-      alert('File too large (max 5MB)');
+    // Limit to 100MB
+    if (file.size > 100 * 1024 * 1024) {
+      alert('File too large (max 100MB)');
       e.target.value = '';
       return;
     }
