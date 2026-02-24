@@ -119,9 +119,9 @@ export default class GatewayClient extends EventEmitter {
     if (this.ws && this.ws.readyState === WebSocket.OPEN) {
       let payload = typeof data === 'string' ? JSON.parse(data) : data;
 
-      // Intercept chat.send with attachments and transform to gateway-native multimodal format
+      // Intercept chat.send with attachments and transform to gateway-native multimodal format using "agent" method
       if (payload.method === 'chat.send' && payload.params?.attachment) {
-        const { message, attachment } = payload.params;
+        const { message, attachment, sessionKey } = payload.params;
         const content = [];
 
         // Add text part if present
@@ -130,26 +130,31 @@ export default class GatewayClient extends EventEmitter {
         }
 
         // Add media part
+        const rawData = attachment.data.replace(/^data:.*?;base64,/, '');
+        
         if (attachment.type?.startsWith('image/')) {
           content.push({
             type: 'image',
-            data: attachment.data, // PWA already sends Base64 data: URL
+            data: rawData, 
             name: attachment.name
           });
         } else {
           content.push({
             type: 'file',
-            data: attachment.data,
+            data: rawData,
             name: attachment.name,
             contentType: attachment.type
           });
         }
 
-        // Replace raw message string with structured content array
-        payload.params.message = content;
-        delete payload.params.attachment;
+        // Transform to "agent" method which supports content arrays
+        payload.method = 'agent';
+        payload.params = {
+          sessionKey: sessionKey || 'agent:main:main',
+          messages: [{ role: 'user', content }]
+        };
         
-        console.log(`[Gateway] Transformed multimodal send: text=${!!message} media=${attachment.type}`);
+        console.log(`[Gateway] Transformed multimodal to agent.method: text=${!!message} media=${attachment.type}`);
         console.log(`[Gateway] Payload Preview: ${JSON.stringify(content).substring(0, 500)}`);
       }
 

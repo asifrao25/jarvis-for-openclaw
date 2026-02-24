@@ -84,6 +84,15 @@ export class ChatView extends LitElement {
       text-overflow: ellipsis;
     }
 
+    .preview-status {
+      font-family: var(--f-mono);
+      font-size: 9px;
+      color: var(--c-primary);
+      opacity: 0.7;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
     .remove-attach {
       background: rgba(255, 51, 51, 0.1);
       border: 1px solid rgba(255, 51, 51, 0.3);
@@ -306,6 +315,7 @@ export class ChatView extends LitElement {
     _showScrollBtn: { type: Boolean, state: true },
     _isPulling: { type: Boolean, state: true },
     _pendingFile: { type: Object, state: true },
+    _isUploading: { type: Boolean, state: true },
   };
 
   constructor() {
@@ -319,6 +329,7 @@ export class ChatView extends LitElement {
     this._isPulling = false;
     this.loading = false;
     this._pendingFile = null;
+    this._isUploading = false;
   }
 
   firstUpdated() {
@@ -402,27 +413,16 @@ export class ChatView extends LitElement {
           const canvas = document.createElement('canvas');
           let width = img.width;
           let height = img.height;
-
-          // Max dimension 1600px
           const max = 1600;
           if (width > height) {
-            if (width > max) {
-              height *= max / width;
-              width = max;
-            }
+            if (width > max) { height *= max / width; width = max; }
           } else {
-            if (height > max) {
-              width *= max / height;
-              height = max;
-            }
+            if (height > max) { width *= max / height; height = max; }
           }
-
           canvas.width = width;
           canvas.height = height;
           const ctx = canvas.getContext('2d');
           ctx.drawImage(img, 0, 0, width, height);
-          
-          // Export as compressed JPEG
           resolve(canvas.toDataURL('image/jpeg', 0.8));
         };
         img.src = e.target.result;
@@ -441,25 +441,35 @@ export class ChatView extends LitElement {
       return;
     }
 
-    if (file.type.startsWith('image/')) {
-      const compressedData = await this._compressImage(file);
-      this._pendingFile = {
-        name: file.name.replace(/\.[^/.]+$/, "") + ".jpg",
-        type: 'image/jpeg',
-        data: compressedData
-      };
-      hapticMedium();
-    } else {
-      const reader = new FileReader();
-      reader.onload = (ev) => {
+    this._isUploading = true;
+    hapticLight();
+
+    try {
+      if (file.type.startsWith('image/')) {
+        const compressedData = await this._compressImage(file);
+        this._pendingFile = {
+          name: file.name.replace(/\.[^/.]+$/, "") + ".jpg",
+          type: 'image/jpeg',
+          data: compressedData
+        };
+      } else {
+        const reader = new FileReader();
+        const data = await new Promise((resolve) => {
+          reader.onload = (ev) => resolve(ev.target.result);
+          reader.readAsDataURL(file);
+        });
         this._pendingFile = {
           name: file.name,
           type: file.type,
-          data: ev.target.result // Base64
+          data: data
         };
-        hapticMedium();
-      };
-      reader.readAsDataURL(file);
+      }
+      hapticSuccess();
+    } catch (err) {
+      console.error('File processing failed:', err);
+      hapticError();
+    } finally {
+      this._isUploading = false;
     }
   }
 
@@ -472,6 +482,8 @@ export class ChatView extends LitElement {
 
   _send(e) {
     e.preventDefault();
+    if (this._isUploading) return;
+
     const input = this.shadowRoot.querySelector('input[type="text"]');
     const text = input.value.trim();
     
@@ -543,7 +555,14 @@ export class ChatView extends LitElement {
       </div>
 
       <div class="input-area-container">
-        ${this._pendingFile ? html`
+        ${this._isUploading ? html`
+          <div class="attachment-preview">
+            <div class="logo-spin" style="width:20px;height:20px;margin:0;"></div>
+            <div class="preview-info"><div class="preview-status">Optimizing Media...</div></div>
+          </div>
+        ` : ''}
+
+        ${this._pendingFile && !this._isUploading ? html`
           <div class="attachment-preview">
             ${this._pendingFile.type.startsWith('image/') ? html`
               <img class="preview-thumb" src="${this._pendingFile.data}">
@@ -554,6 +573,7 @@ export class ChatView extends LitElement {
             `}
             <div class="preview-info">
               <div class="preview-name">${this._pendingFile.name}</div>
+              <div class="preview-status">Ready to sync</div>
             </div>
             <button class="remove-attach" @click=${this._removeFile}>
               <svg style="width:14px;height:14px;" viewBox="0 0 24 24"><path fill="currentColor" d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
@@ -563,7 +583,7 @@ export class ChatView extends LitElement {
         
         <form class="input-area" @submit=${this._send}>
           <input type="file" id="file-input" style="display: none;" @change=${this._handleFileChange}>
-          <button type="button" class="attach-btn ${this._pendingFile ? 'has-file' : ''}" @click=${this._triggerFilePicker}>
+          <button type="button" class="attach-btn ${this._pendingFile ? 'has-file' : ''}" @click=${this._triggerFilePicker} ?disabled=${this._isUploading}>
             <svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
           </button>
           <input type="text" placeholder="${this._pendingFile ? 'Type caption...' : 'ENTER COMMAND...'}" autocomplete="off" @focus=${() => { 
