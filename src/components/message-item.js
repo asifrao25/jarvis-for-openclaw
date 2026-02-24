@@ -140,8 +140,7 @@ export class MessageItem extends LitElement {
     }
 
     .action-menu {
-      position: absolute;
-      top: 50%;
+      position: fixed;
       left: 50%;
       transform: translate(-50%, -50%) scale(0.9);
       background: rgba(0, 20, 30, 0.98);
@@ -227,6 +226,7 @@ export class MessageItem extends LitElement {
     timestamp: { type: Number },
     seen: { type: Boolean },
     _menuOpen: { type: Boolean, state: true },
+    _menuY: { type: Number, state: true },
     _showCopied: { type: Boolean, state: true },
     _toastText: { type: String, state: true },
     _isDeleteToast: { type: Boolean, state: true },
@@ -236,6 +236,7 @@ export class MessageItem extends LitElement {
     super();
     this.seen = true;
     this._menuOpen = false;
+    this._menuY = 0;
     this._showCopied = false;
     this._toastText = 'COPIED';
     this._isDeleteToast = false;
@@ -265,6 +266,7 @@ export class MessageItem extends LitElement {
       return;
     }
 
+    this._menuY = e.clientY || 0;
     this._menuOpen = !this._menuOpen;
     if (this._menuOpen) hapticMedium();
   }
@@ -344,7 +346,9 @@ export class MessageItem extends LitElement {
         <div class="text">${this.text}</div>
         <div class="meta">${fullDateTime}</div>
 
-        <div class="action-menu ${this._menuOpen ? 'visible' : ''}" @click=${(e) => e.stopPropagation()}>
+        <div class="action-menu ${this._menuOpen ? 'visible' : ''}" 
+             style="top: ${this._menuY}px;"
+             @click=${(e) => e.stopPropagation()}>
           <button class="action-btn" @click=${this._copy}>Copy</button>
           <button class="action-btn delete" @click=${this._delete}>Delete</button>
           <button class="action-btn" @click=${() => this._menuOpen = false}>Close</button>
