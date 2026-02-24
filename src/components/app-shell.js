@@ -637,6 +637,14 @@ export class AppShell extends LitElement {
       return;
     }
 
+    // Handle universal clear
+    if (msg.type === 'res' && msg.ok && msg.method === 'sessions.reset') {
+      console.log('[AppShell] Universal session reset received, clearing local data');
+      this.messages = [];
+      clearAll().catch(err => console.error('Failed to clear store:', err));
+      return;
+    }
+
     if (msg.type !== 'event' || msg.event !== 'chat') return;
 
     const payload = msg.payload || {};
@@ -786,6 +794,8 @@ export class AppShell extends LitElement {
     if (category === 'chat') {
       this.messages = this.messages.filter(m => m.category !== 'chat' && m.role !== 'user');
       await clearAll().catch(err => console.error('Failed to clear:', err));
+      // Notify gateway to reset session universally
+      wsClient.resetSession();
     } else {
       this.messages = this.messages.filter(m => m.category !== category);
       await clearByCategory(category).catch(err => console.error('Failed to clear:', err));
@@ -800,7 +810,7 @@ export class AppShell extends LitElement {
           <login-screen @login=${this._onLogin}></login-screen>
         ` : html`
           <div class="header">
-            <h1>JARVIS <span>v4.3.0</span></h1>
+            <h1>JARVIS <span>v4.3.2</span></h1>
             <div class="status">
               <div class="strm-badge">
                 STRM: ${this.messages.length.toString().padStart(3, '0')}

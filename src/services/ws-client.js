@@ -122,7 +122,7 @@ export class WSClient extends EventTarget {
     return id;
   }
 
-  fetchHistory(sessionKey = 'agent:main:main', limit = 50) {
+  fetchHistory(sessionKey = 'agent:main:main', limit = 200) {
     const id = crypto.randomUUID().toUpperCase();
     this.send({
       type: 'req',
@@ -131,6 +131,19 @@ export class WSClient extends EventTarget {
       params: {
         sessionKey,
         limit
+      },
+    });
+    return id;
+  }
+
+  resetSession(sessionKey = 'agent:main:main') {
+    const id = crypto.randomUUID().toUpperCase();
+    this.send({
+      type: 'req',
+      id,
+      method: 'sessions.reset',
+      params: {
+        sessionKey
       },
     });
     return id;
