@@ -393,6 +393,44 @@ export class ChatView extends LitElement {
     hapticLight();
   }
 
+  async _compressImage(file) {
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          let width = img.width;
+          let height = img.height;
+
+          // Max dimension 1600px
+          const max = 1600;
+          if (width > height) {
+            if (width > max) {
+              height *= max / width;
+              width = max;
+            }
+          } else {
+            if (height > max) {
+              width *= max / height;
+              height = max;
+            }
+          }
+
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, width, height);
+          
+          // Export as compressed JPEG
+          resolve(canvas.toDataURL('image/jpeg', 0.8));
+        };
+        img.src = e.target.result;
+      };
+      reader.readAsDataURL(file);
+    });
+  }
+
   async _handleFileChange(e) {
     const file = e.target.files[0];
     if (!file) return;
@@ -403,16 +441,26 @@ export class ChatView extends LitElement {
       return;
     }
 
-    const reader = new FileReader();
-    reader.onload = (ev) => {
+    if (file.type.startsWith('image/')) {
+      const compressedData = await this._compressImage(file);
       this._pendingFile = {
-        name: file.name,
-        type: file.type,
-        data: ev.target.result // Base64
+        name: file.name.replace(/\.[^/.]+$/, "") + ".jpg",
+        type: 'image/jpeg',
+        data: compressedData
       };
       hapticMedium();
-    };
-    reader.readAsDataURL(file);
+    } else {
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        this._pendingFile = {
+          name: file.name,
+          type: file.type,
+          data: ev.target.result // Base64
+        };
+        hapticMedium();
+      };
+      reader.readAsDataURL(file);
+    }
   }
 
   _removeFile() {
