@@ -378,6 +378,11 @@ export class AppShell extends LitElement {
   }
 
   _handleWheel(e) {
+    if (this._isNavigating) {
+      this._wheelAccumulator = 0;
+      return;
+    }
+
     // Only handle horizontal swipes
     if (Math.abs(e.deltaX) < Math.abs(e.deltaY)) return;
     
