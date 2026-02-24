@@ -150,10 +150,11 @@ export default class GatewayClient extends EventEmitter {
         delete payload.params.attachment;
         
         console.log(`[Gateway] Transformed multimodal send: text=${!!message} media=${attachment.type}`);
+        console.log(`[Gateway] Payload Preview: ${JSON.stringify(content).substring(0, 500)}`);
       }
 
       const str = JSON.stringify(payload);
-      console.log(`[Gateway] Send: ${str.substring(0, 150)}...`);
+      console.log(`[Gateway] Send: ${str.substring(0, 200)}...`);
       this.ws.send(str);
       return true;
     }
