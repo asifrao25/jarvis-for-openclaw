@@ -117,8 +117,43 @@ export default class GatewayClient extends EventEmitter {
 
   send(data) {
     if (this.ws && this.ws.readyState === WebSocket.OPEN) {
-      const str = typeof data === 'string' ? data : JSON.stringify(data);
-      console.log(`[Gateway] Send: ${str.substring(0, 150)}`);
+      let payload = typeof data === 'string' ? JSON.parse(data) : data;
+
+      // Intercept chat.send with attachments and transform to gateway-native multimodal format
+      if (payload.method === 'chat.send' && payload.params?.attachment) {
+        const { message, attachment } = payload.params;
+        const content = [];
+
+        // Add text part if present
+        if (message) {
+          content.push({ type: 'text', text: message });
+        }
+
+        // Add media part
+        if (attachment.type?.startsWith('image/')) {
+          content.push({
+            type: 'image',
+            data: attachment.data, // PWA already sends Base64 data: URL
+            name: attachment.name
+          });
+        } else {
+          content.push({
+            type: 'file',
+            data: attachment.data,
+            name: attachment.name,
+            contentType: attachment.type
+          });
+        }
+
+        // Replace raw message string with structured content array
+        payload.params.message = content;
+        delete payload.params.attachment;
+        
+        console.log(`[Gateway] Transformed multimodal send: text=${!!message} media=${attachment.type}`);
+      }
+
+      const str = JSON.stringify(payload);
+      console.log(`[Gateway] Send: ${str.substring(0, 150)}...`);
       this.ws.send(str);
       return true;
     }

@@ -115,6 +115,11 @@ export class ChatView extends LitElement {
         right: 0;
         padding: 0 60px;
       }
+      .input-area {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
       .indicator-container {
         bottom: 140px !important;
       }
