@@ -3,8 +3,8 @@ if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('/pwa/sw.js').then(reg => {
     console.log('[SW] Registered:', reg.scope);
 
-    // Check for updates periodically (every 60s)
-    setInterval(() => reg.update(), 60000);
+    // Check for updates aggressively (every 10s)
+    setInterval(() => reg.update(), 10000);
   }).catch(err => {
     console.error('[SW] Registration failed:', err);
   });
