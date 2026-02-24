@@ -155,6 +155,8 @@ export class NavBar extends LitElement {
         pointer-events: auto;
         background: rgba(0, 5, 10, 0.95);
         backdrop-filter: blur(20px);
+        left: 0;
+        right: 0;
       }
 
       .fab-main {
@@ -162,7 +164,10 @@ export class NavBar extends LitElement {
       }
 
       .menu-container {
-        position: static;
+        position: relative;
+        bottom: auto;
+        right: auto;
+        display: flex;
         flex-direction: row;
         opacity: 1;
         transform: none;
