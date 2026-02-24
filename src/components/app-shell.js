@@ -514,6 +514,8 @@ export class AppShell extends LitElement {
     wsClient.addEventListener('authenticated', async () => {
       this.connected = true;
       await resyncPush();
+      // Fetch history for universal device sync
+      wsClient.fetchHistory();
     });
 
     wsClient.addEventListener('buffer-reset', () => {
@@ -606,6 +608,32 @@ export class AppShell extends LitElement {
         updated[lastSending] = { ...updated[lastSending], status: 'failed' };
         this.messages = updated;
       }
+      return;
+    }
+
+    // Handle chat history response for universal sync
+    if (msg.type === 'res' && msg.ok && msg.payload?.messages) {
+      console.log(`[AppShell] Processing history sync: ${msg.payload.messages.length} messages`);
+      const historicalMessages = msg.payload.messages.map(m => {
+        const text = m.content?.filter(c => c.type === 'text').map(c => c.text).join('') || '';
+        return {
+          role: m.role,
+          text,
+          category: categorize(text),
+          timestamp: m.ts || Date.now(),
+          seen: true,
+          seq: m.seq,
+          runId: m.runId
+        };
+      }).filter(m => m.text.trim());
+
+      // Bulk add to store and local state (deduplication happens in _loadStoredMessages after adding)
+      Promise.all(historicalMessages.map(m => addMessage(m)))
+        .then(() => {
+          console.log('[AppShell] History synced to store, reloading...');
+          this._loadStoredMessages();
+        })
+        .catch(err => console.error('Failed to sync history:', err));
       return;
     }
 
@@ -763,7 +791,7 @@ export class AppShell extends LitElement {
           <login-screen @login=${this._onLogin}></login-screen>
         ` : html`
           <div class="header">
-            <h1>JARVIS <span>v4.2.4</span></h1>
+            <h1>JARVIS <span>v4.3.0</span></h1>
             <div class="status">
               <div class="strm-badge">
                 STRM: ${this.messages.length.toString().padStart(3, '0')}

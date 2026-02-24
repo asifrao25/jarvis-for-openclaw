@@ -119,6 +119,20 @@ export class WSClient extends EventTarget {
     return id;
   }
 
+  fetchHistory(sessionKey = 'agent:main:main', limit = 50) {
+    const id = crypto.randomUUID().toUpperCase();
+    this.send({
+      type: 'req',
+      id,
+      method: 'chat.history',
+      params: {
+        sessionKey,
+        limit
+      },
+    });
+    return id;
+  }
+
   sendVisibility(visible) {
     this.send({ type: 'visibility', visible });
   }

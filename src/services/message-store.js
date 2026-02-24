@@ -23,11 +23,36 @@ function openDB() {
 }
 
 export async function addMessage(msg) {
+  const db = await openDB();
+  
+  // Check for duplicates before adding
+  const isDuplicate = await new Promise((resolve) => {
+    const tx = db.transaction(STORE_NAME, 'readonly');
+    const store = tx.objectStore(STORE_NAME);
+    const req = store.openCursor(null, 'prev');
+    req.onsuccess = () => {
+      const cursor = req.result;
+      if (!cursor) {
+        resolve(false);
+        return;
+      }
+      const existing = cursor.value;
+      // Robust duplicate check
+      const match = (msg.seq && msg.seq === existing.seq) || 
+                    (msg.runId && msg.runId === existing.runId && msg.text === existing.text) ||
+                    (msg.timestamp === existing.timestamp && msg.text === existing.text);
+      
+      if (match) resolve(true);
+      else cursor.continue();
+    };
+  });
+
+  if (isDuplicate) return null;
+
   const password = getAuth();
   const encryptedText = await encrypt(msg.text, password);
   const encryptedMsg = { ...msg, text: encryptedText, encrypted: true };
 
-  const db = await openDB();
   return new Promise((resolve, reject) => {
     const tx = db.transaction(STORE_NAME, 'readwrite');
     const req = tx.objectStore(STORE_NAME).add(encryptedMsg);
