@@ -221,6 +221,7 @@ export class AppShell extends LitElement {
     this._boundMouseUp = this._handleMouseUp.bind(this);
     this._wheelAccumulator = 0;
     this._wheelTimeout = null;
+    this._isNavigating = false;
   }
 
   connectedCallback() {
@@ -360,6 +361,7 @@ export class AppShell extends LitElement {
   }
 
   _executeSwipe(diffX) {
+    if (this._isNavigating) return;
     const threshold = 60;
     if (Math.abs(diffX) > threshold) {
       const order = ['settings', 'chat', 'alert', 'report'];
@@ -631,7 +633,10 @@ export class AppShell extends LitElement {
 
   _onNavigate(e) {
     const nextView = e.detail;
-    if (nextView === this.view) return;
+    if (nextView === this.view || this._isNavigating) return;
+
+    this._isNavigating = true;
+    setTimeout(() => { this._isNavigating = false; }, 500);
 
     const order = ['settings', 'chat', 'alert', 'report'];
     const oldIdx = order.indexOf(this.view);
