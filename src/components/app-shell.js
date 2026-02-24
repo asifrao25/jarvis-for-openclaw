@@ -222,6 +222,7 @@ export class AppShell extends LitElement {
     this._wheelAccumulator = 0;
     this._wheelTimeout = null;
     this._isNavigating = false;
+    this._wheelLatched = false;
   }
 
   connectedCallback() {
@@ -378,26 +379,47 @@ export class AppShell extends LitElement {
   }
 
   _handleWheel(e) {
+    // Completely ignore wheel events while a navigation transition is active
     if (this._isNavigating) {
       this._wheelAccumulator = 0;
+      this._wheelLatched = true; // Stay latched during transition
       return;
     }
 
     // Only handle horizontal swipes
-    if (Math.abs(e.deltaX) < Math.abs(e.deltaY)) return;
+    if (Math.abs(e.deltaX) < Math.abs(e.deltaY)) {
+      this._isSwiping = false;
+      return;
+    }
     
+    // Latch mechanism: if we just navigated, ignore all input until deltaX returns to zero
+    // This is the most effective way to kill trackpad inertia.
+    if (this._wheelLatched) {
+      if (Math.abs(e.deltaX) < 2) {
+        this._wheelLatched = false;
+      }
+      return;
+    }
+
     this._wheelAccumulator += e.deltaX;
+    this._isSwiping = true;
     
+    // Provide a hint of the swipe trail
+    this._swipeX = (window.innerWidth / 2) - (this._wheelAccumulator * 0.5);
+
     clearTimeout(this._wheelTimeout);
     this._wheelTimeout = setTimeout(() => {
       this._wheelAccumulator = 0;
+      this._isSwiping = false;
     }, 150);
 
-    const threshold = 100; // threshold for wheel to feel intentional
+    const threshold = 120; // Slightly higher for high-res trackpads
     if (Math.abs(this._wheelAccumulator) > threshold) {
       const dir = this._wheelAccumulator > 0 ? -1 : 1; 
-      this._executeSwipe(dir * 70); // Trigger swipe with synthetic diffX
-      this._wheelAccumulator = 0; // Reset after trigger
+      this._wheelLatched = true; // Lock until fingers stop moving
+      this._executeSwipe(dir * 70); 
+      this._wheelAccumulator = 0;
+      this._isSwiping = false;
     }
   }
 
