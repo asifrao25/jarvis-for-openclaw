@@ -428,7 +428,25 @@ export class AppShell extends LitElement {
     this._loadingStore = true;
     try {
       const all = await getLatest(200);
-      if (all.length > 0) this.messages = all;
+      if (all.length > 0) {
+        // Merge with existing messages (like replayed ones) without duplicating
+        const currentIds = new Set(this.messages.map(m => m.id).filter(Boolean));
+        const currentSeqs = new Set(this.messages.map(m => m.seq).filter(Boolean));
+        const currentReqs = new Set(this.messages.map(m => m.requestId).filter(Boolean));
+        
+        const newOnes = all.filter(m => 
+          (m.id && !currentIds.has(m.id)) || 
+          (m.seq && !currentSeqs.has(m.seq)) ||
+          (m.requestId && !currentReqs.has(m.requestId)) ||
+          (!m.id && !m.seq && !m.requestId)
+        );
+
+        if (this.messages.length === 0) {
+          this.messages = all;
+        } else {
+          this.messages = [...newOnes, ...this.messages].sort((a, b) => a.timestamp - b.timestamp);
+        }
+      }
     } catch (err) { 
       console.error('Failed to load stored messages:', err); 
     } finally {
@@ -609,7 +627,7 @@ export class AppShell extends LitElement {
           <login-screen @login=${this._onLogin}></login-screen>
         ` : html`
           <div class="header">
-            <h1>JARVIS <span>v4.2.2</span></h1>
+            <h1>JARVIS <span>v4.2.3</span></h1>
             <div class="status">
               <div class="strm-badge">
                 STRM: ${this.messages.length.toString().padStart(3, '0')}

@@ -51,11 +51,17 @@ export async function getByCategory(category, limit = 100) {
   return new Promise((resolve, reject) => {
     const tx = db.transaction(STORE_NAME, 'readonly');
     const index = tx.objectStore(STORE_NAME).index('category');
-    const req = index.getAll(category);
+    const req = index.openCursor(category, 'prev');
+    const results = [];
     req.onsuccess = async () => {
-      const results = req.result;
-      const decrypted = await decryptMessages(results.slice(-limit));
-      resolve(decrypted);
+      const cursor = req.result;
+      if (cursor && results.length < limit) {
+        results.push(cursor.value);
+        cursor.continue();
+      } else {
+        const decrypted = await decryptMessages(results.reverse());
+        resolve(decrypted);
+      }
     };
     req.onerror = () => reject(req.error);
   });
@@ -65,11 +71,18 @@ export async function getLatest(limit = 100) {
   const db = await openDB();
   return new Promise((resolve, reject) => {
     const tx = db.transaction(STORE_NAME, 'readonly');
-    const req = tx.objectStore(STORE_NAME).getAll();
+    const store = tx.objectStore(STORE_NAME);
+    const req = store.openCursor(null, 'prev');
+    const results = [];
     req.onsuccess = async () => {
-      const results = req.result;
-      const decrypted = await decryptMessages(results.slice(-limit));
-      resolve(decrypted);
+      const cursor = req.result;
+      if (cursor && results.length < limit) {
+        results.push(cursor.value);
+        cursor.continue();
+      } else {
+        const decrypted = await decryptMessages(results.reverse());
+        resolve(decrypted);
+      }
     };
     req.onerror = () => reject(req.error);
   });
