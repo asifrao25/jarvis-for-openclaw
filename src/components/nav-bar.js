@@ -89,8 +89,8 @@ export class NavBar extends LitElement {
     }
 
     .fab-main {
-      width: 32px;
-      height: 32px;
+      width: 40px;
+      height: 40px;
       border-radius: 8px;
       background: rgba(0, 30, 40, 0.9);
       border: 1px solid var(--c-primary);
@@ -113,7 +113,7 @@ export class NavBar extends LitElement {
     }
 
     .fab-main svg {
-      width: 18px; height: 18px;
+      width: 20px; height: 20px;
       fill: currentColor;
       transition: transform 0.3s ease;
     }

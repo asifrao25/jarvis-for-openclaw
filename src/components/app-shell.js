@@ -257,6 +257,7 @@ export class AppShell extends LitElement {
     this._wheelAccumulator = 0;
     this._wheelTimeout = null;
     this._isNavigating = false;
+    this._historyRequestId = null;
     this._wheelLatched = false;
   }
 
@@ -515,7 +516,8 @@ export class AppShell extends LitElement {
       this.connected = true;
       await resyncPush();
       // Fetch history for universal device sync
-      wsClient.fetchHistory();
+      const histId = wsClient.fetchHistory();
+      if (histId) this._historyRequestId = histId;
     });
 
     wsClient.addEventListener('buffer-reset', () => {
@@ -613,6 +615,11 @@ export class AppShell extends LitElement {
 
     // Handle chat history response for universal sync
     if (msg.type === 'res' && msg.ok && msg.payload?.messages) {
+      if (this._historyRequestId && msg.id !== this._historyRequestId) {
+        console.log('[AppShell] Ignoring stale/foreign history response');
+        return;
+      }
+      this._historyRequestId = null;
       console.log(`[AppShell] Processing history sync: ${msg.payload.messages.length} messages`);
       const historicalMessages = msg.payload.messages.map(m => {
         const text = m.content?.filter(c => c.type === 'text').map(c => c.text).join('') || '';
@@ -826,7 +833,7 @@ export class AppShell extends LitElement {
           <login-screen @login=${this._onLogin}></login-screen>
         ` : html`
           <div class="header">
-            <h1>JARVIS <span>v4.4.7</span></h1>
+            <h1>JARVIS <span>v4.4.9</span></h1>
             <div class="status">
               <div class="strm-badge">
                 STRM: ${this.messages.length.toString().padStart(3, '0')}

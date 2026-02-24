@@ -9,6 +9,7 @@ export class WSClient extends EventTarget {
     this.shouldReconnect = true;
     this.connected = false;
     this.authenticated = false;
+    this._lastHistoryFetch = 0;
   }
 
   connect(password) {
@@ -123,6 +124,12 @@ export class WSClient extends EventTarget {
   }
 
   fetchHistory(sessionKey = 'agent:main:main', limit = 200) {
+    const now = Date.now();
+    if (now - this._lastHistoryFetch < 10000) {
+      console.log('[WS] fetchHistory throttled');
+      return null;
+    }
+    this._lastHistoryFetch = now;
     const id = crypto.randomUUID().toUpperCase();
     this.send({
       type: 'req',

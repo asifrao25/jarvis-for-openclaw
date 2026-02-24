@@ -20,6 +20,7 @@ const pushManager = new PushManager();
 
 // Track connected PWA clients and their visibility
 const pwaClients = new Map(); // id -> { ws, isVisible }
+const pendingRequests = new Map(); // requestId -> clientId
 
 // Express app
 const app = express();
@@ -158,6 +159,7 @@ wss.on('connection', (ws, req) => {
       // Forward requests to gateway (chat.send, etc.)
       if (msg.type === 'req') {
         console.log(`[WS] ${clientId} forwarding req: method=${msg.method}, id=${msg.id}`);
+        pendingRequests.set(msg.id, clientId);
         const sent = gatewayClient.send(msg);
         console.log(`[WS] Forward result: ${sent}`);
       }
@@ -170,6 +172,9 @@ wss.on('connection', (ws, req) => {
     console.log(`[WS] ${clientId} disconnected`);
     pwaClients.delete(clientId);
     eventBuffer.clearRateLimit(clientId);
+    for (const [reqId, cId] of pendingRequests) {
+      if (cId === clientId) pendingRequests.delete(reqId);
+    }
   });
 
   ws.on('error', () => {
@@ -224,9 +229,21 @@ gatewayClient.on('response', (msg) => {
   const enrichedMsg = { ...msg };
   if (msg.bufferSeq) enrichedMsg.seq = msg.bufferSeq;
   const data = JSON.stringify(enrichedMsg);
+
+  const originClientId = pendingRequests.get(msg.id);
+  if (originClientId) {
+    pendingRequests.delete(msg.id);
+    const client = pwaClients.get(originClientId);
+    if (client?.ws.readyState === WebSocket.OPEN) {
+      client.ws.send(data);
+      return;
+    }
+  }
+
+  // Fallback: origin unknown or disconnected — broadcast
   for (const [id, client] of pwaClients) {
     if (client.ws.readyState === WebSocket.OPEN) {
-      client.ws.send(data);
+      try { client.ws.send(data); } catch {}
     }
   }
 });

@@ -98,7 +98,7 @@ export class ChatView extends LitElement {
       border: 1px solid rgba(0, 255, 255, 0.2);
       border-radius: 8px;
       padding: 0 12px;
-      height: 32px;
+      height: 40px;
       color: var(--c-primary);
       font-family: var(--f-body);
       font-size: 16px;
