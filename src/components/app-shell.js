@@ -219,6 +219,8 @@ export class AppShell extends LitElement {
     this._touchStart = null;
     this._boundMouseMove = this._handleMouseMove.bind(this);
     this._boundMouseUp = this._handleMouseUp.bind(this);
+    this._wheelAccumulator = 0;
+    this._wheelTimeout = null;
   }
 
   connectedCallback() {
@@ -370,6 +372,25 @@ export class AppShell extends LitElement {
         // Swipe Right -> Prev Tab (Left)
         this._onNavigate({ detail: order[currentIdx - 1] });
       }
+    }
+  }
+
+  _handleWheel(e) {
+    // Only handle horizontal swipes
+    if (Math.abs(e.deltaX) < Math.abs(e.deltaY)) return;
+    
+    this._wheelAccumulator += e.deltaX;
+    
+    clearTimeout(this._wheelTimeout);
+    this._wheelTimeout = setTimeout(() => {
+      this._wheelAccumulator = 0;
+    }, 150);
+
+    const threshold = 100; // threshold for wheel to feel intentional
+    if (Math.abs(this._wheelAccumulator) > threshold) {
+      const dir = this._wheelAccumulator > 0 ? -1 : 1; 
+      this._executeSwipe(dir * 70); // Trigger swipe with synthetic diffX
+      this._wheelAccumulator = 0; // Reset after trigger
     }
   }
 
@@ -694,6 +715,7 @@ export class AppShell extends LitElement {
           ` : ''}
 
           <div class="main-view" 
+               @wheel=${this._handleWheel}
                @mousedown=${this._handleMouseDown}
                @touchstart=${this._handleTouchStart}
                @touchmove=${this._handleTouchMove}
