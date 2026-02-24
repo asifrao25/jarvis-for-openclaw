@@ -4,6 +4,9 @@ import { WebSocketServer, WebSocket } from 'ws';
 import crypto from 'crypto';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import multer from 'multer';
+import fetch from 'node-fetch';
+import FormData from 'form-data';
 import config from './config.js';
 import EventBuffer from './event-buffer.js';
 import GatewayClient from './gateway-client.js';
@@ -25,11 +28,13 @@ const pwaClients = new Map(); // id -> { ws, isVisible }
 const app = express();
 app.use(express.json());
 
-// Serve static files at both /pwa/ (direct access) and / (via Tailscale --set-path /pwa)
-app.use('/pwa', express.static(distDir));
-app.use(express.static(distDir));
+// Multer setup for memory storage
+const upload = multer({ 
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 100 * 1024 * 1024 } // 100MB
+});
 
-// API routes — mount at both /pwa/api and /api for Tailscale path stripping
+// API routes
 function apiRoutes(router) {
   router.get('/api/health', (req, res) => {
     res.json({
@@ -53,6 +58,47 @@ function apiRoutes(router) {
     pushManager.registerSubscription(clientId, subscription);
     res.json({ ok: true });
   });
+
+  // Multipart upload proxy to Gateway
+  router.post('/api/upload', upload.single('file'), async (req, res) => {
+    const password = req.headers['x-password'];
+    if (password !== config.gatewayPassword) {
+      return res.status(401).json({ error: 'Invalid password' });
+    }
+
+    if (!req.file) {
+      return res.status(400).json({ error: 'No file uploaded' });
+    }
+
+    try {
+      console.log(`[Upload] Proxying ${req.file.originalname} (${req.file.size} bytes) to Gateway`);
+      
+      const gatewayHttpUrl = config.gatewayUrl.replace('ws://', 'http://').replace('wss://', 'https://');
+      const form = new FormData();
+      form.append('file', req.file.buffer, {
+        filename: req.file.originalname,
+        contentType: req.file.mimetype,
+      });
+      form.append('sessionKey', req.body.sessionKey || 'agent:main:main');
+      if (req.body.message) form.append('message', req.body.message);
+
+      const response = await fetch(`${gatewayHttpUrl}/message`, {
+        method: 'POST',
+        body: form,
+        headers: {
+          'Origin': 'http://127.0.0.1:18789',
+          ...form.getHeaders()
+        }
+      });
+
+      const result = await response.json();
+      console.log(`[Upload] Gateway response:`, JSON.stringify(result));
+      res.json(result);
+    } catch (err) {
+      console.error(`[Upload] Error proxying to gateway:`, err.message);
+      res.status(500).json({ error: 'Gateway upload failed', details: err.message });
+    }
+  });
 }
 
 apiRoutes(app);
@@ -60,7 +106,11 @@ const pwaRouter = express.Router();
 apiRoutes(pwaRouter);
 app.use('/pwa', pwaRouter);
 
-// SPA fallback for both /pwa/* and /*
+// Serve static files
+app.use('/pwa', express.static(distDir));
+app.use(express.static(distDir));
+
+// SPA fallback
 const spaFallback = (req, res, next) => {
   if (path.extname(req.path) || req.path.startsWith('/api/') || req.path.startsWith('/ws')) return next();
   res.sendFile(path.join(distDir, 'index.html'));
@@ -71,7 +121,7 @@ app.use(spaFallback);
 // HTTP server
 const server = createServer(app);
 
-// WebSocket server — accept at both /pwa/ws and /ws
+// WebSocket server
 const wss = new WebSocketServer({ 
   noServer: true,
   maxPayload: 150 * 1024 * 1024 // 150MB limit
@@ -176,7 +226,7 @@ wss.on('connection', (ws, req) => {
   });
 });
 
-// Ping all PWA clients every 15s, kill dead connections after 20s
+// Ping all PWA clients
 const pingInterval = setInterval(() => {
   for (const [id, client] of pwaClients) {
     if (!client.ws.isAlive) {
@@ -190,64 +240,39 @@ const pingInterval = setInterval(() => {
   }
 }, 15000);
 
-// Forward gateway events to all PWA clients
+// Forward events
 gatewayClient.on('event', (event) => {
-  // Use the internal bufferSeq for PWA client sync
   const enrichedEvent = { ...event };
   if (event.bufferSeq) enrichedEvent.seq = event.bufferSeq;
   const data = JSON.stringify(enrichedEvent);
 
-  // Forward to connected clients, count active ones
-  let activeCount = 0;
   let visibleCount = 0;
-
   for (const [id, client] of pwaClients) {
     if (client.ws.readyState === WebSocket.OPEN) {
       try {
         client.ws.send(data);
-        activeCount++;
         if (client.isVisible) visibleCount++;
-      } catch {
-        // Send failed, connection is dead
-      }
+      } catch {}
     }
   }
 
-  // Send push for final chat messages if no visible clients are currently connected
   if (event.event === 'chat' && event.payload?.state === 'final') {
-    // Only suppress if a client is explicitly VISIBLE. 
-    // Having an active socket while hidden (common on iOS) should not block notifications.
-    if (visibleCount > 0) {
-      console.log(`[Push] Suppressing. Visible clients: ${visibleCount}`);
-      return;
-    }
-
+    if (visibleCount > 0) return;
     const text = extractText(event);
     if (text.trim()) {
       const category = categorize(event);
       const truncated = text.length > 200 ? text.substring(0, 197) + '...' : text;
-      let title = 'Jarvis';
-      if (category === 'alert') title = 'Jarvis Alert';
-      else if (category === 'report') title = 'Jarvis Report';
-
-      console.log(`[Push] No alive clients, sending push: ${title} — ${truncated.substring(0, 50)}`);
-      pushManager.sendToAll({
-        title,
-        body: truncated,
-        category,
-        url: '/pwa/',
-      });
+      let title = category === 'alert' ? 'Jarvis Alert' : (category === 'report' ? 'Jarvis Report' : 'Jarvis');
+      pushManager.sendToAll({ title, body: truncated, category, url: '/pwa/' });
     }
   }
 });
 
-// Forward gateway responses (e.g. chat.send results) to PWA clients
+// Forward responses
 gatewayClient.on('response', (msg) => {
-  // Use the internal bufferSeq for PWA client sync
   const enrichedMsg = { ...msg };
   if (msg.bufferSeq) enrichedMsg.seq = msg.bufferSeq;
   const data = JSON.stringify(enrichedMsg);
-
   for (const [id, client] of pwaClients) {
     if (client.ws.readyState === WebSocket.OPEN) {
       client.ws.send(data);
@@ -258,30 +283,16 @@ gatewayClient.on('response', (msg) => {
 // Start
 server.listen(config.port, () => {
   console.log(`[Relay] Server running on port ${config.port}`);
-  console.log(`[Relay] PWA served at /pwa/ and /`);
-  console.log(`[Relay] WebSocket at /pwa/ws and /ws`);
-  console.log(`[Relay] Health at /pwa/api/health and /api/health`);
 });
 
 gatewayClient.connect();
 
 // Graceful shutdown
-process.on('SIGINT', () => {
+const shutdown = () => {
   console.log('[Relay] Shutting down...');
   clearInterval(pingInterval);
   server.close();
   process.exit(0);
-});
-
-process.on('SIGTERM', () => {
-  console.log('[Relay] Shutting down...');
-  clearInterval(pingInterval);
-  server.close();
-  process.exit(0);
-});
-
-// Log stats periodically
-setInterval(() => {
-  const stats = eventBuffer.getStats();
-  console.log(`[Relay] Buffer: ${stats.totalEvents} events, clients: ${pwaClients.size}, gateway: ${gatewayClient.isReady() ? 'ok' : 'disconnected'}`);
-}, 300000);
+};
+process.on('SIGINT', shutdown);
+process.on('SIGTERM', shutdown);

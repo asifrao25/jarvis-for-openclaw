@@ -1,5 +1,6 @@
 import { LitElement, html, css } from 'lit';
-import { hapticMedium, hapticLight } from '../services/haptics.js';
+import { hapticMedium, hapticLight, hapticSuccess, hapticError } from '../services/haptics.js';
+import { getAuth } from '../services/auth.js';
 import './message-item.js';
 import './stream-indicator.js';
 
@@ -316,6 +317,7 @@ export class ChatView extends LitElement {
     _isPulling: { type: Boolean, state: true },
     _pendingFile: { type: Object, state: true },
     _isUploading: { type: Boolean, state: true },
+    _uploadingToGateway: { type: Boolean, state: true },
   };
 
   constructor() {
@@ -330,6 +332,7 @@ export class ChatView extends LitElement {
     this.loading = false;
     this._pendingFile = null;
     this._isUploading = false;
+    this._uploadingToGateway = false;
   }
 
   firstUpdated() {
@@ -423,7 +426,9 @@ export class ChatView extends LitElement {
           canvas.height = height;
           const ctx = canvas.getContext('2d');
           ctx.drawImage(img, 0, 0, width, height);
-          resolve(canvas.toDataURL('image/jpeg', 0.8));
+          canvas.toBlob((blob) => {
+            resolve({ blob, dataUrl: canvas.toDataURL('image/jpeg', 0.8) });
+          }, 'image/jpeg', 0.8);
         };
         img.src = e.target.result;
       };
@@ -446,11 +451,12 @@ export class ChatView extends LitElement {
 
     try {
       if (file.type.startsWith('image/')) {
-        const compressedData = await this._compressImage(file);
+        const { blob, dataUrl } = await this._compressImage(file);
         this._pendingFile = {
           name: file.name.replace(/\.[^/.]+$/, "") + ".jpg",
           type: 'image/jpeg',
-          data: compressedData
+          blob: blob,
+          data: dataUrl // For preview
         };
       } else {
         const reader = new FileReader();
@@ -461,7 +467,8 @@ export class ChatView extends LitElement {
         this._pendingFile = {
           name: file.name,
           type: file.type,
-          data: data
+          blob: file,
+          data: data // For non-image, this is the full data URL
         };
       }
       hapticSuccess();
@@ -480,9 +487,9 @@ export class ChatView extends LitElement {
     hapticLight();
   }
 
-  _send(e) {
+  async _send(e) {
     e.preventDefault();
-    if (this._isUploading) return;
+    if (this._isUploading || this._uploadingToGateway) return;
 
     const input = this.shadowRoot.querySelector('input[type="text"]');
     const text = input.value.trim();
@@ -491,19 +498,60 @@ export class ChatView extends LitElement {
     
     hapticMedium();
     
-    const detail = { text };
-    if (this._pendingFile) {
-      detail.attachment = this._pendingFile;
-    }
+    let attachmentForLocalRender = null;
 
-    this.dispatchEvent(new CustomEvent('send-message', { 
-      detail, 
-      bubbles: true, 
-      composed: true 
-    }));
+    if (this._pendingFile) {
+      this._uploadingToGateway = true;
+      attachmentForLocalRender = { ...this._pendingFile };
+      
+      try {
+        const formData = new FormData();
+        formData.append('file', this._pendingFile.blob, this._pendingFile.name);
+        formData.append('sessionKey', 'agent:main:main');
+        if (text) formData.append('message', text);
+
+        const response = await fetch('/pwa/api/upload', {
+          method: 'POST',
+          body: formData,
+          headers: {
+            'x-password': getAuth()
+          }
+        });
+
+        if (!response.ok) throw new Error('Upload failed');
+        
+        const result = await response.json();
+        console.log('[ChatView] Upload success:', result);
+        hapticSuccess();
+        
+        // After HTTP upload, we don't necessarily need to send a WS message
+        // if the Gateway's /message endpoint already triggered the agent.
+        // But we still want to show the user's message in the local UI.
+        this.dispatchEvent(new CustomEvent('send-message', { 
+          detail: { text, attachment: attachmentForLocalRender, skipWebSocket: true }, 
+          bubbles: true, 
+          composed: true 
+        }));
+
+      } catch (err) {
+        console.error('[ChatView] Upload error:', err);
+        alert('Failed to send media');
+        hapticError();
+        this._uploadingToGateway = false;
+        return;
+      }
+    } else {
+      // Normal text-only message
+      this.dispatchEvent(new CustomEvent('send-message', { 
+        detail: { text }, 
+        bubbles: true, 
+        composed: true 
+      }));
+    }
 
     input.value = '';
     this._pendingFile = null;
+    this._uploadingToGateway = false;
     const fileInput = this.shadowRoot.querySelector('#file-input');
     if (fileInput) fileInput.value = '';
     setTimeout(() => this.scrollToBottom(true), 100);
@@ -555,14 +603,14 @@ export class ChatView extends LitElement {
       </div>
 
       <div class="input-area-container">
-        ${this._isUploading ? html`
+        ${(this._isUploading || this._uploadingToGateway) ? html`
           <div class="attachment-preview">
             <div class="logo-spin" style="width:20px;height:20px;margin:0;"></div>
-            <div class="preview-info"><div class="preview-status">Optimizing Media...</div></div>
+            <div class="preview-info"><div class="preview-status">${this._isUploading ? 'Optimizing Media...' : 'Uploading to Jarvis...'}</div></div>
           </div>
         ` : ''}
 
-        ${this._pendingFile && !this._isUploading ? html`
+        ${this._pendingFile && !this._isUploading && !this._uploadingToGateway ? html`
           <div class="attachment-preview">
             ${this._pendingFile.type.startsWith('image/') ? html`
               <img class="preview-thumb" src="${this._pendingFile.data}">
@@ -583,7 +631,7 @@ export class ChatView extends LitElement {
         
         <form class="input-area" @submit=${this._send}>
           <input type="file" id="file-input" style="display: none;" @change=${this._handleFileChange}>
-          <button type="button" class="attach-btn ${this._pendingFile ? 'has-file' : ''}" @click=${this._triggerFilePicker} ?disabled=${this._isUploading}>
+          <button type="button" class="attach-btn ${this._pendingFile ? 'has-file' : ''}" @click=${this._triggerFilePicker} ?disabled=${this._isUploading || this._uploadingToGateway}>
             <svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
           </button>
           <input type="text" placeholder="${this._pendingFile ? 'Type caption...' : 'ENTER COMMAND...'}" autocomplete="off" @focus=${() => { 

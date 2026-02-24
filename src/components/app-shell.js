@@ -767,15 +767,20 @@ export class AppShell extends LitElement {
   }
 
   _onSendMessage(e) {
-    const { text, attachment } = e.detail;
-    const requestId = wsClient.sendChat(text, attachment);
+    const { text, attachment, skipWebSocket } = e.detail;
+    
+    let requestId = null;
+    if (!skipWebSocket) {
+      requestId = wsClient.sendChat(text, attachment);
+    }
+
     const userMsg = { 
       role: 'user', 
       text, 
       category: 'chat', 
       timestamp: Date.now(), 
       requestId, 
-      status: 'sending', 
+      status: skipWebSocket ? 'received' : 'sending', 
       seen: true,
       attachment // Store locally for rendering
     };
@@ -821,7 +826,7 @@ export class AppShell extends LitElement {
           <login-screen @login=${this._onLogin}></login-screen>
         ` : html`
           <div class="header">
-            <h1>JARVIS <span>v4.3.7</span></h1>
+            <h1>JARVIS <span>v4.3.8</span></h1>
             <div class="status">
               <div class="strm-badge">
                 STRM: ${this.messages.length.toString().padStart(3, '0')}
