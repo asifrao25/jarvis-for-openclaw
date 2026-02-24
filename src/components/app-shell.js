@@ -115,35 +115,35 @@ export class AppShell extends LitElement {
     /* Desktop Enhancements */
     @media (min-width: 1024px) {
       .header {
-        height: 160px;
-        padding-left: 60px;
-        padding-right: 60px;
+        height: 60px;
+        padding-left: 30px;
+        padding-right: 30px;
       }
       .header h1 {
-        font-size: 64px;
-        letter-spacing: 8px;
+        font-size: 24px;
+        letter-spacing: 3px;
       }
       .header h1 span {
-        font-size: 24px;
-        margin-left: 20px;
+        font-size: 12px;
+        margin-left: 10px;
       }
       .status {
-        gap: 40px;
+        gap: 20px;
       }
       .strm-badge {
-        font-size: 32px;
-        padding: 12px 32px;
-        border-width: 3px;
-        border-radius: 12px;
+        font-size: 14px;
+        padding: 4px 16px;
+        border-width: 1.5px;
+        border-radius: 6px;
       }
       .status-dot {
-        width: 24px;
-        height: 24px;
-        box-shadow: 0 0 15px #00FF00;
+        width: 10px;
+        height: 10px;
+        box-shadow: 0 0 10px #00FF00;
       }
       .header .status span {
-        font-size: 24px !important;
-        letter-spacing: 3px !important;
+        font-size: 12px !important;
+        letter-spacing: 1.5px !important;
       }
     }
 
@@ -400,7 +400,7 @@ export class AppShell extends LitElement {
     if (this._isNavigating) return;
     const threshold = 60;
     if (Math.abs(diffX) > threshold) {
-      const order = ['settings', 'chat', 'alert', 'report'];
+      const order = ['chat', 'alert', 'report', 'settings'];
       const currentIdx = order.indexOf(this.view);
       
       if (diffX < 0 && currentIdx < order.length - 1) {
@@ -700,7 +700,7 @@ export class AppShell extends LitElement {
     this._isNavigating = true;
     setTimeout(() => { this._isNavigating = false; }, 500);
 
-    const order = ['settings', 'chat', 'alert', 'report'];
+    const order = ['chat', 'alert', 'report', 'settings'];
     const oldIdx = order.indexOf(this.view);
     const nextIdx = order.indexOf(nextView);
 
