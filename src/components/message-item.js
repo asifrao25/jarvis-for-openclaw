@@ -141,8 +141,6 @@ export class MessageItem extends LitElement {
 
     .action-menu {
       position: fixed;
-      left: 50%;
-      transform: translate(-50%, -50%) scale(0.9);
       background: rgba(0, 20, 30, 0.98);
       border: 1px solid var(--c-primary);
       border-radius: 8px;
@@ -152,11 +150,12 @@ export class MessageItem extends LitElement {
       z-index: 120;
       opacity: 0;
       pointer-events: none;
-      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+      transition: opacity 0.2s cubic-bezier(0.4, 0, 0.2, 1), transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
       backdrop-filter: blur(15px);
       box-shadow: 0 0 30px rgba(0, 0, 0, 0.8);
       white-space: nowrap;
       width: max-content;
+      transform: translate(-50%, -50%) scale(0.9);
     }
 
     .action-menu.visible {
@@ -225,6 +224,7 @@ export class MessageItem extends LitElement {
     timestamp: { type: Number },
     seen: { type: Boolean },
     _menuOpen: { type: Boolean, state: true },
+    _menuX: { type: Number, state: true },
     _menuY: { type: Number, state: true },
     _showCopied: { type: Boolean, state: true },
     _toastText: { type: String, state: true },
@@ -235,6 +235,7 @@ export class MessageItem extends LitElement {
     super();
     this.seen = true;
     this._menuOpen = false;
+    this._menuX = 0;
     this._menuY = 0;
     this._showCopied = false;
     this._toastText = 'COPIED';
@@ -265,6 +266,7 @@ export class MessageItem extends LitElement {
       return;
     }
 
+    this._menuX = e.clientX || 0;
     this._menuY = e.clientY || 0;
     this._menuOpen = !this._menuOpen;
     if (this._menuOpen) hapticMedium();
@@ -339,7 +341,7 @@ export class MessageItem extends LitElement {
     return html`
       <div class="${containerClasses.join(' ')}" @click=${this._handleMessageClick}>
         <div class="copy-toast ${this._showCopied ? 'visible' : ''} ${this._isDeleteToast ? 'delete' : ''}"
-             style="top: ${this._menuY}px;">
+             style="left: ${this._menuX}px; top: ${this._menuY}px;">
           ${this._toastText}
         </div>
         ${this.role === 'assistant' ? html`<div class="timestamp-bar"><span class="jarvis-label">Jarvis</span><span class="date-part">${dateString} · ${timeString}</span></div>` : ''}
@@ -347,7 +349,7 @@ export class MessageItem extends LitElement {
         <div class="meta">${fullDateTime}</div>
 
         <div class="action-menu ${this._menuOpen ? 'visible' : ''}" 
-             style="top: ${this._menuY}px;"
+             style="left: ${this._menuX}px; top: ${this._menuY}px;"
              @click=${(e) => e.stopPropagation()}>
           <button class="action-btn" @click=${this._copy}>Copy</button>
           <button class="action-btn delete" @click=${this._delete}>Delete</button>
