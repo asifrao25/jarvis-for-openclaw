@@ -55,6 +55,23 @@ export class ChatView extends LitElement {
       transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     }
 
+    @media (min-width: 1024px) {
+      .input-area {
+        position: fixed;
+        bottom: 80px;
+        left: 0;
+        right: 0;
+        height: 60px;
+        padding: 0 60px;
+      }
+      .indicator-container {
+        bottom: 140px !important;
+      }
+      .messages {
+        padding-bottom: 150px !important;
+      }
+    }
+
     :host([ui-hidden]) .input-area {
       height: 0;
       min-height: 0;
@@ -365,7 +382,8 @@ export class ChatView extends LitElement {
 
     input.value = '';
     this._pendingFile = null;
-    this.shadowRoot.querySelector('#file-input').value = '';
+    const fileInput = this.shadowRoot.querySelector('#file-input');
+    if (fileInput) fileInput.value = '';
     setTimeout(() => this.scrollToBottom(true), 100);
   }
 
