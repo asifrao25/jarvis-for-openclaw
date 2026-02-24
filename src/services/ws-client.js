@@ -104,17 +104,20 @@ export class WSClient extends EventTarget {
     }
   }
 
-  sendChat(message, sessionKey = 'agent:main:main') {
+  sendChat(message, attachment = null, sessionKey = 'agent:main:main') {
     const id = crypto.randomUUID().toUpperCase();
+    const params = {
+      sessionKey,
+      message,
+      idempotencyKey: crypto.randomUUID(),
+    };
+    if (attachment) params.attachment = attachment;
+
     this.send({
       type: 'req',
       id,
       method: 'chat.send',
-      params: {
-        sessionKey,
-        message,
-        idempotencyKey: crypto.randomUUID(),
-      },
+      params,
     });
     return id;
   }

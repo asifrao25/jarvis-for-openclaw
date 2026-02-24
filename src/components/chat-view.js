@@ -21,7 +21,6 @@ export class ChatView extends LitElement {
       overflow-x: hidden;
       -webkit-overflow-scrolling: touch;
       padding: 15px 20px;
-      /* Exactly 44px (input bar) - flushed */
       padding-bottom: 44px;
       display: flex;
       flex-direction: column;
@@ -33,7 +32,6 @@ export class ChatView extends LitElement {
       box-sizing: border-box;
     }
     
-    /* When UI is hidden, utilize EVERY pixel including the bottom bezel area */
     :host([ui-hidden]) .messages {
       padding-bottom: 10px;
     }
@@ -43,16 +41,14 @@ export class ChatView extends LitElement {
 
     .input-area {
       flex-shrink: 0;
-      /* Exactly 50px on the right for the FAB zone, and 12px on left */
-      padding: 0 50px 0 12px;
-      /* Center items vertically within the bar */
+      padding: 0 50px 0 8px;
       background: #000;
       border-top: 1px solid rgba(0, 255, 255, 0.15);
       display: flex;
       align-items: center;
+      gap: 8px;
       z-index: 30;
       overflow: hidden;
-      /* Fixed height for true flush look */
       height: 44px;
       min-height: 44px;
       box-sizing: border-box;
@@ -67,7 +63,41 @@ export class ChatView extends LitElement {
       border-top-color: transparent;
     }
 
-    input {
+    .attach-btn {
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      background: rgba(0, 255, 255, 0.05);
+      border: 1px solid rgba(0, 255, 255, 0.2);
+      color: var(--c-primary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      flex-shrink: 0;
+      padding: 0;
+      transition: all 0.2s;
+    }
+
+    .attach-btn:active {
+      background: rgba(0, 255, 255, 0.2);
+      transform: scale(0.92);
+    }
+
+    .attach-btn.has-file {
+      background: var(--c-primary);
+      color: #000;
+      border-color: var(--c-primary);
+      box-shadow: 0 0 10px var(--c-primary-dim);
+    }
+
+    .attach-btn svg {
+      width: 18px;
+      height: 18px;
+      fill: currentColor;
+    }
+
+    input[type="text"] {
       flex: 1;
       background: rgba(0, 255, 255, 0.05);
       border: 1px solid rgba(0, 255, 255, 0.2);
@@ -84,7 +114,7 @@ export class ChatView extends LitElement {
       min-width: 0;
     }
 
-    input:focus {
+    input[type="text"]:focus {
       border-color: var(--c-primary);
       background: rgba(0, 255, 255, 0.1);
     }
@@ -114,7 +144,6 @@ export class ChatView extends LitElement {
 
     .scroll-bottom-btn {
       position: absolute;
-      /* Fixed 56px from bottom (44px bar + 12px gap) */
       bottom: 56px;
       left: 50%;
       transform: translateX(-50%);
@@ -145,12 +174,6 @@ export class ChatView extends LitElement {
       transform: translate(-50%, 0) scale(1);
     }
 
-    .scroll-bottom-btn:active {
-      background: var(--c-primary);
-      color: #000;
-      transform: translate(-50%, 0) scale(0.95);
-    }
-
     .scroll-bottom-btn svg {
       width: 12px; height: 12px;
       fill: currentColor;
@@ -158,7 +181,7 @@ export class ChatView extends LitElement {
 
     .indicator-container {
       position: absolute;
-      bottom: 44px; /* Exactly on top of the input bar */
+      bottom: 44px;
       left: 0;
       width: 100%;
       z-index: 25;
@@ -182,11 +205,6 @@ export class ChatView extends LitElement {
       top: 0; left: 0; width: 100%; height: 100%;
       background: linear-gradient(90deg, transparent, rgba(0, 255, 255, 0.1), transparent);
       animation: skeleton-sweep 1.5s infinite;
-    }
-
-    @keyframes skeleton-sweep {
-      0% { transform: translateX(-100%); }
-      100% { transform: translateX(100%); }
     }
 
     .refresh-indicator {
@@ -215,6 +233,7 @@ export class ChatView extends LitElement {
     uiHidden: { type: Boolean, reflect: true, attribute: 'ui-hidden' },
     _showScrollBtn: { type: Boolean, state: true },
     _isPulling: { type: Boolean, state: true },
+    _pendingFile: { type: Object, state: true },
   };
 
   constructor() {
@@ -227,13 +246,11 @@ export class ChatView extends LitElement {
     this._showScrollBtn = false;
     this._isPulling = false;
     this.loading = false;
+    this._pendingFile = null;
   }
 
   firstUpdated() {
     const el = this.shadowRoot.querySelector('.messages');
-    const input = this.shadowRoot.querySelector('input');
-
-    // Robust scroll to bottom on mount
     setTimeout(() => this.scrollToBottom(false), 50);
     setTimeout(() => this.scrollToBottom(false), 200);
 
@@ -241,7 +258,6 @@ export class ChatView extends LitElement {
       if (this._isAutoScrolling) return;
       const st = el.scrollTop;
       const distFromBottom = el.scrollHeight - st - el.clientHeight;
-      // Show button if we are more than 300px (roughly 5-10 messages) from bottom
       this._showScrollBtn = distFromBottom > 300;
     }, { passive: true });
 
@@ -252,13 +268,11 @@ export class ChatView extends LitElement {
     el.addEventListener('touchmove', (e) => {
       const currentY = e.touches[0].clientY;
       const deltaY = currentY - this._touchStartY;
-
-      // Pull to refresh detection
       if (el.scrollTop === 0 && deltaY > 40) {
         this._isPulling = true;
       }
-
       if (deltaY > 60) {
+        const input = this.shadowRoot.querySelector('input[type="text"]');
         if (this.shadowRoot.activeElement === input) {
           input.blur();
           hapticLight();
@@ -280,7 +294,6 @@ export class ChatView extends LitElement {
       const oldMessages = changed.get('messages') || [];
       if (this.messages.length > oldMessages.length) {
         this.scrollToBottom(false);
-        // Secondary scrolls to handle layout shifts from images or font rendering
         setTimeout(() => this.scrollToBottom(false), 100);
         setTimeout(() => this.scrollToBottom(false), 300);
       }
@@ -295,31 +308,64 @@ export class ChatView extends LitElement {
     if (el) {
       this._isAutoScrolling = true;
       if (smooth) {
-        el.scrollTo({
-          top: el.scrollHeight,
-          behavior: 'smooth'
-        });
+        el.scrollTo({ top: el.scrollHeight, behavior: 'smooth' });
       } else {
         el.scrollTop = el.scrollHeight;
       }
-      
-      // Release auto-scrolling lock after a delay
-      setTimeout(() => { 
-        this._isAutoScrolling = false; 
-      }, smooth ? 500 : 150);
+      setTimeout(() => { this._isAutoScrolling = false; }, smooth ? 500 : 150);
     }
+  }
+
+  _triggerFilePicker() {
+    this.shadowRoot.querySelector('#file-input').click();
+    hapticLight();
+  }
+
+  async _handleFileChange(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    if (file.size > 5 * 1024 * 1024) {
+      alert('File too large (max 5MB)');
+      e.target.value = '';
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      this._pendingFile = {
+        name: file.name,
+        type: file.type,
+        data: ev.target.result // Base64
+      };
+      hapticMedium();
+    };
+    reader.readAsDataURL(file);
   }
 
   _send(e) {
     e.preventDefault();
-    const input = this.shadowRoot.querySelector('input');
+    const input = this.shadowRoot.querySelector('input[type="text"]');
     const text = input.value.trim();
-    if (!text) return;
+    
+    if (!text && !this._pendingFile) return;
     
     hapticMedium();
-    this.dispatchEvent(new CustomEvent('send-message', { detail: text, bubbles: true, composed: true }));
+    
+    const detail = { text };
+    if (this._pendingFile) {
+      detail.attachment = this._pendingFile;
+    }
+
+    this.dispatchEvent(new CustomEvent('send-message', { 
+      detail, 
+      bubbles: true, 
+      composed: true 
+    }));
+
     input.value = '';
-    // Scroll smoothly after sending a message
+    this._pendingFile = null;
+    this.shadowRoot.querySelector('#file-input').value = '';
     setTimeout(() => this.scrollToBottom(true), 100);
   }
 
@@ -368,7 +414,15 @@ export class ChatView extends LitElement {
       </div>
 
       <form class="input-area" @submit=${this._send}>
-        <input type="text" placeholder="ENTER COMMAND..." autocomplete="off" @focus=${() => { 
+        <input type="file" id="file-input" style="display: none;" @change=${this._handleFileChange}>
+        <button type="button" class="attach-btn ${this._pendingFile ? 'has-file' : ''}" @click=${this._triggerFilePicker}>
+          ${this._pendingFile ? html`
+            <svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 9l-1.41-1.41z"/></svg>
+          ` : html`
+            <svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
+          `}
+        </button>
+        <input type="text" placeholder="${this._pendingFile ? 'SEND WITH ATTACHMENT...' : 'ENTER COMMAND...'}" autocomplete="off" @focus=${() => { 
           this.uiHidden = false;
           this.dispatchEvent(new CustomEvent('ui-toggle', { detail: false, bubbles: true, composed: true }));
         }}>

@@ -748,9 +748,18 @@ export class AppShell extends LitElement {
   }
 
   _onSendMessage(e) {
-    const text = e.detail;
-    const requestId = wsClient.sendChat(text);
-    const userMsg = { role: 'user', text, category: 'chat', timestamp: Date.now(), requestId, status: 'sending', seen: true };
+    const { text, attachment } = e.detail;
+    const requestId = wsClient.sendChat(text, attachment);
+    const userMsg = { 
+      role: 'user', 
+      text, 
+      category: 'chat', 
+      timestamp: Date.now(), 
+      requestId, 
+      status: 'sending', 
+      seen: true,
+      hasAttachment: !!attachment
+    };
     this.messages = [...this.messages, userMsg];
     addMessage(userMsg).catch(err => console.error('Failed to store message:', err));
     hapticMedium();
