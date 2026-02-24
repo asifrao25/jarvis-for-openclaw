@@ -117,48 +117,7 @@ export default class GatewayClient extends EventEmitter {
 
   send(data) {
     if (this.ws && this.ws.readyState === WebSocket.OPEN) {
-      let payload = typeof data === 'string' ? JSON.parse(data) : data;
-
-      // Intercept chat.send with attachments and transform to gateway-native multimodal format using "agent" method
-      if (payload.method === 'chat.send' && payload.params?.attachment) {
-        const { message, attachment, sessionKey } = payload.params;
-        const content = [];
-
-        // Add text part if present
-        if (message) {
-          content.push({ type: 'text', text: message });
-        }
-
-        // Add media part
-        const rawData = attachment.data.replace(/^data:.*?;base64,/, '');
-        
-        if (attachment.type?.startsWith('image/')) {
-          content.push({
-            type: 'image',
-            data: rawData, 
-            name: attachment.name
-          });
-        } else {
-          content.push({
-            type: 'file',
-            data: rawData,
-            name: attachment.name,
-            contentType: attachment.type
-          });
-        }
-
-        // Transform to "agent" method which supports content arrays
-        payload.method = 'agent';
-        payload.params = {
-          sessionKey: sessionKey || 'agent:main:main',
-          message: content, // The gateway accepts the array here
-          idempotencyKey: crypto.randomUUID()
-        };
-        
-        console.log(`[Gateway] Transformed multimodal to agent.method: text=${!!message} media=${attachment.type}`);
-        console.log(`[Gateway] Payload Preview: ${JSON.stringify(content).substring(0, 500)}`);
-      }
-
+      const payload = typeof data === 'string' ? JSON.parse(data) : data;
       const str = JSON.stringify(payload);
       console.log(`[Gateway] Send: ${str.substring(0, 200)}...`);
       this.ws.send(str);

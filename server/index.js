@@ -4,9 +4,6 @@ import { WebSocketServer, WebSocket } from 'ws';
 import crypto from 'crypto';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import multer from 'multer';
-import fetch from 'node-fetch';
-import FormData from 'form-data';
 import config from './config.js';
 import EventBuffer from './event-buffer.js';
 import GatewayClient from './gateway-client.js';
@@ -27,12 +24,6 @@ const pwaClients = new Map(); // id -> { ws, isVisible }
 // Express app
 const app = express();
 app.use(express.json());
-
-// Multer setup for memory storage
-const upload = multer({ 
-  storage: multer.memoryStorage(),
-  limits: { fileSize: 100 * 1024 * 1024 } // 100MB
-});
 
 // API routes
 function apiRoutes(router) {
@@ -59,52 +50,6 @@ function apiRoutes(router) {
     res.json({ ok: true });
   });
 
-  // Multipart upload proxy to Gateway
-  router.post('/api/upload', upload.single('file'), async (req, res) => {
-    const password = req.headers['x-password'];
-    if (password !== config.gatewayPassword) {
-      return res.status(401).json({ error: 'Invalid password' });
-    }
-
-    if (!req.file) {
-      return res.status(400).json({ error: 'No file uploaded' });
-    }
-
-    try {
-      console.log(`[Upload] Proxying ${req.file.originalname} (${req.file.size} bytes) to Gateway`);
-      
-      const gatewayHttpUrl = config.gatewayUrl.replace('ws://', 'http://').replace('wss://', 'https://');
-      const form = new FormData();
-      form.append('file', req.file.buffer, {
-        filename: req.file.originalname,
-        contentType: req.file.mimetype,
-      });
-      form.append('sessionKey', req.body.sessionKey || 'agent:main:main');
-      if (req.body.message) form.append('message', req.body.message);
-
-      const response = await fetch(`${gatewayHttpUrl}/message`, {
-        method: 'POST',
-        body: form,
-        headers: {
-          'Origin': 'http://127.0.0.1:18789',
-          ...form.getHeaders()
-        }
-      });
-
-      const responseText = await response.text();
-      console.log(`[Upload] Gateway Response (${response.status}):`, responseText);
-      
-      try {
-        const result = JSON.parse(responseText);
-        res.json(result);
-      } catch {
-        res.json({ ok: response.ok, status: response.status, raw: responseText });
-      }
-    } catch (err) {
-      console.error(`[Upload] Error proxying to gateway:`, err.message);
-      res.status(500).json({ error: 'Gateway upload failed', details: err.message });
-    }
-  });
 }
 
 apiRoutes(app);

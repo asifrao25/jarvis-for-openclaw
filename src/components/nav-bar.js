@@ -1,15 +1,13 @@
 import { LitElement, html, css } from 'lit';
-import { hapticLight, hapticMedium } from '../services/haptics.js';
+import { hapticLight, hapticMedium, hapticSuccess } from '../services/haptics.js';
 
 export class NavBar extends LitElement {
   static styles = css`
     :host {
       position: fixed;
       right: 0;
-      /* Flush to absolute bottom edge */
       bottom: 0;
       width: 50px;
-      /* Fixed height for true flush look */
       height: 44px;
       background: #000;
       z-index: 100;
@@ -34,8 +32,9 @@ export class NavBar extends LitElement {
 
     .menu-container {
       position: absolute;
-      bottom: 52px; /* 40px bar + 12px margin */
+      bottom: 52px;
       right: 10px;
+      z-index: 2;
       display: flex;
       flex-direction: column;
       gap: 10px;
@@ -144,6 +143,52 @@ export class NavBar extends LitElement {
       margin-left: auto;
     }
 
+    .refresh-btn {
+      position: absolute;
+      bottom: 48px;
+      right: 9px;
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      background: rgba(0, 30, 40, 0.9);
+      border: 1px solid rgba(0, 255, 255, 0.35);
+      color: var(--c-primary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      pointer-events: auto;
+      padding: 0;
+      backdrop-filter: blur(10px);
+      transition: background 0.2s, border-color 0.2s, box-shadow 0.2s;
+      z-index: 1;
+    }
+
+    .refresh-btn:active {
+      background: rgba(0, 255, 255, 0.15);
+      transform: scale(0.92);
+    }
+
+    .refresh-btn.done {
+      border-color: var(--c-primary);
+      box-shadow: 0 0 12px rgba(0, 255, 255, 0.3);
+    }
+
+    .refresh-btn svg {
+      width: 16px;
+      height: 16px;
+      fill: currentColor;
+      transition: transform 0.3s ease;
+    }
+
+    .refresh-btn.spinning svg {
+      animation: refresh-spin 0.8s linear infinite;
+    }
+
+    @keyframes refresh-spin {
+      to { transform: rotate(360deg); }
+    }
+
     /* Desktop Horizontal Nav Bar */
     @media (min-width: 1024px) {
       :host {
@@ -160,6 +205,10 @@ export class NavBar extends LitElement {
       }
 
       .fab-main {
+        display: none;
+      }
+
+      .refresh-btn {
         display: none;
       }
 
@@ -221,18 +270,71 @@ export class NavBar extends LitElement {
     reportCount: { type: Number },
     open: { type: Boolean, state: true },
     uiHidden: { type: Boolean, reflect: true, attribute: 'ui-hidden' },
-    keyboardOpen: { type: Boolean, reflect: true, attribute: 'keyboard-open' }
+    keyboardOpen: { type: Boolean, reflect: true, attribute: 'keyboard-open' },
+    _refreshing: { type: Boolean, state: true },
+    _refreshDone: { type: Boolean, state: true },
   };
 
   constructor() {
     super();
     this.open = false;
     this.uiHidden = false;
+    this._refreshing = false;
+    this._refreshDone = false;
   }
 
   _toggle() {
     this.open = !this.open;
     hapticMedium();
+  }
+
+  async _checkForUpdate() {
+    if (this._refreshing) return;
+    this._refreshing = true;
+    this._refreshDone = false;
+    hapticMedium();
+
+    try {
+      if ('serviceWorker' in navigator) {
+        const reg = await navigator.serviceWorker.getRegistration();
+        if (reg) {
+          // Listen for a new SW taking control — if it fires, reload to load new bundles
+          let reloading = false;
+          const onControllerChange = () => {
+            if (reloading) return;
+            reloading = true;
+            window.location.reload();
+          };
+          navigator.serviceWorker.addEventListener('controllerchange', onControllerChange, { once: true });
+
+          await reg.update();
+
+          // Give the SW 2s to install/activate; if no controllerchange, do soft refresh
+          await new Promise(resolve => setTimeout(resolve, 2000));
+
+          if (!reloading) {
+            navigator.serviceWorker.removeEventListener('controllerchange', onControllerChange);
+            // No new version — soft refresh: reload messages from store
+            this.dispatchEvent(new CustomEvent('refresh', { bubbles: true, composed: true }));
+            this._refreshing = false;
+            this._refreshDone = true;
+            hapticSuccess();
+            setTimeout(() => { this._refreshDone = false; }, 1500);
+          }
+          // If reloading, the page will reload and this code won't continue
+          return;
+        }
+      }
+    } catch (e) {
+      console.error('[Nav] Update check failed:', e);
+    }
+
+    // Fallback: soft refresh
+    this.dispatchEvent(new CustomEvent('refresh', { bubbles: true, composed: true }));
+    this._refreshing = false;
+    this._refreshDone = true;
+    hapticSuccess();
+    setTimeout(() => { this._refreshDone = false; }, 1500);
   }
 
   _nav(view) {
@@ -269,6 +371,10 @@ export class NavBar extends LitElement {
           <span class="label">Settings</span>
         </div>
       </div>
+
+      <button class="refresh-btn ${this._refreshing ? 'spinning' : ''} ${this._refreshDone ? 'done' : ''}" @click=${this._checkForUpdate} aria-label="Refresh">
+        <svg viewBox="0 0 24 24"><path d="M17.65 6.35A7.958 7.958 0 0 0 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08A5.99 5.99 0 0 1 12 18c-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/></svg>
+      </button>
 
       <button class="fab-main ${this.open ? 'open' : ''}" @click=${this._toggle} aria-label="Toggle Menu">
         ${!this.open && totalUnread > 0 ? html`<span class="badge">${totalUnread}</span>` : ''}

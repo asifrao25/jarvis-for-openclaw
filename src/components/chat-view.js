@@ -1,6 +1,5 @@
 import { LitElement, html, css } from 'lit';
-import { hapticMedium, hapticLight, hapticSuccess, hapticError } from '../services/haptics.js';
-import { getAuth } from '../services/auth.js';
+import { hapticMedium, hapticLight } from '../services/haptics.js';
 import './message-item.js';
 import './stream-indicator.js';
 
@@ -50,74 +49,6 @@ export class ChatView extends LitElement {
       transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     }
 
-    .attachment-preview {
-      display: flex;
-      align-items: center;
-      padding: 10px 12px;
-      background: rgba(0, 255, 255, 0.05);
-      gap: 12px;
-      border-bottom: 1px solid rgba(0, 255, 255, 0.1);
-      animation: slideUp 0.2s ease-out;
-      position: relative;
-    }
-
-    @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
-
-    .progress-bar {
-      position: absolute;
-      bottom: 0;
-      left: 0;
-      height: 2px;
-      background: var(--c-primary);
-      box-shadow: 0 0 10px var(--c-primary);
-      transition: width 0.3s ease;
-    }
-
-    .preview-thumb {
-      width: 40px;
-      height: 40px;
-      border-radius: 6px;
-      object-fit: cover;
-      background: #000;
-      border: 1px solid rgba(0, 255, 255, 0.3);
-    }
-
-    .preview-info {
-      flex: 1;
-      min-width: 0;
-    }
-
-    .preview-name {
-      font-family: var(--f-mono);
-      font-size: 11px;
-      color: var(--c-primary);
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-
-    .preview-status {
-      font-family: var(--f-mono);
-      font-size: 9px;
-      color: var(--c-primary);
-      opacity: 0.7;
-      text-transform: uppercase;
-      letter-spacing: 1px;
-    }
-
-    .remove-attach {
-      background: rgba(255, 51, 51, 0.1);
-      border: 1px solid rgba(255, 51, 51, 0.3);
-      color: #FF3333;
-      width: 24px;
-      height: 24px;
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      cursor: pointer;
-    }
-
     .input-area {
       padding: 0 50px 0 8px;
       display: flex;
@@ -159,40 +90,6 @@ export class ChatView extends LitElement {
       opacity: 0;
       pointer-events: none;
       border-top-color: transparent;
-    }
-
-    .attach-btn {
-      width: 32px;
-      height: 32px;
-      border-radius: 8px;
-      background: rgba(0, 255, 255, 0.05);
-      border: 1px solid rgba(0, 255, 255, 0.2);
-      color: var(--c-primary);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      cursor: pointer;
-      flex-shrink: 0;
-      padding: 0;
-      transition: all 0.2s;
-    }
-
-    .attach-btn:active {
-      background: rgba(0, 255, 255, 0.2);
-      transform: scale(0.92);
-    }
-
-    .attach-btn.has-file {
-      background: var(--c-primary);
-      color: #000;
-      border-color: var(--c-primary);
-      box-shadow: 0 0 10px var(--c-primary-dim);
-    }
-
-    .attach-btn svg {
-      width: 18px;
-      height: 18px;
-      fill: currentColor;
     }
 
     input[type="text"] {
@@ -326,9 +223,6 @@ export class ChatView extends LitElement {
     uiHidden: { type: Boolean, reflect: true, attribute: 'ui-hidden' },
     _showScrollBtn: { type: Boolean, state: true },
     _isPulling: { type: Boolean, state: true },
-    _pendingFile: { type: Object, state: true },
-    _isUploading: { type: Boolean, state: true },
-    _uploadProgress: { type: Number, state: true },
   };
 
   constructor() {
@@ -341,9 +235,6 @@ export class ChatView extends LitElement {
     this._showScrollBtn = false;
     this._isPulling = false;
     this.loading = false;
-    this._pendingFile = null;
-    this._isUploading = false;
-    this._uploadProgress = 0;
   }
 
   firstUpdated() {
@@ -413,160 +304,14 @@ export class ChatView extends LitElement {
     }
   }
 
-  _triggerFilePicker() {
-    this.shadowRoot.querySelector('#file-input').click();
-    hapticLight();
-  }
-
-  async _compressImage(file) {
-    return new Promise((resolve) => {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const img = new Image();
-        img.onload = () => {
-          const canvas = document.createElement('canvas');
-          let width = img.width;
-          let height = img.height;
-          const max = 1600;
-          if (width > height) {
-            if (width > max) { height *= max / width; width = max; }
-          } else {
-            if (height > max) { width *= max / height; height = max; }
-          }
-          canvas.width = width;
-          canvas.height = height;
-          const ctx = canvas.getContext('2d');
-          ctx.drawImage(img, 0, 0, width, height);
-          canvas.toBlob((blob) => {
-            resolve({ blob, dataUrl: canvas.toDataURL('image/jpeg', 0.8) });
-          }, 'image/jpeg', 0.8);
-        };
-        img.src = e.target.result;
-      };
-      reader.readAsDataURL(file);
-    });
-  }
-
-  async _handleFileChange(e) {
-    const file = e.target.files[0];
-    if (!file) return;
-
-    if (file.size > 100 * 1024 * 1024) {
-      alert('File too large (max 100MB)');
-      e.target.value = '';
-      return;
-    }
-
-    this._isUploading = true;
-    this._uploadProgress = 0;
-    hapticLight();
-
-    try {
-      if (file.type.startsWith('image/')) {
-        const { blob, dataUrl } = await this._compressImage(file);
-        this._pendingFile = {
-          name: file.name.replace(/\.[^/.]+$/, "") + ".jpg",
-          type: 'image/jpeg',
-          blob: blob,
-          data: dataUrl 
-        };
-      } else {
-        const reader = new FileReader();
-        const data = await new Promise((resolve) => {
-          reader.onload = (ev) => resolve(ev.target.result);
-          reader.readAsDataURL(file);
-        });
-        this._pendingFile = {
-          name: file.name,
-          type: file.type,
-          blob: file,
-          data: data 
-        };
-      }
-      hapticSuccess();
-    } catch (err) {
-      console.error('File processing failed:', err);
-      hapticError();
-    } finally {
-      this._isUploading = false;
-    }
-  }
-
-  _removeFile() {
-    this._pendingFile = null;
-    const fileInput = this.shadowRoot.querySelector('#file-input');
-    if (fileInput) fileInput.value = '';
-    hapticLight();
-  }
-
   async _send(e) {
     e.preventDefault();
-    if (this._isUploading) return;
-
     const input = this.shadowRoot.querySelector('input[type="text"]');
     const text = input.value.trim();
-    
-    if (!text && !this._pendingFile) return;
-    
+    if (!text) return;
     hapticMedium();
-    
-    if (this._pendingFile) {
-      this._isUploading = true;
-      this._uploadProgress = 0;
-      
-      try {
-        const formData = new FormData();
-        formData.append('file', this._pendingFile.blob, this._pendingFile.name);
-        formData.append('sessionKey', 'agent:main:main');
-        if (text) formData.append('message', text);
-
-        await new Promise((resolve, reject) => {
-          const xhr = new XMLHttpRequest();
-          xhr.open('POST', `${location.origin}/pwa/api/upload`);
-          xhr.setRequestHeader('x-password', getAuth());
-          
-          xhr.upload.onprogress = (event) => {
-            if (event.lengthComputable) {
-              this._uploadProgress = Math.round((event.loaded / event.total) * 100);
-            }
-          };
-
-          xhr.onload = () => {
-            if (xhr.status >= 200 && xhr.status < 300) {
-              resolve(JSON.parse(xhr.responseText));
-            } else {
-              reject(new Error(xhr.statusText));
-            }
-          };
-          
-          xhr.onerror = () => reject(new Error('Network error'));
-          xhr.send(formData);
-        });
-
-        hapticSuccess();
-        this.dispatchEvent(new CustomEvent('send-message', { 
-          detail: { text, attachment: this._pendingFile, skipWebSocket: true }, 
-          bubbles: true, 
-          composed: true 
-        }));
-
-      } catch (err) {
-        console.error('[ChatView] Upload error:', err);
-        alert('Failed to send media: ' + err.message);
-        hapticError();
-        this._isUploading = false;
-        return;
-      }
-    } else {
-      this.dispatchEvent(new CustomEvent('send-message', { detail: { text }, bubbles: true, composed: true }));
-    }
-
+    this.dispatchEvent(new CustomEvent('send-message', { detail: { text }, bubbles: true, composed: true }));
     input.value = '';
-    this._pendingFile = null;
-    this._isUploading = false;
-    this._uploadProgress = 0;
-    const fileInput = this.shadowRoot.querySelector('#file-input');
-    if (fileInput) fileInput.value = '';
     setTimeout(() => this.scrollToBottom(true), 100);
   }
 
@@ -616,43 +361,8 @@ export class ChatView extends LitElement {
       </div>
 
       <div class="input-area-container">
-        ${this._isUploading ? html`
-          <div class="attachment-preview">
-            <div class="progress-bar" style="width: ${this._uploadProgress}%"></div>
-            <div class="logo-spin" style="width:20px;height:20px;margin:0;"></div>
-            <div class="preview-info">
-              <div class="preview-status">
-                ${this._uploadProgress < 100 ? `Uploading to Jarvis... ${this._uploadProgress}%` : 'Finalizing Transfer...'}
-              </div>
-            </div>
-          </div>
-        ` : ''}
-
-        ${this._pendingFile && !this._isUploading ? html`
-          <div class="attachment-preview">
-            ${this._pendingFile.type.startsWith('image/') ? html`
-              <img class="preview-thumb" src="${this._pendingFile.data}">
-            ` : html`
-              <div class="preview-thumb" style="display:flex;align-items:center;justify-content:center;color:var(--c-primary)">
-                <svg style="width:20px;height:20px;" viewBox="0 0 24 24"><path fill="currentColor" d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"/></svg>
-              </div>
-            `}
-            <div class="preview-info">
-              <div class="preview-name">${this._pendingFile.name}</div>
-              <div class="preview-status">Ready to sync</div>
-            </div>
-            <button class="remove-attach" @click=${this._removeFile}>
-              <svg style="width:14px;height:14px;" viewBox="0 0 24 24"><path fill="currentColor" d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
-            </button>
-          </div>
-        ` : ''}
-        
         <form class="input-area" @submit=${this._send}>
-          <input type="file" id="file-input" style="display: none;" @change=${this._handleFileChange}>
-          <button type="button" class="attach-btn ${this._pendingFile ? 'has-file' : ''}" @click=${this._triggerFilePicker} ?disabled=${this._isUploading}>
-            <svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
-          </button>
-          <input type="text" placeholder="${this._pendingFile ? 'Type caption...' : 'ENTER COMMAND...'}" autocomplete="off" @focus=${() => { 
+          <input type="text" placeholder="ENTER COMMAND..." autocomplete="off" @focus=${() => {
             this.uiHidden = false;
             this.dispatchEvent(new CustomEvent('ui-toggle', { detail: false, bubbles: true, composed: true }));
           }}>
