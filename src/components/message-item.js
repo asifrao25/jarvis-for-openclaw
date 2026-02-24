@@ -188,8 +188,7 @@ export class MessageItem extends LitElement {
     }
 
     .copy-toast {
-      position: absolute;
-      top: 0;
+      position: fixed;
       left: 50%;
       transform: translate(-50%, 0);
       background: var(--c-primary);
@@ -209,7 +208,7 @@ export class MessageItem extends LitElement {
 
     .copy-toast.visible {
       opacity: 1;
-      transform: translate(-50%, -45px);
+      transform: translate(-50%, -60px);
     }
 
     .copy-toast.delete {
@@ -339,7 +338,8 @@ export class MessageItem extends LitElement {
 
     return html`
       <div class="${containerClasses.join(' ')}" @click=${this._handleMessageClick}>
-        <div class="copy-toast ${this._showCopied ? 'visible' : ''} ${this._isDeleteToast ? 'delete' : ''}">
+        <div class="copy-toast ${this._showCopied ? 'visible' : ''} ${this._isDeleteToast ? 'delete' : ''}"
+             style="top: ${this._menuY}px;">
           ${this._toastText}
         </div>
         ${this.role === 'assistant' ? html`<div class="timestamp-bar"><span class="jarvis-label">Jarvis</span><span class="date-part">${dateString} · ${timeString}</span></div>` : ''}
