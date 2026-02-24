@@ -91,9 +91,15 @@ function apiRoutes(router) {
         }
       });
 
-      const result = await response.json();
-      console.log(`[Upload] Gateway response:`, JSON.stringify(result));
-      res.json(result);
+      const responseText = await response.text();
+      console.log(`[Upload] Gateway Response (${response.status}):`, responseText);
+      
+      try {
+        const result = JSON.parse(responseText);
+        res.json(result);
+      } catch {
+        res.json({ ok: response.ok, status: response.status, raw: responseText });
+      }
     } catch (err) {
       console.error(`[Upload] Error proxying to gateway:`, err.message);
       res.status(500).json({ error: 'Gateway upload failed', details: err.message });

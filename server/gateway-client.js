@@ -151,7 +151,8 @@ export default class GatewayClient extends EventEmitter {
         payload.method = 'agent';
         payload.params = {
           sessionKey: sessionKey || 'agent:main:main',
-          messages: [{ role: 'user', content }]
+          message: content, // The gateway accepts the array here
+          idempotencyKey: crypto.randomUUID()
         };
         
         console.log(`[Gateway] Transformed multimodal to agent.method: text=${!!message} media=${attachment.type}`);

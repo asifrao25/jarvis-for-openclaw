@@ -510,7 +510,8 @@ export class ChatView extends LitElement {
         formData.append('sessionKey', 'agent:main:main');
         if (text) formData.append('message', text);
 
-        const response = await fetch('/pwa/api/upload', {
+        const uploadUrl = `${location.origin}/pwa/api/upload`;
+        const response = await fetch(uploadUrl, {
           method: 'POST',
           body: formData,
           headers: {
