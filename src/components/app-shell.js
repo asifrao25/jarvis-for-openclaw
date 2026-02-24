@@ -115,32 +115,35 @@ export class AppShell extends LitElement {
     /* Desktop Enhancements */
     @media (min-width: 1024px) {
       .header {
-        height: 100px;
-        padding-left: 40px;
-        padding-right: 40px;
+        height: 160px;
+        padding-left: 60px;
+        padding-right: 60px;
       }
       .header h1 {
-        font-size: 32px;
-        letter-spacing: 4px;
+        font-size: 64px;
+        letter-spacing: 8px;
       }
       .header h1 span {
-        font-size: 16px;
-        margin-left: 10px;
+        font-size: 24px;
+        margin-left: 20px;
       }
       .status {
-        gap: 24px;
+        gap: 40px;
       }
       .strm-badge {
-        font-size: 18px;
-        padding: 6px 16px;
-        border-width: 2px;
+        font-size: 32px;
+        padding: 12px 32px;
+        border-width: 3px;
+        border-radius: 12px;
       }
       .status-dot {
-        width: 12px;
-        height: 12px;
+        width: 24px;
+        height: 24px;
+        box-shadow: 0 0 15px #00FF00;
       }
       .header .status span {
-        font-size: 16px !important;
+        font-size: 24px !important;
+        letter-spacing: 3px !important;
       }
     }
 
