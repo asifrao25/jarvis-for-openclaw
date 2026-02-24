@@ -112,6 +112,38 @@ export class AppShell extends LitElement {
     .status-dot.online { background: #00FF00; box-shadow: 0 0 8px #00FF00; }
     .status-dot.connecting { background: #FFFF00; box-shadow: 0 0 8px #FFFF00; }
 
+    /* Desktop Enhancements */
+    @media (min-width: 1024px) {
+      .header {
+        height: 100px;
+        padding-left: 40px;
+        padding-right: 40px;
+      }
+      .header h1 {
+        font-size: 32px;
+        letter-spacing: 4px;
+      }
+      .header h1 span {
+        font-size: 16px;
+        margin-left: 10px;
+      }
+      .status {
+        gap: 24px;
+      }
+      .strm-badge {
+        font-size: 18px;
+        padding: 6px 16px;
+        border-width: 2px;
+      }
+      .status-dot {
+        width: 12px;
+        height: 12px;
+      }
+      .header .status span {
+        font-size: 16px !important;
+      }
+    }
+
     .main-view {
       flex: 1;
       position: relative;
