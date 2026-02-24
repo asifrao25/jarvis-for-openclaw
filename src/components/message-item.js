@@ -71,6 +71,64 @@ export class MessageItem extends LitElement {
       100% { border-color: var(--c-primary-dim); box-shadow: 0 0 10px rgba(0, 255, 255, 0.2); }
     }
 
+    .timestamp-bar {
+      font-size: calc(var(--chat-font-size, 14px) * 0.62);
+      color: var(--c-primary, #00FFFF);
+      font-family: 'Orbitron', sans-serif;
+      font-weight: 600;
+      padding: 4px 10px 5px 0;
+      margin: -6px -10px 10px -10px;
+      background: rgba(0, 255, 255, 0.05);
+      border: 1px solid rgba(0, 255, 255, 0.25);
+      border-radius: 6px 6px 0 0;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      box-shadow: inset 0 1px 0 rgba(0, 255, 255, 0.1), 0 2px 4px rgba(0, 0, 0, 0.2);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      line-height: 1.2;
+    }
+
+    .timestamp-bar .jarvis-label {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      flex-shrink: 0;
+      margin-left: -4px;
+    }
+
+    .timestamp-bar .jarvis-label::before {
+      content: '';
+      width: 5px;
+      height: 5px;
+      background: var(--c-primary);
+      border-radius: 50%;
+      box-shadow: 0 0 6px var(--c-primary);
+      animation: pulse-dot 2s infinite;
+      flex-shrink: 0;
+    }
+
+    @keyframes pulse-dot {
+      0%, 100% { opacity: 1; box-shadow: 0 0 6px var(--c-primary); }
+      50% { opacity: 0.5; box-shadow: 0 0 3px var(--c-primary-dim); }
+    }
+
+    .timestamp-bar .date-part {
+      color: rgba(0, 255, 255, 0.6);
+      font-family: var(--f-mono);
+      font-size: 0.9em;
+      font-weight: 400;
+      text-transform: none;
+      letter-spacing: 0;
+      text-align: right;
+    }
+
+    .role-user .timestamp-bar {
+      display: none;
+    }
+
     .meta {
       font-size: calc(var(--chat-font-size, 14px) * 0.75);
       color: #FFFFFF;
@@ -272,13 +330,19 @@ export class MessageItem extends LitElement {
       containerClasses.push('unread');
     }
 
+    const dateObj = new Date(this.timestamp);
+    const timeString = dateObj.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    const dateString = dateObj.toLocaleDateString([], { month: 'short', day: 'numeric' });
+    const fullDateTime = `${dateString} · ${timeString}`;
+
     return html`
       <div class="${containerClasses.join(' ')}" @click=${this._handleMessageClick}>
         <div class="copy-toast ${this._showCopied ? 'visible' : ''} ${this._isDeleteToast ? 'delete' : ''}">
           ${this._toastText}
         </div>
+        ${this.role === 'assistant' ? html`<div class="timestamp-bar"><span class="jarvis-label">Jarvis</span><span class="date-part">${dateString} · ${timeString}</span></div>` : ''}
         <div class="text">${this.text}</div>
-        <div class="meta">${new Date(this.timestamp).toLocaleTimeString()}</div>
+        <div class="meta">${fullDateTime}</div>
 
         <div class="action-menu ${this._menuOpen ? 'visible' : ''}" @click=${(e) => e.stopPropagation()}>
           <button class="action-btn" @click=${this._copy}>Copy</button>
