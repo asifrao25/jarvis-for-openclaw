@@ -217,6 +217,8 @@ export class AppShell extends LitElement {
     this._loadingStore = true;
     this._streamingRuns = new Map();
     this._touchStart = null;
+    this._boundMouseMove = this._handleMouseMove.bind(this);
+    this._boundMouseUp = this._handleMouseUp.bind(this);
   }
 
   connectedCallback() {
@@ -310,6 +312,52 @@ export class AppShell extends LitElement {
     // Reject if: too slow (>300ms), too vertical, or starts at screen edges (iOS system gestures)
     if (duration > 300 || Math.abs(diffY) > Math.abs(diffX) || startX < 25 || startX > window.innerWidth - 25) return;
 
+    this._executeSwipe(diffX);
+  }
+
+  _handleMouseDown(e) {
+    if (this._keyboardOpen) return;
+    // Don't trigger if clicking input or buttons
+    if (e.target.closest('input, button, select, a')) return;
+    
+    this._touchStart = {
+      x: e.clientX,
+      y: e.clientY,
+      time: Date.now()
+    };
+    this._swipeX = e.clientX;
+    
+    // Add global listeners for mouseup/move to handle dragging outside the element
+    window.addEventListener('mousemove', this._boundMouseMove);
+    window.addEventListener('mouseup', this._boundMouseUp);
+  }
+
+  _handleMouseMove(e) {
+    if (!this._touchStart) return;
+    this._swipeX = e.clientX;
+    this._isSwiping = true;
+  }
+
+  _handleMouseUp(e) {
+    if (!this._touchStart) return;
+    
+    const diffX = e.clientX - this._touchStart.x;
+    const diffY = e.clientY - this._touchStart.y;
+    const duration = Date.now() - this._touchStart.time;
+
+    this._isSwiping = false;
+    this._touchStart = null;
+    
+    window.removeEventListener('mousemove', this._boundMouseMove);
+    window.removeEventListener('mouseup', this._boundMouseUp);
+
+    // Desktop/Tab can be a bit more relaxed on duration or verticality if desired
+    if (duration > 500 || Math.abs(diffY) > Math.abs(diffX)) return;
+
+    this._executeSwipe(diffX);
+  }
+
+  _executeSwipe(diffX) {
     const threshold = 60;
     if (Math.abs(diffX) > threshold) {
       const order = ['settings', 'chat', 'alert', 'report'];
@@ -646,6 +694,7 @@ export class AppShell extends LitElement {
           ` : ''}
 
           <div class="main-view" 
+               @mousedown=${this._handleMouseDown}
                @touchstart=${this._handleTouchStart}
                @touchmove=${this._handleTouchMove}
                @touchend=${this._handleTouchEnd}>
