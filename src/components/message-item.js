@@ -125,6 +125,61 @@ export class MessageItem extends LitElement {
       text-align: right;
     }
 
+    /* Attachment Styles */
+    .attachment-zone {
+      margin-bottom: 12px;
+      border-radius: 8px;
+      overflow: hidden;
+      border: 1px solid rgba(0, 255, 255, 0.2);
+      background: rgba(0, 0, 0, 0.3);
+    }
+
+    .attachment-img {
+      display: block;
+      width: 100%;
+      max-height: 300px;
+      object-fit: contain;
+      background: #000;
+    }
+
+    .attachment-file {
+      padding: 12px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      color: var(--c-primary);
+      text-decoration: none;
+    }
+
+    .attachment-file svg {
+      width: 24px;
+      height: 24px;
+      fill: currentColor;
+      flex-shrink: 0;
+    }
+
+    .file-info {
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+    }
+
+    .file-name {
+      font-family: var(--f-mono);
+      font-size: 12px;
+      font-weight: bold;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .file-meta {
+      font-family: var(--f-mono);
+      font-size: 9px;
+      opacity: 0.6;
+      text-transform: uppercase;
+    }
+
     .role-user .timestamp-bar {
       display: none;
     }
@@ -223,6 +278,7 @@ export class MessageItem extends LitElement {
     text: { type: String },
     timestamp: { type: Number },
     seen: { type: Boolean },
+    attachment: { type: Object },
     _menuOpen: { type: Boolean, state: true },
     _menuX: { type: Number, state: true },
     _menuY: { type: Number, state: true },
@@ -252,7 +308,6 @@ export class MessageItem extends LitElement {
   _setupObserver() {
     this._observer = new IntersectionObserver((entries) => {
       if (entries[0].isIntersecting) {
-        // Automatically mark as seen when scrolled into view
         setTimeout(() => this._markAsSeen(), 500);
       }
     }, { threshold: 0.5 });
@@ -283,7 +338,6 @@ export class MessageItem extends LitElement {
       const { hapticSuccess } = await import('../services/haptics.js');
       hapticSuccess();
       
-      // Delay closing the menu so the toast is visible above it for a moment
       setTimeout(() => {
         this._showCopied = false;
         this._menuOpen = false;
@@ -345,6 +399,23 @@ export class MessageItem extends LitElement {
           ${this._toastText}
         </div>
         ${this.role === 'assistant' ? html`<div class="timestamp-bar"><span class="jarvis-label">Jarvis</span><span class="date-part">${dateString} · ${timeString}</span></div>` : ''}
+        
+        ${this.attachment ? html`
+          <div class="attachment-zone">
+            ${this.attachment.type?.startsWith('image/') ? html`
+              <img src="${this.attachment.data}" class="attachment-img" alt="Attachment" loading="lazy">
+            ` : html`
+              <div class="attachment-file">
+                <svg viewBox="0 0 24 24"><path d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"/></svg>
+                <div class="file-info">
+                  <div class="file-name">${this.attachment.name}</div>
+                  <div class="file-meta">${this.attachment.type || 'FILE'}</div>
+                </div>
+              </div>
+            `}
+          </div>
+        ` : ''}
+
         <div class="text">${this.text}</div>
         <div class="meta">${fullDateTime}</div>
 

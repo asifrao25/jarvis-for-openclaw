@@ -654,6 +654,17 @@ export class AppShell extends LitElement {
     const text = extractText(msg);
     const category = categorize(text);
 
+    // Extract attachment from gateway format if present
+    let attachment = null;
+    const mediaPart = payload.message?.content?.find(c => c.type === 'image' || c.type === 'file');
+    if (mediaPart) {
+      attachment = {
+        name: mediaPart.name || 'file',
+        type: mediaPart.type === 'image' ? 'image/png' : (mediaPart.contentType || 'application/octet-stream'),
+        data: mediaPart.data || mediaPart.url
+      };
+    }
+
     console.log(`[AppShell] Recv Chat: state=${state} runId=${runId} seq=${msg.seq} text="${text.substring(0, 30)}..." replayed=${!!msg._replayed}`);
 
     if (state === 'delta') {
@@ -684,7 +695,7 @@ export class AppShell extends LitElement {
       }
 
       const existingIdx = this._streamingRuns.get(runId);
-      const finalMsg = { role, text, category, timestamp: Date.now(), streaming: false, runId, seq: msg.seq, seen: false };
+      const finalMsg = { role, text, category, timestamp: Date.now(), streaming: false, runId, seq: msg.seq, seen: false, attachment };
 
       if (existingIdx !== undefined) {
         const updated = [...this.messages];
@@ -766,7 +777,7 @@ export class AppShell extends LitElement {
       requestId, 
       status: 'sending', 
       seen: true,
-      hasAttachment: !!attachment
+      attachment // Store locally for rendering
     };
     this.messages = [...this.messages, userMsg];
     addMessage(userMsg).catch(err => console.error('Failed to store message:', err));
@@ -810,7 +821,7 @@ export class AppShell extends LitElement {
           <login-screen @login=${this._onLogin}></login-screen>
         ` : html`
           <div class="header">
-            <h1>JARVIS <span>v4.3.2</span></h1>
+            <h1>JARVIS <span>v4.3.3</span></h1>
             <div class="status">
               <div class="strm-badge">
                 STRM: ${this.messages.length.toString().padStart(3, '0')}

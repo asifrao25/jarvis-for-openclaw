@@ -39,29 +39,80 @@ export class ChatView extends LitElement {
     .messages::-webkit-scrollbar { width: 4px; }
     .messages::-webkit-scrollbar-thumb { background: rgba(0, 255, 255, 0.2); border-radius: 2px; }
 
-    .input-area {
+    .input-area-container {
       flex-shrink: 0;
-      padding: 0 50px 0 8px;
       background: #000;
       border-top: 1px solid rgba(0, 255, 255, 0.15);
-      display: flex;
-      align-items: center;
-      gap: 8px;
       z-index: 30;
-      overflow: hidden;
-      height: 44px;
-      min-height: 44px;
-      box-sizing: border-box;
+      display: flex;
+      flex-direction: column;
       transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     }
 
+    .attachment-preview {
+      display: flex;
+      align-items: center;
+      padding: 10px 12px;
+      background: rgba(0, 255, 255, 0.05);
+      gap: 12px;
+      border-bottom: 1px solid rgba(0, 255, 255, 0.1);
+      animation: slideUp 0.2s ease-out;
+    }
+
+    @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+
+    .preview-thumb {
+      width: 40px;
+      height: 40px;
+      border-radius: 6px;
+      object-fit: cover;
+      background: #000;
+      border: 1px solid rgba(0, 255, 255, 0.3);
+    }
+
+    .preview-info {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .preview-name {
+      font-family: var(--f-mono);
+      font-size: 11px;
+      color: var(--c-primary);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .remove-attach {
+      background: rgba(255, 51, 51, 0.1);
+      border: 1px solid rgba(255, 51, 51, 0.3);
+      color: #FF3333;
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+    }
+
+    .input-area {
+      padding: 0 50px 0 8px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      height: 44px;
+      min-height: 44px;
+      box-sizing: border-box;
+    }
+
     @media (min-width: 1024px) {
-      .input-area {
+      .input-area-container {
         position: fixed;
         bottom: 80px;
         left: 0;
         right: 0;
-        height: 60px;
         padding: 0 60px;
       }
       .indicator-container {
@@ -72,7 +123,7 @@ export class ChatView extends LitElement {
       }
     }
 
-    :host([ui-hidden]) .input-area {
+    :host([ui-hidden]) .input-area-container {
       height: 0;
       min-height: 0;
       opacity: 0;
@@ -189,11 +240,6 @@ export class ChatView extends LitElement {
       opacity: 1;
       pointer-events: auto;
       transform: translate(-50%, 0) scale(1);
-    }
-
-    .scroll-bottom-btn svg {
-      width: 12px; height: 12px;
-      fill: currentColor;
     }
 
     .indicator-container {
@@ -342,7 +388,6 @@ export class ChatView extends LitElement {
     const file = e.target.files[0];
     if (!file) return;
 
-    // Limit to 100MB
     if (file.size > 100 * 1024 * 1024) {
       alert('File too large (max 100MB)');
       e.target.value = '';
@@ -359,6 +404,13 @@ export class ChatView extends LitElement {
       hapticMedium();
     };
     reader.readAsDataURL(file);
+  }
+
+  _removeFile() {
+    this._pendingFile = null;
+    const fileInput = this.shadowRoot.querySelector('#file-input');
+    if (fileInput) fileInput.value = '';
+    hapticLight();
   }
 
   _send(e) {
@@ -417,6 +469,7 @@ export class ChatView extends LitElement {
             .text=${m.text} 
             .timestamp=${m.timestamp}
             .seen=${m.seen}
+            .attachment=${m.attachment}
           ></message-item>
         `)}
       </div>
@@ -432,20 +485,36 @@ export class ChatView extends LitElement {
         <span>NEW MESSAGES BELOW</span>
       </div>
 
-      <form class="input-area" @submit=${this._send}>
-        <input type="file" id="file-input" style="display: none;" @change=${this._handleFileChange}>
-        <button type="button" class="attach-btn ${this._pendingFile ? 'has-file' : ''}" @click=${this._triggerFilePicker}>
-          ${this._pendingFile ? html`
-            <svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 9l-1.41-1.41z"/></svg>
-          ` : html`
+      <div class="input-area-container">
+        ${this._pendingFile ? html`
+          <div class="attachment-preview">
+            ${this._pendingFile.type.startsWith('image/') ? html`
+              <img class="preview-thumb" src="${this._pendingFile.data}">
+            ` : html`
+              <div class="preview-thumb" style="display:flex;align-items:center;justify-content:center;color:var(--c-primary)">
+                <svg style="width:20px;height:20px;" viewBox="0 0 24 24"><path fill="currentColor" d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"/></svg>
+              </div>
+            `}
+            <div class="preview-info">
+              <div class="preview-name">${this._pendingFile.name}</div>
+            </div>
+            <button class="remove-attach" @click=${this._removeFile}>
+              <svg style="width:14px;height:14px;" viewBox="0 0 24 24"><path fill="currentColor" d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+            </button>
+          </div>
+        ` : ''}
+        
+        <form class="input-area" @submit=${this._send}>
+          <input type="file" id="file-input" style="display: none;" @change=${this._handleFileChange}>
+          <button type="button" class="attach-btn ${this._pendingFile ? 'has-file' : ''}" @click=${this._triggerFilePicker}>
             <svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
-          `}
-        </button>
-        <input type="text" placeholder="${this._pendingFile ? 'SEND WITH ATTACHMENT...' : 'ENTER COMMAND...'}" autocomplete="off" @focus=${() => { 
-          this.uiHidden = false;
-          this.dispatchEvent(new CustomEvent('ui-toggle', { detail: false, bubbles: true, composed: true }));
-        }}>
-      </form>
+          </button>
+          <input type="text" placeholder="${this._pendingFile ? 'Type caption...' : 'ENTER COMMAND...'}" autocomplete="off" @focus=${() => { 
+            this.uiHidden = false;
+            this.dispatchEvent(new CustomEvent('ui-toggle', { detail: false, bubbles: true, composed: true }));
+          }}>
+        </form>
+      </div>
     `;
   }
 }
