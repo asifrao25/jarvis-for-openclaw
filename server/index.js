@@ -82,7 +82,7 @@ function apiRoutes(router) {
       form.append('sessionKey', req.body.sessionKey || 'agent:main:main');
       if (req.body.message) form.append('message', req.body.message);
 
-      const response = await fetch(`${gatewayHttpUrl}/message`, {
+      const response = await fetch(`${gatewayHttpUrl}/api/send`, {
         method: 'POST',
         body: form,
         headers: {
