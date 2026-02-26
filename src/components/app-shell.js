@@ -135,8 +135,8 @@ export class AppShell extends LitElement {
 
     .status-strip span {
       font-family: var(--f-mono);
-      font-size: 7px;
-      letter-spacing: 0.8px;
+      font-size: 10px;
+      letter-spacing: 0.5px;
       text-transform: uppercase;
       color: rgba(0, 255, 255, 0.45);
     }
@@ -938,7 +938,7 @@ export class AppShell extends LitElement {
           ></nav-bar>
           <div class="status-strip ${this.uiHidden ? 'hidden' : ''}">
             <div class="status-dot ${this.connected ? 'online' : 'connecting'}"></div>
-            <span>${this.connected ? 'online' : (this.loggedIn ? 'sync' : 'off')}</span>
+            <span>System Status: ${this.connected ? 'Online' : (this.loggedIn ? 'Connecting' : 'Offline')}</span>
           </div>
         `}
       </div>
