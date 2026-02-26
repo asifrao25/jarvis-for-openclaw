@@ -117,7 +117,7 @@ export class AppShell extends LitElement {
       left: 0;
       right: 0;
       bottom: 0;
-      height: 22px;
+      height: 30px;
       background: #000;
       z-index: 100;
       overflow: hidden;
@@ -146,7 +146,7 @@ export class AppShell extends LitElement {
       align-items: center;
       justify-content: center;
       font-family: var(--f-mono);
-      font-size: 10px;
+      font-size: 20px;
       letter-spacing: 0.5px;
       text-transform: uppercase;
       color: rgba(0, 255, 255, 0.6);

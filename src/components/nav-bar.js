@@ -6,7 +6,7 @@ export class NavBar extends LitElement {
     :host {
       position: fixed;
       right: 0;
-      bottom: 22px;
+      bottom: 30px;
       width: 50px;
       height: 44px;
       background: #000;
