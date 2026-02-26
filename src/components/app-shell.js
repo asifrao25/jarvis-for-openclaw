@@ -112,6 +112,39 @@ export class AppShell extends LitElement {
     .status-dot.online { background: #00FF00; box-shadow: 0 0 8px #00FF00; }
     .status-dot.connecting { background: #FFFF00; box-shadow: 0 0 8px #FFFF00; }
 
+    .status-strip {
+      position: fixed;
+      right: 0;
+      bottom: 0;
+      width: 50px;
+      height: 22px;
+      background: #000;
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      border-top: 1px solid rgba(0, 255, 255, 0.08);
+      transition: opacity 0.3s;
+    }
+
+    .status-strip.hidden {
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .status-strip span {
+      font-family: var(--f-mono);
+      font-size: 6px;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+      color: rgba(0, 255, 255, 0.5);
+    }
+
+    @media (min-width: 1024px) {
+      .status-strip { display: none; }
+    }
+
     /* Desktop Enhancements */
     @media (min-width: 1024px) {
       .header {
@@ -903,6 +936,10 @@ export class AppShell extends LitElement {
             .uiHidden=${this.uiHidden}
             ?keyboard-open=${this._keyboardOpen}
           ></nav-bar>
+          <div class="status-strip ${this.uiHidden ? 'hidden' : ''}">
+            <div class="status-dot ${this.connected ? 'online' : 'connecting'}"></div>
+            <span>${this.connected ? 'online' : (this.loggedIn ? 'sync' : 'off')}</span>
+          </div>
         `}
       </div>
     `;

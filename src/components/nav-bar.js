@@ -6,39 +6,29 @@ export class NavBar extends LitElement {
     :host {
       position: fixed;
       right: 0;
-      bottom: 0;
-      width: 72px;
-      background: rgba(0, 8, 14, 0.97);
-      backdrop-filter: blur(24px);
-      -webkit-backdrop-filter: blur(24px);
+      bottom: 22px;
+      width: 50px;
+      height: 44px;
+      background: #000;
       z-index: 100;
       display: flex;
       flex-direction: column;
       align-items: center;
-      justify-content: flex-end;
-      gap: 8px;
-      padding: 12px 0 max(env(safe-area-inset-bottom, 10px), 10px);
+      justify-content: center;
       pointer-events: none;
-      transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
       box-sizing: border-box;
       border-top: 1px solid rgba(0, 255, 255, 0.15);
-      border-left: 1px solid rgba(0, 255, 255, 0.1);
-      border-top-left-radius: 22px;
-      overflow: visible;
     }
 
     :host([ui-hidden]) {
-      transform: translateY(calc(100% + 10px));
+      transform: translateY(100px);
       opacity: 0;
-    }
-
-    :host([keyboard-open]) {
-      bottom: 0;
     }
 
     .menu-container {
       position: absolute;
-      bottom: calc(100% + 10px);
+      bottom: 52px;
       right: 10px;
       z-index: 2;
       display: flex;
@@ -50,7 +40,7 @@ export class NavBar extends LitElement {
       transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
       background: rgba(0, 15, 20, 0.98);
       border: 1px solid var(--c-primary);
-      border-radius: 14px;
+      border-radius: 12px;
       padding: 8px;
       box-shadow: 0 0 30px rgba(0, 255, 255, 0.3);
       backdrop-filter: blur(20px);
@@ -95,9 +85,9 @@ export class NavBar extends LitElement {
     }
 
     .fab-main {
-      width: 46px;
-      height: 46px;
-      border-radius: 12px;
+      width: 40px;
+      height: 40px;
+      border-radius: 8px;
       background: rgba(0, 30, 40, 0.9);
       border: 1px solid var(--c-primary);
       color: var(--c-primary);
@@ -105,23 +95,17 @@ export class NavBar extends LitElement {
       align-items: center;
       justify-content: center;
       cursor: pointer;
-      box-shadow: 0 0 18px rgba(0, 255, 255, 0.2), inset 0 0 12px rgba(0, 255, 255, 0.04);
+      box-shadow: 0 0 15px rgba(0, 255, 255, 0.2);
       pointer-events: auto;
       transition: all 0.3s ease;
       position: relative;
       padding: 0;
       backdrop-filter: blur(10px);
-      flex-shrink: 0;
     }
 
     .fab-main.open {
       background: var(--c-primary);
       color: #000;
-      box-shadow: 0 0 24px rgba(0, 255, 255, 0.5);
-    }
-
-    .fab-main:active {
-      transform: scale(0.93);
     }
 
     .fab-main svg {
@@ -132,8 +116,8 @@ export class NavBar extends LitElement {
 
     .badge {
       position: absolute;
-      top: -7px;
-      right: -7px;
+      top: -8px;
+      right: -8px;
       background: var(--c-alert);
       color: white;
       font-size: 10px;
@@ -156,11 +140,14 @@ export class NavBar extends LitElement {
     }
 
     .refresh-btn {
-      width: 36px;
-      height: 36px;
-      border-radius: 10px;
-      background: rgba(0, 30, 40, 0.8);
-      border: 1px solid rgba(0, 255, 255, 0.3);
+      position: absolute;
+      bottom: 48px;
+      right: 9px;
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      background: rgba(0, 30, 40, 0.9);
+      border: 1px solid rgba(0, 255, 255, 0.35);
       color: var(--c-primary);
       display: flex;
       align-items: center;
@@ -169,13 +156,13 @@ export class NavBar extends LitElement {
       pointer-events: auto;
       padding: 0;
       backdrop-filter: blur(10px);
-      transition: background 0.2s, border-color 0.2s, box-shadow 0.2s, transform 0.15s;
-      flex-shrink: 0;
+      transition: background 0.2s, border-color 0.2s, box-shadow 0.2s;
+      z-index: 1;
     }
 
     .refresh-btn:active {
       background: rgba(0, 255, 255, 0.15);
-      transform: scale(0.9);
+      transform: scale(0.92);
     }
 
     .refresh-btn.done {
@@ -203,6 +190,7 @@ export class NavBar extends LitElement {
       :host {
         width: 100%;
         height: 80px;
+        bottom: 0;
         flex-direction: row;
         padding: 0 40px;
         gap: 20px;
@@ -211,10 +199,6 @@ export class NavBar extends LitElement {
         backdrop-filter: blur(20px);
         left: 0;
         right: 0;
-        border-top-left-radius: 0;
-        border-left: none;
-        border-top: 1px solid rgba(0, 255, 255, 0.15);
-        justify-content: center;
       }
 
       .fab-main {
