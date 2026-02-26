@@ -290,8 +290,7 @@ export class AppShell extends LitElement {
     this._wheelAccumulator = 0;
     this._wheelTimeout = null;
     this._isNavigating = false;
-    this._historyRequestId = null;
-    this._expectingHistory = false;
+
     this._wheelLatched = false;
   }
 
@@ -549,12 +548,6 @@ export class AppShell extends LitElement {
     wsClient.addEventListener('authenticated', async () => {
       this.connected = true;
       await resyncPush();
-      // Fetch history for universal device sync
-      const histId = wsClient.fetchHistory();
-      if (histId) {
-        this._historyRequestId = histId;
-        this._expectingHistory = true;
-      }
     });
 
     wsClient.addEventListener('buffer-reset', () => {
@@ -651,46 +644,11 @@ export class AppShell extends LitElement {
       return;
     }
 
-    // Handle chat history response for universal sync
-    if (msg.type === 'res' && msg.ok && msg.payload?.messages) {
-      if (!this._expectingHistory || msg.id !== this._historyRequestId) {
-        console.log('[AppShell] Ignoring unexpected/foreign history response');
-        return;
-      }
-      this._historyRequestId = null;
-      this._expectingHistory = false;
-      console.log(`[AppShell] Processing history sync: ${msg.payload.messages.length} messages`);
-      const historicalMessages = msg.payload.messages.map(m => {
-        const text = m.content?.filter(c => c.type === 'text').map(c => c.text).join('') || '';
-        return {
-          role: m.role,
-          text,
-          category: categorize(text),
-          timestamp: m.ts || Date.now(),
-          seen: true,
-          seq: m.seq,
-          runId: m.runId
-        };
-      }).filter(m => m.text.trim());
-
-      // Bulk add to store and local state (deduplication happens in _loadStoredMessages after adding)
-      Promise.all(historicalMessages.map(m => addMessage(m)))
-        .then(() => {
-          console.log('[AppShell] History synced to store, reloading...');
-          this._loadStoredMessages();
-        })
-        .catch(err => console.error('Failed to sync history:', err));
-      return;
-    }
-
     // Handle universal clear
     if (msg.type === 'res' && msg.ok && msg.method === 'sessions.reset') {
       console.log('[AppShell] Universal session reset received, clearing local data');
       this.messages = [];
       clearAll().catch(err => console.error('Failed to clear store:', err));
-      this._expectingHistory = false;
-      this._historyRequestId = null;
-      wsClient._lastHistoryFetch = 0;
       return;
     }
 
@@ -859,10 +817,6 @@ export class AppShell extends LitElement {
     if (category === 'chat') {
       this.messages = this.messages.filter(m => m.category !== 'chat' && m.role !== 'user');
       await clearAll().catch(err => console.error('Failed to clear:', err));
-      // Cancel any in-flight history fetch before resetting session
-      this._expectingHistory = false;
-      this._historyRequestId = null;
-      // Notify gateway to reset session universally
       wsClient.resetSession();
     } else {
       this.messages = this.messages.filter(m => m.category !== category);
