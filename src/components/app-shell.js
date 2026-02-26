@@ -114,16 +114,16 @@ export class AppShell extends LitElement {
 
     .status-strip {
       position: fixed;
+      left: 0;
       right: 0;
       bottom: 0;
-      width: 50px;
       height: 22px;
       background: #000;
       z-index: 100;
       display: flex;
       align-items: center;
       justify-content: center;
-      gap: 4px;
+      gap: 5px;
       border-top: 1px solid rgba(0, 255, 255, 0.08);
       transition: opacity 0.3s;
     }
@@ -135,10 +135,10 @@ export class AppShell extends LitElement {
 
     .status-strip span {
       font-family: var(--f-mono);
-      font-size: 6px;
-      letter-spacing: 0.5px;
+      font-size: 7px;
+      letter-spacing: 0.8px;
       text-transform: uppercase;
-      color: rgba(0, 255, 255, 0.5);
+      color: rgba(0, 255, 255, 0.45);
     }
 
     @media (min-width: 1024px) {

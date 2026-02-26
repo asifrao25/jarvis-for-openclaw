@@ -21,7 +21,7 @@ export class ChatView extends LitElement {
       overflow-x: hidden;
       -webkit-overflow-scrolling: touch;
       padding: 15px 20px;
-      padding-bottom: 44px;
+      padding-bottom: 66px;
       display: flex;
       flex-direction: column;
       gap: 12px;
@@ -47,6 +47,7 @@ export class ChatView extends LitElement {
       display: flex;
       flex-direction: column;
       transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      padding-bottom: 22px;
     }
 
     .input-area {
@@ -139,7 +140,7 @@ export class ChatView extends LitElement {
 
     .scroll-bottom-btn {
       position: absolute;
-      bottom: 56px;
+      bottom: 78px;
       left: 50%;
       transform: translateX(-50%);
       background: rgba(0, 30, 40, 0.9);
@@ -171,7 +172,7 @@ export class ChatView extends LitElement {
 
     .indicator-container {
       position: absolute;
-      bottom: 44px;
+      bottom: 66px;
       left: 0;
       width: 100%;
       z-index: 25;
