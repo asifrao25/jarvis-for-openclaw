@@ -295,31 +295,41 @@ export class AppShell extends LitElement {
     }
 
     .feedback-icon {
-      width: 60px;
-      height: 60px;
-      fill: var(--c-primary);
-      filter: drop-shadow(0 0 15px var(--c-primary));
+      width: 80px;
+      height: 80px;
       animation: feedback-pulse 1s ease-out;
-      margin-bottom: 5px;
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
     }
-    .feedback-banner.error .feedback-icon { 
-      fill: var(--c-alert); 
-      filter: drop-shadow(0 0 15px var(--c-alert));
+
+    .feedback-icon svg {
+      width: 100%;
+      height: 100%;
+      fill: #FFFFFF !important;
+      filter: drop-shadow(0 0 20px var(--c-primary));
+    }
+
+    .feedback-banner.error .feedback-icon svg { 
+      fill: #FFFFFF !important;
+      filter: drop-shadow(0 0 20px var(--c-alert));
     }
 
     @keyframes feedback-pulse {
-      0% { transform: scale(0.8); opacity: 0; }
+      0% { transform: scale(0.6); opacity: 0; }
       50% { transform: scale(1.1); opacity: 1; }
       100% { transform: scale(1); opacity: 1; }
     }
 
     .feedback-text {
       font-family: var(--f-display);
-      font-size: 14px;
-      letter-spacing: 3px;
+      font-size: 18px;
+      letter-spacing: 4px;
       color: #FFF;
       text-transform: uppercase;
-      font-weight: bold;
+      font-weight: 900;
+      text-shadow: 0 0 10px var(--c-primary);
     }
   `;
 
@@ -967,7 +977,7 @@ export class AppShell extends LitElement {
               ${this._notification.type === 'error' ? html`
                 <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>
               ` : html`
-                <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
+                <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
               `}
             </div>
             <div class="feedback-text">${this._notification.message}</div>
@@ -978,7 +988,7 @@ export class AppShell extends LitElement {
           <login-screen @login=${this._onLogin}></login-screen>
         ` : html`
           <div class="header">
-            <h1>JARVIS <span>v5.3</span></h1>
+            <h1>JARVIS <span>v5.7</span></h1>
             <div class="status">
               <div class="strm-badge">
                 STRM: ${this.messages.length.toString().padStart(3, '0')}
