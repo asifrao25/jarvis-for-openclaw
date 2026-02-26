@@ -260,6 +260,67 @@ export class AppShell extends LitElement {
     login-screen {
       flex: 1;
     }
+
+    /* Feedback Banner */
+    .feedback-banner {
+      position: fixed;
+      top: 40%;
+      left: 50%;
+      transform: translate(-50%, -50%) scale(0.9);
+      background: rgba(0, 20, 30, 0.95);
+      border: 1px solid var(--c-primary);
+      padding: 20px 40px;
+      border-radius: 12px;
+      z-index: 10000;
+      opacity: 0;
+      pointer-events: none;
+      transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      box-shadow: 0 0 50px rgba(0, 255, 255, 0.4);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+      min-width: 200px;
+      backdrop-filter: blur(20px);
+    }
+
+    .feedback-banner.visible {
+      opacity: 1;
+      transform: translate(-50%, -50%) scale(1);
+    }
+
+    .feedback-banner.error {
+      border-color: var(--c-alert);
+      box-shadow: 0 0 50px rgba(255, 51, 51, 0.4);
+    }
+
+    .feedback-icon {
+      width: 60px;
+      height: 60px;
+      fill: var(--c-primary);
+      filter: drop-shadow(0 0 15px var(--c-primary));
+      animation: feedback-pulse 1s ease-out;
+      margin-bottom: 5px;
+    }
+    .feedback-banner.error .feedback-icon { 
+      fill: var(--c-alert); 
+      filter: drop-shadow(0 0 15px var(--c-alert));
+    }
+
+    @keyframes feedback-pulse {
+      0% { transform: scale(0.8); opacity: 0; }
+      50% { transform: scale(1.1); opacity: 1; }
+      100% { transform: scale(1); opacity: 1; }
+    }
+
+    .feedback-text {
+      font-family: var(--f-display);
+      font-size: 14px;
+      letter-spacing: 3px;
+      color: #FFF;
+      text-transform: uppercase;
+      font-weight: bold;
+    }
   `;
 
   static properties = {
@@ -278,6 +339,7 @@ export class AppShell extends LitElement {
     _isSwiping: { type: Boolean, state: true },
     _loadingStore: { type: Boolean, state: true },
     _balance: { type: Number, state: true },
+    _notification: { type: Object, state: true },
   };
 
   constructor() {
@@ -305,6 +367,7 @@ export class AppShell extends LitElement {
     this._isNavigating = false;
     this._balance = null;
     this._wheelLatched = false;
+    this._notification = { visible: false, message: '', type: 'success' };
 
     // Explicitly bind listeners to ensure 'this' context is preserved on all platforms
     this._onNavigate = this._onNavigate.bind(this);
@@ -315,6 +378,14 @@ export class AppShell extends LitElement {
     this._onLogin = this._onLogin.bind(this);
     this._onLogout = this._onLogout.bind(this);
     this._onMessageSeen = this._onMessageSeen.bind(this);
+  }
+
+  _notify(message, type = 'success') {
+    this._notification = { visible: true, message, type };
+    hapticSuccess();
+    setTimeout(() => {
+      this._notification = { ...this._notification, visible: false };
+    }, 1200);
   }
 
   connectedCallback() {
@@ -848,6 +919,7 @@ export class AppShell extends LitElement {
   _onRefresh() {
     this._loadStoredMessages();
     this._fetchBalance();
+    this._notify('DATA REFRESHED');
     hapticMedium();
   }
 
@@ -859,6 +931,7 @@ export class AppShell extends LitElement {
       return true;
     });
     if (id) await deleteMessage(id).catch(err => console.error('Failed to delete message:', err));
+    this._notify('MESSAGE DELETED');
     hapticLight();
   }
 
@@ -866,27 +939,41 @@ export class AppShell extends LitElement {
     const category = e.detail;
     console.log(`[AppShell] _onClearCategory received for: ${category}`);
     
-    if (category === 'chat') {
-      // Clear chat messages AND all user messages from memory using same logic as store
-      this.messages = this.messages.filter(m => m.category === 'alert' || m.category === 'report');
-      
-      // Clear all non-alert/report messages from database
-      await clearByCategory('chat').catch(err => console.error('Failed to clear chat:', err));
-      
-      // Notify the gateway to reset the session buffer/history for this session
-      wsClient._keepSeqOnBufferReset = true;
-      wsClient.resetSession();
-    } else {
-      this.messages = this.messages.filter(m => m.category !== category);
-      await clearByCategory(category).catch(err => console.error('Failed to clear category:', err));
-    }
+        if (category === 'chat') {
+          // Clear chat messages AND all user messages from memory using same logic as store
+          this.messages = this.messages.filter(m => m.category === 'alert' || m.category === 'report');
     
+          // Clear all non-alert/report messages from database
+          await clearByCategory('chat').catch(err => console.error('Failed to clear chat:', err));
+    
+          // Notify the gateway to reset the session buffer/history for this session
+          wsClient._keepSeqOnBufferReset = true;
+          wsClient.resetSession();
+          this._notify('CHAT CLEARED');
+        } else {
+          this.messages = this.messages.filter(m => m.category !== category);
+          await clearByCategory(category).catch(err => console.error('Failed to clear category:', err));
+          this._notify(`${category.toUpperCase()}S CLEARED`);
+        }    
     hapticMedium();
   }
 
   render() {
     return html`
       <div class="app-wrapper" ?ui-hidden=${this.uiHidden}>
+        ${this._notification.visible ? html`
+          <div class="feedback-banner visible ${this._notification.type === 'error' ? 'error' : ''}">
+            <div class="feedback-icon">
+              ${this._notification.type === 'error' ? html`
+                <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>
+              ` : html`
+                <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
+              `}
+            </div>
+            <div class="feedback-text">${this._notification.message}</div>
+          </div>
+        ` : ''}
+
         ${!this.loggedIn ? html`
           <login-screen @login=${this._onLogin}></login-screen>
         ` : html`

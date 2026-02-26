@@ -418,7 +418,7 @@ export class MessageItem extends LitElement {
         ` : ''}
 
         <div class="text">${this.text}</div>
-        <div class="meta">${fullDateTime}</div>
+        ${this.role === 'user' ? html`<div class="meta">${fullDateTime}</div>` : ''}
 
         <div class="action-menu ${this._menuOpen ? 'visible' : ''}" 
              style="left: ${this._menuX}px; top: ${this._menuY}px;"
