@@ -160,9 +160,9 @@ export class AlertView extends LitElement {
     }
 
     .action-btn {
-      background: rgba(255,77,109,.06);
-      border: 1px solid rgba(255,77,109,.2);
-      color: #FECDD3;
+      background: rgba(255, 77, 109, 0.2);
+      border: 1px solid rgba(255, 77, 109, 0.4);
+      color: #FFF;
       font-family: 'JetBrains Mono', monospace;
       font-size: 10px;
       padding: 6px 12px;
@@ -171,6 +171,7 @@ export class AlertView extends LitElement {
       letter-spacing: 1px;
       cursor: pointer;
       transition: all 0.2s;
+      font-weight: bold;
     }
 
     .action-btn:active {

@@ -320,7 +320,7 @@ export class ChatView extends LitElement {
     return html`
       <div class="messages">
         <div class="refresh-indicator ${this._isPulling ? 'visible' : ''}">
-          // SYNCING STREAM...
+          // REFRESHING...
         </div>
 
         ${this.loading ? html`

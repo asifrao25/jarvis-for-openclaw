@@ -144,18 +144,37 @@ export async function deleteMessage(id) {
 
 export async function clearByCategory(category) {
   const db = await openDB();
+  console.log(`[Store] Clearing category: ${category}`);
   return new Promise((resolve, reject) => {
     const tx = db.transaction(STORE_NAME, 'readwrite');
     const store = tx.objectStore(STORE_NAME);
-    const index = store.index('category');
-    const req = index.openCursor(category);
-    req.onsuccess = () => {
-      const cursor = req.result;
-      if (cursor) {
-        cursor.delete();
-        cursor.continue();
-      }
-    };
+    
+    if (category === 'chat') {
+      // For chat, we want to be exhaustive: delete anything that ISN'T alert or report
+      const req = store.openCursor();
+      req.onsuccess = () => {
+        const cursor = req.result;
+        if (cursor) {
+          const msg = cursor.value;
+          if (msg.category !== 'alert' && msg.category !== 'report') {
+            cursor.delete();
+          }
+          cursor.continue();
+        }
+      };
+    } else {
+      // For specific non-chat categories, use the index
+      const index = store.index('category');
+      const req = index.openCursor(category);
+      req.onsuccess = () => {
+        const cursor = req.result;
+        if (cursor) {
+          cursor.delete();
+          cursor.continue();
+        }
+      };
+    }
+    
     tx.oncomplete = () => resolve();
     tx.onerror = () => reject(tx.error);
   });

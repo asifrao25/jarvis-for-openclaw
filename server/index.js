@@ -230,6 +230,20 @@ gatewayClient.on('response', (msg) => {
   if (msg.bufferSeq) enrichedMsg.seq = msg.bufferSeq;
   const data = JSON.stringify(enrichedMsg);
 
+  // If a session reset was successful, we MUST clear the relay buffer
+  // so that other clients don't replay old history from us.
+  if (msg.method === 'sessions.reset' && msg.ok) {
+    console.log('[Relay] Global session reset successful, clearing event buffer');
+    eventBuffer.clear();
+    // Broadcast buffer-reset to all clients so they align their lastSeq
+    const resetMsg = JSON.stringify({ type: 'buffer-reset', newestSeq: 0 });
+    for (const [id, client] of pwaClients) {
+      if (client.ws.readyState === WebSocket.OPEN) {
+        client.ws.send(resetMsg);
+      }
+    }
+  }
+
   const originClientId = pendingRequests.get(msg.id);
   if (originClientId) {
     pendingRequests.delete(msg.id);

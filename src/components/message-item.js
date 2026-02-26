@@ -196,18 +196,18 @@ export class MessageItem extends LitElement {
 
     .action-menu {
       position: fixed;
-      background: rgba(0, 20, 30, 0.98);
+      background: #00141e;
       border: 1px solid var(--c-primary);
       border-radius: 8px;
-      padding: 4px 8px;
+      padding: 6px;
       display: flex;
-      gap: 4px;
+      gap: 6px;
       z-index: 120;
       opacity: 0;
       pointer-events: none;
       transition: opacity 0.2s cubic-bezier(0.4, 0, 0.2, 1), transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
       backdrop-filter: blur(15px);
-      box-shadow: 0 0 30px rgba(0, 0, 0, 0.8);
+      box-shadow: 0 0 30px rgba(0, 255, 255, 0.3);
       white-space: nowrap;
       width: max-content;
       transform: translate(-50%, -50%) scale(0.9);
@@ -220,8 +220,8 @@ export class MessageItem extends LitElement {
     }
 
     .action-btn {
-      background: transparent;
-      border: none;
+      background: rgba(0, 255, 255, 0.15);
+      border: 1px solid rgba(0, 255, 255, 0.4);
       color: var(--c-primary);
       font-family: var(--f-mono);
       font-size: 11px;
@@ -231,6 +231,7 @@ export class MessageItem extends LitElement {
       letter-spacing: 1px;
       border-radius: 4px;
       white-space: nowrap;
+      font-weight: bold;
     }
 
     .action-btn:active {

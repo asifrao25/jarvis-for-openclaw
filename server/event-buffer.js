@@ -79,8 +79,10 @@ export default class EventBuffer {
     this.clientReplayCounts.set(clientId, data);
   }
 
-  clearRateLimit(clientId) {
-    this.clientReplayCounts.delete(clientId);
+  clear() {
+    console.log('[EventBuffer] Clearing all events from buffer');
+    this.buffer = [];
+    this.clientReplayCounts.clear();
   }
 
   getStats() {

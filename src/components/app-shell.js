@@ -304,8 +304,17 @@ export class AppShell extends LitElement {
     this._wheelTimeout = null;
     this._isNavigating = false;
     this._balance = null;
-
     this._wheelLatched = false;
+
+    // Explicitly bind listeners to ensure 'this' context is preserved on all platforms
+    this._onNavigate = this._onNavigate.bind(this);
+    this._onSendMessage = this._onSendMessage.bind(this);
+    this._onRefresh = this._onRefresh.bind(this);
+    this._onDeleteMessage = this._onDeleteMessage.bind(this);
+    this._onClearCategory = this._onClearCategory.bind(this);
+    this._onLogin = this._onLogin.bind(this);
+    this._onLogout = this._onLogout.bind(this);
+    this._onMessageSeen = this._onMessageSeen.bind(this);
   }
 
   connectedCallback() {
@@ -566,9 +575,11 @@ export class AppShell extends LitElement {
     });
 
     wsClient.addEventListener('buffer-reset', () => {
-      console.log('[AppShell] Buffer reset detected, clearing local data...');
-      this.messages = [];
-      clearAll().catch(err => console.error('Failed to clear store:', err));
+      console.log('[AppShell] Buffer reset detected, updating UI...');
+      // We no longer wipe the entire store on buffer-reset to preserve alerts/reports.
+      // Robust deduplication in addMessage will handle any replayed events.
+      this.messages = [...this.messages]; 
+      this._loadStoredMessages();
     });
 
     wsClient.addEventListener('disconnected', () => {
@@ -662,15 +673,23 @@ export class AppShell extends LitElement {
 
     // Handle universal clear
     if (msg.type === 'res' && msg.ok && msg.method === 'sessions.reset') {
-      console.log('[AppShell] Universal session reset received, clearing local data');
-      this.messages = [];
-      clearAll().catch(err => console.error('Failed to clear store:', err));
+      console.log('[AppShell] Universal session reset received, clearing chat data');
+      this.messages = this.messages.filter(m => m.category !== 'chat' && m.role !== 'user');
+      clearByCategory('chat').catch(err => console.error('Failed to clear chat store:', err));
       return;
     }
 
     if (msg.type !== 'event' || msg.event !== 'chat') return;
 
     const payload = msg.payload || {};
+    const sessionKey = payload.sessionKey || 'agent:main:main';
+    
+    // Ignore chat events for other sessions to ensure independence
+    if (sessionKey !== wsClient.sessionKey) {
+      console.log(`[AppShell] Ignoring chat event for session: ${sessionKey} (ours: ${wsClient.sessionKey})`);
+      return;
+    }
+
     const state = payload.state;
     const runId = payload.runId;
     const role = payload.message?.role || 'assistant';
@@ -845,15 +864,23 @@ export class AppShell extends LitElement {
 
   async _onClearCategory(e) {
     const category = e.detail;
+    console.log(`[AppShell] _onClearCategory received for: ${category}`);
+    
     if (category === 'chat') {
-      this.messages = this.messages.filter(m => m.category !== 'chat' && m.role !== 'user');
-      await clearAll().catch(err => console.error('Failed to clear:', err));
+      // Clear chat messages AND all user messages from memory using same logic as store
+      this.messages = this.messages.filter(m => m.category === 'alert' || m.category === 'report');
+      
+      // Clear all non-alert/report messages from database
+      await clearByCategory('chat').catch(err => console.error('Failed to clear chat:', err));
+      
+      // Notify the gateway to reset the session buffer/history for this session
       wsClient._keepSeqOnBufferReset = true;
       wsClient.resetSession();
     } else {
       this.messages = this.messages.filter(m => m.category !== category);
-      await clearByCategory(category).catch(err => console.error('Failed to clear:', err));
+      await clearByCategory(category).catch(err => console.error('Failed to clear category:', err));
     }
+    
     hapticMedium();
   }
 
@@ -864,7 +891,7 @@ export class AppShell extends LitElement {
           <login-screen @login=${this._onLogin}></login-screen>
         ` : html`
           <div class="header">
-            <h1>JARVIS <span>v5.0</span></h1>
+            <h1>JARVIS <span>v5.3</span></h1>
             <div class="status">
               <div class="strm-badge">
                 STRM: ${this.messages.length.toString().padStart(3, '0')}

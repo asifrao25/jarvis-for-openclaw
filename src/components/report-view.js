@@ -160,9 +160,9 @@ export class ReportView extends LitElement {
     }
 
     .action-btn {
-      background: rgba(0,229,160,.06);
-      border: 1px solid rgba(0,229,160,.2);
-      color: #6EE7B7;
+      background: rgba(0, 229, 160, 0.2);
+      border: 1px solid rgba(0, 229, 160, 0.4);
+      color: #FFF;
       font-family: 'JetBrains Mono', monospace;
       font-size: 10px;
       padding: 6px 12px;
@@ -171,6 +171,7 @@ export class ReportView extends LitElement {
       letter-spacing: 1px;
       cursor: pointer;
       transition: all 0.2s;
+      font-weight: bold;
     }
 
     .action-btn:active {

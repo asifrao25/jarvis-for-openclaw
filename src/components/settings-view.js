@@ -221,7 +221,8 @@ export class SettingsView extends LitElement {
     _confirming: { type: Boolean, state: true },
     _confirmTitle: { type: String, state: true },
     _confirmText: { type: String, state: true },
-    _confirmAction: { type: Object, state: true }
+    _confirmAction: { type: Object, state: true },
+    _pendingCategory: { type: String, state: true }
   };
 
   constructor() {
@@ -234,7 +235,41 @@ export class SettingsView extends LitElement {
     this._confirmTitle = '';
     this._confirmText = '';
     this._confirmAction = null;
+    this._pendingCategory = '';
+    
+    // Explicit binding for all platforms
+    this._handleConfirm = this._handleConfirm.bind(this);
+    this._handleCancel = this._handleCancel.bind(this);
+    this._clear = this._clear.bind(this);
+    this._logout = this._logout.bind(this);
+    this._forceReset = this._forceReset.bind(this);
+    
     this._applySettings();
+  }
+
+  _forceReset() {
+    this._confirmTitle = 'SYSTEM HARD RESET';
+    this._confirmText = 'THIS WILL WIPE EVERYTHING:\n- All Messages\n- All Settings\n- Service Worker Caches\n- Local Storage\n\nThe app will reload as if it were a fresh install.';
+    this._confirmAction = async () => {
+      // 1. Clear IndexedDB
+      const dbs = await window.indexedDB.databases();
+      dbs.forEach(db => window.indexedDB.deleteDatabase(db.name));
+      
+      // 2. Clear Caches
+      const cacheKeys = await caches.keys();
+      await Promise.all(cacheKeys.map(key => caches.delete(key)));
+      
+      // 3. Unregister SWs
+      const regs = await navigator.serviceWorker.getRegistrations();
+      await Promise.all(regs.map(r => r.unregister()));
+      
+      // 4. Clear Local Storage
+      localStorage.clear();
+      
+      // 5. BOOM
+      window.location.reload(true);
+    };
+    this._confirming = true;
   }
 
   async _enablePush() {
@@ -273,9 +308,13 @@ export class SettingsView extends LitElement {
   _clear(category) {
     this._confirmTitle = 'CONFIRM WIPE';
     this._confirmText = `ARE YOU SURE YOU WANT TO CLEAR ALL ${category.toUpperCase()} ENTRIES?\n\nThis action cannot be undone and data will be permanently removed from local storage.`;
+    
+    // Capture category in the closure immediately
+    const targetCategory = category;
     this._confirmAction = () => {
+      console.log(`[Settings] Dispatching clear-category: ${targetCategory}`);
       this.dispatchEvent(new CustomEvent('clear-category', { 
-        detail: category, 
+        detail: targetCategory, 
         bubbles: true, 
         composed: true 
       }));
@@ -296,12 +335,16 @@ export class SettingsView extends LitElement {
     hapticMedium();
   }
 
-  _handleConfirm() {
-    if (this._confirmAction) this._confirmAction();
+  _handleConfirm(e) {
+    if (e) e.stopPropagation();
+    if (this._confirmAction) {
+      this._confirmAction();
+    }
     this._confirming = false;
   }
 
-  _handleCancel() {
+  _handleCancel(e) {
+    if (e) e.stopPropagation();
     this._confirming = false;
     hapticLight();
   }
@@ -357,6 +400,7 @@ export class SettingsView extends LitElement {
           <button class="clear-btn" @click=${() => this._clear('alert')}>Clear Alerts</button>
           <button class="clear-btn" @click=${() => this._clear('report')}>Clear Reports</button>
           <button class="clear-btn" style="background: rgba(255,255,255,0.05); border-color: rgba(255,255,255,0.2); color: #FFF; margin-top: 20px;" @click=${this._logout}>Logout Session</button>
+          <button class="clear-btn" style="background: rgba(255,0,0,0.2); border-color: rgba(255,0,0,0.5); color: #FF0000; margin-top: 10px;" @click=${this._forceReset}>Force System Reset</button>
         </div>
         <div class="hint">// Actions cannot be undone</div>
       </div>

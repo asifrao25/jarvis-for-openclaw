@@ -11,6 +11,14 @@ export class WSClient extends EventTarget {
     this.authenticated = false;
     this._lastHistoryFetch = 0;
     this._keepSeqOnBufferReset = false;
+    
+    // Independent Session Key
+    this.sessionKey = localStorage.getItem('openclaw-sessionKey');
+    if (!this.sessionKey) {
+      this.sessionKey = `agent:main:pwa-${crypto.randomUUID().split('-')[0]}`;
+      localStorage.setItem('openclaw-sessionKey', this.sessionKey);
+    }
+    console.log(`[WS] Instance sessionKey: ${this.sessionKey}`);
   }
 
   connect(password) {
@@ -56,8 +64,11 @@ export class WSClient extends EventTarget {
 
         // Buffer reset (server restart or session reset)
         if (msg.type === 'buffer-reset') {
+          const newest = msg.newestSeq || 0;
           if (this._keepSeqOnBufferReset) {
-            console.log('[WS] Buffer reset received after user clear — keeping lastSeq to prevent replay');
+            console.log(`[WS] Buffer reset received after user clear — skipping replay by updating lastSeq to ${newest}`);
+            this.lastSeq = newest;
+            localStorage.setItem('openclaw-lastSeq', String(this.lastSeq));
             this._keepSeqOnBufferReset = false;
           } else {
             console.log('[WS] Server buffer reset, catching up from 0');
@@ -111,7 +122,7 @@ export class WSClient extends EventTarget {
     }
   }
 
-  sendChat(message, attachment = null, sessionKey = 'agent:main:main') {
+  sendChat(message, attachment = null, sessionKey = this.sessionKey) {
     const id = crypto.randomUUID().toUpperCase();
     const params = {
       sessionKey,
@@ -129,7 +140,7 @@ export class WSClient extends EventTarget {
     return id;
   }
 
-  fetchHistory(sessionKey = 'agent:main:main', limit = 200) {
+  fetchHistory(sessionKey = this.sessionKey, limit = 200) {
     const now = Date.now();
     if (now - this._lastHistoryFetch < 10000) {
       console.log('[WS] fetchHistory throttled');
@@ -149,7 +160,7 @@ export class WSClient extends EventTarget {
     return id;
   }
 
-  resetSession(sessionKey = 'agent:main:main') {
+  resetSession(sessionKey = this.sessionKey) {
     const id = crypto.randomUUID().toUpperCase();
     this.send({
       type: 'req',

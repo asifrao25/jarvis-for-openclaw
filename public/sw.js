@@ -1,7 +1,15 @@
 // Service Worker for Jarvis PWA
 
-const CACHE_NAME = 'openclaw-pwa-v200';
+const CACHE_NAME = 'openclaw-pwa-v209';
 const SHELL_FILES = ['/pwa/', '/pwa/index.html'];
+
+// Handle SKIP_WAITING to force immediate takeover
+self.addEventListener('message', (event) => {
+  if (event.data === 'skip-waiting') {
+    self.skipWaiting();
+  }
+  // existing handlers...
+});
 
 // Badge count tracker (simple in-memory, but will try to persist via Cache API for resilience)
 let badgeCount = 0;
