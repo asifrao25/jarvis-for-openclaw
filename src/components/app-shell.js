@@ -112,7 +112,7 @@ export class AppShell extends LitElement {
     .status-dot.online { background: #00FF00; box-shadow: 0 0 8px #00FF00; }
     .status-dot.connecting { background: #FFFF00; box-shadow: 0 0 8px #FFFF00; }
 
-    .status-strip {
+    .balance-bar {
       position: fixed;
       left: 0;
       right: 0;
@@ -120,29 +120,41 @@ export class AppShell extends LitElement {
       height: 22px;
       background: #000;
       z-index: 100;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 5px;
+      overflow: hidden;
       border-top: 1px solid rgba(0, 255, 255, 0.08);
       transition: opacity 0.3s;
     }
 
-    .status-strip.hidden {
+    .balance-bar.hidden {
       opacity: 0;
       pointer-events: none;
     }
 
-    .status-strip span {
+    .balance-bar-fill {
+      position: absolute;
+      left: 0;
+      top: 0;
+      height: 100%;
+      background: linear-gradient(90deg, rgba(0, 255, 255, 0.18), rgba(0, 255, 255, 0.06));
+      transition: width 0.6s ease;
+    }
+
+    .balance-bar-text {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
       font-family: var(--f-mono);
       font-size: 10px;
       letter-spacing: 0.5px;
       text-transform: uppercase;
-      color: rgba(0, 255, 255, 0.45);
+      color: rgba(0, 255, 255, 0.6);
+      z-index: 1;
     }
 
     @media (min-width: 1024px) {
-      .status-strip { display: none; }
+      .balance-bar { display: none; }
     }
 
     /* Desktop Enhancements */
@@ -265,6 +277,7 @@ export class AppShell extends LitElement {
     _swipeX: { type: Number, state: true },
     _isSwiping: { type: Boolean, state: true },
     _loadingStore: { type: Boolean, state: true },
+    _balance: { type: Number, state: true },
   };
 
   constructor() {
@@ -290,6 +303,7 @@ export class AppShell extends LitElement {
     this._wheelAccumulator = 0;
     this._wheelTimeout = null;
     this._isNavigating = false;
+    this._balance = null;
 
     this._wheelLatched = false;
   }
@@ -548,6 +562,7 @@ export class AppShell extends LitElement {
     wsClient.addEventListener('authenticated', async () => {
       this.connected = true;
       await resyncPush();
+      this._fetchBalance();
     });
 
     wsClient.addEventListener('buffer-reset', () => {
@@ -579,6 +594,7 @@ export class AppShell extends LitElement {
       this.loggedIn = true;
       wsClient.connect(savedPassword);
       this._loadStoredMessages();
+      this._fetchBalance();
     }
   }
 
@@ -796,8 +812,23 @@ export class AppShell extends LitElement {
     hapticMedium();
   }
 
+  async _fetchBalance() {
+    try {
+      const res = await fetch('https://api.moonshot.ai/v1/users/me/balance', {
+        headers: { 'Authorization': 'Bearer sk-jen9UIM5mAjYL2MMvbb06xY0bh36legXdshOrO9EyKPho8YN' }
+      });
+      const data = await res.json();
+      if (data?.data?.available_balance !== undefined) {
+        this._balance = data.data.available_balance;
+      }
+    } catch (err) {
+      console.warn('[AppShell] Balance fetch failed:', err);
+    }
+  }
+
   _onRefresh() {
     this._loadStoredMessages();
+    this._fetchBalance();
     hapticMedium();
   }
 
@@ -891,9 +922,11 @@ export class AppShell extends LitElement {
             .uiHidden=${this.uiHidden}
             ?keyboard-open=${this._keyboardOpen}
           ></nav-bar>
-          <div class="status-strip ${this.uiHidden ? 'hidden' : ''}">
-            <div class="status-dot ${this.connected ? 'online' : 'connecting'}"></div>
-            <span>System Status: ${this.connected ? 'Online' : (this.loggedIn ? 'Connecting' : 'Offline')}</span>
+          <div class="balance-bar ${this.uiHidden ? 'hidden' : ''}">
+            <div class="balance-bar-fill" style="width: ${this._balance !== null ? Math.min(this._balance / 15 * 100, 100).toFixed(1) : 0}%"></div>
+            <div class="balance-bar-text">
+              ${this._balance !== null ? `API Balance: $${this._balance.toFixed(2)} / $15.00` : 'API Balance: ...'}
+            </div>
           </div>
         `}
       </div>
