@@ -10,6 +10,7 @@ export class WSClient extends EventTarget {
     this.connected = false;
     this.authenticated = false;
     this._lastHistoryFetch = 0;
+    this._keepSeqOnBufferReset = false;
   }
 
   connect(password) {
@@ -53,11 +54,16 @@ export class WSClient extends EventTarget {
           return;
         }
 
-        // Buffer reset (server restart)
+        // Buffer reset (server restart or session reset)
         if (msg.type === 'buffer-reset') {
-          console.log('[WS] Server buffer reset, catching up from 0');
-          this.lastSeq = 0;
-          localStorage.setItem('openclaw-lastSeq', '0');
+          if (this._keepSeqOnBufferReset) {
+            console.log('[WS] Buffer reset received after user clear — keeping lastSeq to prevent replay');
+            this._keepSeqOnBufferReset = false;
+          } else {
+            console.log('[WS] Server buffer reset, catching up from 0');
+            this.lastSeq = 0;
+            localStorage.setItem('openclaw-lastSeq', '0');
+          }
           this.dispatchEvent(new CustomEvent('buffer-reset'));
           return;
         }

@@ -817,6 +817,7 @@ export class AppShell extends LitElement {
     if (category === 'chat') {
       this.messages = this.messages.filter(m => m.category !== 'chat' && m.role !== 'user');
       await clearAll().catch(err => console.error('Failed to clear:', err));
+      wsClient._keepSeqOnBufferReset = true;
       wsClient.resetSession();
     } else {
       this.messages = this.messages.filter(m => m.category !== category);
