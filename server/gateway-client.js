@@ -12,6 +12,9 @@ export default class GatewayClient extends EventEmitter {
     this.authenticated = false;
     this.reconnectTimer = null;
     this.pendingConnectId = null;
+    this._lastEventAt = null;
+    this._errorCount = 0;
+    this._reconnectCount = 0;
   }
 
   connect() {
@@ -48,11 +51,13 @@ export default class GatewayClient extends EventEmitter {
     });
 
     this.ws.on('error', (err) => {
+      this._errorCount++;
       console.error('[Gateway] Error:', err.message);
     });
   }
 
   _handleMessage(msg) {
+    this._lastEventAt = Date.now();
     const preview = msg.type === 'res' && !msg.ok ? JSON.stringify(msg).substring(0, 300) : '';
     console.log(`[Gateway] Recv: type=${msg.type}, event=${msg.event || ''}, method=${msg.method || ''}, id=${msg.id || ''}, ok=${msg.ok} ${preview}`);
 
@@ -129,6 +134,7 @@ export default class GatewayClient extends EventEmitter {
 
   _scheduleReconnect() {
     if (this.reconnectTimer) return;
+    this._reconnectCount++;
     console.log('[Gateway] Reconnecting in 10s...');
     this.reconnectTimer = setTimeout(() => {
       this.reconnectTimer = null;
@@ -138,5 +144,17 @@ export default class GatewayClient extends EventEmitter {
 
   isReady() {
     return this.connected && this.authenticated;
+  }
+
+  getMetrics() {
+    const now = Date.now();
+    return {
+      connected: this.connected,
+      authenticated: this.authenticated,
+      reconnecting: this.reconnectTimer !== null,
+      msSinceLastEvent: this._lastEventAt ? now - this._lastEventAt : null,
+      errorCount: this._errorCount,
+      reconnectCount: this._reconnectCount,
+    };
   }
 }

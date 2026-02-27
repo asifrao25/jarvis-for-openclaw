@@ -1,6 +1,6 @@
 // Service Worker for Jarvis PWA
 
-const CACHE_NAME = 'openclaw-pwa-v216';
+const CACHE_NAME = 'openclaw-pwa-v218';
 const SHELL_FILES = ['/pwa/', '/pwa/index.html'];
 
 // Handle SKIP_WAITING to force immediate takeover

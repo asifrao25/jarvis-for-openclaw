@@ -59,4 +59,10 @@ export default {
   // File paths
   subscriptionsPath: SUBSCRIPTIONS_PATH,
   openclawDir: OPENCLAW_DIR,
+
+  // Local health checker (Qwen2.5 via Ollama)
+  ollamaUrl: process.env.OLLAMA_URL || 'http://127.0.0.1:11434',
+  ollamaModel: process.env.OLLAMA_MODEL || 'qwen2.5:1.5b',
+  healthCheckIntervalMs: parseInt(process.env.HEALTH_CHECK_INTERVAL_MS || '60000', 10),
+  healthCheckTimeoutMs: parseInt(process.env.HEALTH_CHECK_TIMEOUT_MS || '10000', 10),
 };

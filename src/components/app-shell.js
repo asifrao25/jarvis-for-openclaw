@@ -2,7 +2,7 @@ import { LitElement, html, css } from 'lit';
 import { wsClient } from '../services/ws-client.js';
 import { getAuth, saveAuth, clearAuth } from '../services/auth.js';
 import { registerPush, resyncPush } from '../services/push-registration.js';
-import { addMessage, getLatest, deleteMessage, markSeen, clearByCategory, clearAll } from '../services/message-store.js';
+import { addMessage, getLatest, deleteMessage, markSeen, clearByCategory, clearAll, isTombstoned } from '../services/message-store.js';
 import { hapticLight, hapticMedium, hapticSuccess, hapticError } from '../services/haptics.js';
 import './login-screen.js';
 import './chat-view.js';
@@ -368,7 +368,6 @@ export class AppShell extends LitElement {
     this._swipeX = 0;
     this._isSwiping = false;
     this._loadingStore = true;
-    this._streamingRuns = new Map();
     this._touchStart = null;
     this._boundMouseMove = this._handleMouseMove.bind(this);
     this._boundMouseUp = this._handleMouseUp.bind(this);
@@ -730,7 +729,7 @@ export class AppShell extends LitElement {
     }
   }
 
-  _handleMessage(msg) {
+  async _handleMessage(msg) {
     if (msg.type === 'res' && msg.ok && msg.payload?.status === 'started') {
       this.thinking = true;
       const lastSending = this.messages.findLastIndex(m => m.role === 'user' && m.status === 'sending');
@@ -742,7 +741,7 @@ export class AppShell extends LitElement {
       return;
     }
 
-    if (msg.type === 'res' && !msg.ok) {
+    if (msg.type === 'res' && msg.ok === false) {
       const lastSending = this.messages.findLastIndex(m => m.role === 'user' && (m.status === 'sending' || m.status === 'received'));
       if (lastSending !== -1) {
         const updated = [...this.messages];
@@ -764,18 +763,20 @@ export class AppShell extends LitElement {
 
     const payload = msg.payload || {};
     const sessionKey = payload.sessionKey || 'agent:main:main';
-    
-    // Ignore chat events for other sessions to ensure independence
-    if (sessionKey !== wsClient.sessionKey) {
-      console.log(`[AppShell] Ignoring chat event for session: ${sessionKey} (ours: ${wsClient.sessionKey})`);
-      return;
-    }
-
     const state = payload.state;
     const runId = payload.runId;
     const role = payload.message?.role || 'assistant';
     const text = extractText(msg);
     const category = categorize(text);
+
+    // Ignore chat events for other sessions to ensure independence
+    // BUT allow reports/alerts from main session (cron jobs, heartbeats)
+    const isFromMainSession = sessionKey === 'agent:main:main' || sessionKey.startsWith('agent:main:');
+
+    if (sessionKey !== wsClient.sessionKey && !isFromMainSession) {
+      console.log(`[AppShell] Ignoring event for unrelated session: ${sessionKey}`);
+      return;
+    }
 
     // Extract attachment from gateway format if present
     let attachment = null;
@@ -793,23 +794,32 @@ export class AppShell extends LitElement {
     if (state === 'delta') {
       this.thinking = false;
       this.streaming = true;
-      const existingIdx = this._streamingRuns.get(runId);
-      if (existingIdx !== undefined) {
+      const existingIdx = this.messages.findIndex(m => m.runId === runId && m.streaming);
+      if (existingIdx !== -1) {
         const updated = [...this.messages];
         updated[existingIdx] = { ...updated[existingIdx], text, streaming: true };
         this.messages = updated;
       } else {
-        const idx = this.messages.length;
-        this._streamingRuns.set(runId, idx);
         this.messages = [...this.messages, { role, text, category, timestamp: Date.now(), streaming: true, runId }];
       }
     } else if (state === 'final') {
       this.thinking = false;
       this.streaming = false;
-      
-      // Deduplicate: check if we already have this message by seq or runId
-      const isDuplicate = this.messages.some(m => 
-        (msg.seq && m.seq === msg.seq) || 
+      const existingIdx = this.messages.findIndex(m => m.runId === runId && m.streaming);
+
+      const finalMsg = { role, text, category, timestamp: Date.now(), streaming: false, runId, seq: msg.seq, seen: false, attachment };
+
+      // 1. Tombstone check (ensure deleted messages don't reappear)
+      if (await isTombstoned(finalMsg)) {
+        console.log(`[AppShell] Ignoring tombstoned message: seq=${msg.seq} runId=${runId}`);
+        if (existingIdx !== -1) {
+          this.messages = this.messages.filter((_, i) => i !== existingIdx);
+        }
+        return;
+      }
+
+      // 2. In-memory Deduplication (runId only — seq resets on server restart)
+      const isDuplicate = this.messages.some(m =>
         (runId && m.runId === runId && !m.streaming)
       );
       if (isDuplicate) {
@@ -817,26 +827,23 @@ export class AppShell extends LitElement {
         return;
       }
 
-      const existingIdx = this._streamingRuns.get(runId);
-      const finalMsg = { role, text, category, timestamp: Date.now(), streaming: false, runId, seq: msg.seq, seen: false, attachment };
-
-      if (existingIdx !== undefined) {
+      if (existingIdx !== -1) {
         const updated = [...this.messages];
         updated[existingIdx] = finalMsg;
         this.messages = updated;
-        this._streamingRuns.delete(runId);
       } else {
         this.messages = [...this.messages, finalMsg];
       }
 
-      addMessage(finalMsg).then(id => {
-        // If the ID was auto-generated, we might want to update our local object
-        // but for now, we'll rely on the timestamp or a re-render.
-        // Actually, let's update the message in the list with its new ID if possible.
+      // 3. Persist
+      try {
+        const id = await addMessage(finalMsg);
         if (id) {
            this.messages = this.messages.map(m => m.timestamp === finalMsg.timestamp ? { ...m, id } : m);
         }
-      }).catch(err => console.error('Failed to store message:', err));
+      } catch (err) {
+        console.error('Failed to store message:', err);
+      }
 
       if (category === 'alert' && this.view !== 'alert') this.alertCount++;
       else if (category === 'report' && this.view !== 'report') this.reportCount++;
@@ -913,13 +920,13 @@ export class AppShell extends LitElement {
   }
 
   async _fetchBalance() {
+    // NOTE: Balance fetch requires MOONSHOT_API_KEY environment variable
+    // This is fetched via the relay server to keep API keys secure
     try {
-      const res = await fetch('https://api.moonshot.ai/v1/users/me/balance', {
-        headers: { 'Authorization': 'Bearer sk-jen9UIM5mAjYL2MMvbb06xY0bh36legXdshOrO9EyKPho8YN' }
-      });
+      const res = await fetch('/pwa/api/balance');
       const data = await res.json();
-      if (data?.data?.available_balance !== undefined) {
-        this._balance = data.data.available_balance;
+      if (data?.balance !== undefined) {
+        this._balance = data.balance;
       }
     } catch (err) {
       console.warn('[AppShell] Balance fetch failed:', err);
@@ -940,7 +947,10 @@ export class AppShell extends LitElement {
       if (timestamp && m.timestamp === timestamp && !m.id) return false;
       return true;
     });
-    if (id) await deleteMessage(id).catch(err => console.error('Failed to delete message:', err));
+    
+    // Always call deleteMessage, it handles missing ID by using timestamp for tombstoning
+    await deleteMessage(id, timestamp).catch(err => console.error('Failed to delete message:', err));
+    
     this._notify('MESSAGE DELETED');
     hapticLight();
   }
@@ -988,7 +998,7 @@ export class AppShell extends LitElement {
           <login-screen @login=${this._onLogin}></login-screen>
         ` : html`
           <div class="header">
-            <h1>JARVIS <span>v5.7</span></h1>
+            <h1>JARVIS <span>v${__APP_VERSION__}</span></h1>
             <div class="status">
               <div class="strm-badge">
                 STRM: ${this.messages.length.toString().padStart(3, '0')}

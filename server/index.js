@@ -9,6 +9,7 @@ import EventBuffer from './event-buffer.js';
 import GatewayClient from './gateway-client.js';
 import PushManager from './push-manager.js';
 import { categorize, extractText } from './category-filter.js';
+import LocalHealthChecker from './local-health.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const distDir = path.join(__dirname, '..', 'dist');
@@ -17,6 +18,7 @@ const distDir = path.join(__dirname, '..', 'dist');
 const eventBuffer = new EventBuffer();
 const gatewayClient = new GatewayClient(eventBuffer);
 const pushManager = new PushManager();
+const localHealth = new LocalHealthChecker(gatewayClient);
 
 // Track connected PWA clients and their visibility
 const pwaClients = new Map(); // id -> { ws, isVisible }
@@ -32,14 +34,37 @@ function apiRoutes(router) {
     res.json({
       status: 'ok',
       gateway: gatewayClient.isReady() ? 'connected' : 'disconnected',
+      gatewayMetrics: gatewayClient.getMetrics(),
       pwaClients: pwaClients.size,
       buffer: eventBuffer.getStats(),
+      localHealth: localHealth.getVerdict(),
       timestamp: new Date().toISOString(),
     });
   });
 
   router.get('/api/vapid-public-key', (req, res) => {
     res.json({ publicKey: pushManager.getPublicKey() });
+  });
+
+  // Proxy balance fetch to keep API keys secure (client-side removed hardcoded key)
+  router.get('/api/balance', async (req, res) => {
+    const apiKey = process.env.MOONSHOT_API_KEY;
+    if (!apiKey) {
+      return res.status(503).json({ error: 'MOONSHOT_API_KEY not configured' });
+    }
+    try {
+      const response = await fetch('https://api.moonshot.ai/v1/users/me/balance', {
+        headers: { 'Authorization': `Bearer ${apiKey}` }
+      });
+      if (!response.ok) {
+        return res.status(response.status).json({ error: 'Upstream API error' });
+      }
+      const data = await response.json();
+      res.json({ balance: data?.data?.available_balance });
+    } catch (err) {
+      console.error('[API] Balance fetch failed:', err.message);
+      res.status(500).json({ error: 'Failed to fetch balance' });
+    }
   });
 
   router.post('/api/push/subscribe', (req, res) => {
@@ -268,11 +293,13 @@ server.listen(config.port, () => {
 });
 
 gatewayClient.connect();
+setTimeout(() => localHealth.start(), 5000); // allow gateway connection to begin
 
 // Graceful shutdown
 const shutdown = () => {
   console.log('[Relay] Shutting down...');
   clearInterval(pingInterval);
+  localHealth.stop();
   server.close();
   process.exit(0);
 };
