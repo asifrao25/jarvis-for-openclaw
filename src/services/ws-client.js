@@ -157,6 +157,26 @@ export class WSClient extends EventTarget {
     this.send({ type: 'visibility', visible });
   }
 
+  /**
+   * Send exec approval response to gateway
+   * @param {string} approvalId - The approval request ID
+   * @param {string} decision - 'allow-once', 'allow-always', or 'deny'
+   */
+  sendApprovalResponse(approvalId, decision) {
+    const id = crypto.randomUUID().toUpperCase();
+    this.send({
+      type: 'req',
+      id,
+      method: 'exec.approval.resolve',
+      params: {
+        approvalId,
+        decision,
+      },
+    });
+    console.log(`[WS] Sent approval response: ${decision} for ${approvalId}`);
+    return id;
+  }
+
   disconnect() {
     this.shouldReconnect = false;
     if (this.ws) this.ws.close();

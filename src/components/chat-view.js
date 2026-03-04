@@ -220,6 +220,7 @@ export class ChatView extends LitElement {
     messages: { type: Array },
     thinking: { type: Boolean },
     streaming: { type: Boolean },
+    agentStatus: { type: String },
     loading: { type: Boolean },
     uiHidden: { type: Boolean, reflect: true, attribute: 'ui-hidden' },
     _showScrollBtn: { type: Boolean, state: true },
@@ -230,6 +231,7 @@ export class ChatView extends LitElement {
     super();
     this.thinking = false;
     this.streaming = false;
+    this.agentStatus = 'Thinking';
     this._touchStartY = 0;
     this.uiHidden = false;
     this._isAutoScrolling = false;
@@ -352,7 +354,7 @@ export class ChatView extends LitElement {
 
       ${this.thinking ? html`
         <div class="indicator-container">
-          <stream-indicator mode="thinking"></stream-indicator>
+          <stream-indicator mode="thinking" .label=${this.agentStatus}></stream-indicator>
         </div>
       ` : ''}
 

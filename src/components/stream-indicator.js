@@ -101,15 +101,16 @@ export class StreamIndicator extends LitElement {
 
   static properties = {
     mode: { type: String },
+    label: { type: String },
   };
 
   constructor() {
     super();
     this.mode = 'thinking';
+    this.label = 'Thinking';
   }
 
   render() {
-    const text = this.mode === 'thinking' ? 'Analyzing' : 'Processing';
     return html`
       <div class="container">
         <div class="scanner">
@@ -117,7 +118,7 @@ export class StreamIndicator extends LitElement {
           <div class="dot"></div>
         </div>
         <div class="label">
-          // <span>${text}</span>...
+          // <span>${this.label}</span>...
         </div>
       </div>
     `;

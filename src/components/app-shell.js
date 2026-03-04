@@ -10,6 +10,7 @@ import './alert-view.js';
 import './report-view.js';
 import './settings-view.js';
 import './nav-bar.js';
+import './approval-dialog.js';
 
 function categorize(text) {
   if (text.startsWith('[ALERT]')) return 'alert';
@@ -350,6 +351,8 @@ export class AppShell extends LitElement {
     _loadingStore: { type: Boolean, state: true },
     _balance: { type: Number, state: true },
     _notification: { type: Object, state: true },
+    _pendingApproval: { type: Object, state: true },
+    _agentStatus: { type: String, state: true },
   };
 
   constructor() {
@@ -377,6 +380,9 @@ export class AppShell extends LitElement {
     this._balance = null;
     this._wheelLatched = false;
     this._notification = { visible: false, message: '', type: 'success' };
+    this._pendingApproval = null;
+    this._clearThinkingTimeout = null;
+    this._agentStatus = 'Thinking';
 
     // Explicitly bind listeners to ensure 'this' context is preserved on all platforms
     this._onNavigate = this._onNavigate.bind(this);
@@ -387,6 +393,7 @@ export class AppShell extends LitElement {
     this._onLogin = this._onLogin.bind(this);
     this._onLogout = this._onLogout.bind(this);
     this._onMessageSeen = this._onMessageSeen.bind(this);
+    this._onApprovalResponse = this._onApprovalResponse.bind(this);
   }
 
   _notify(message, type = 'success') {
@@ -414,6 +421,7 @@ export class AppShell extends LitElement {
     this.addEventListener('logout', this._onLogout);
     this.addEventListener('ui-toggle', (e) => { this.uiHidden = e.detail; });
     this.addEventListener('message-seen', this._onMessageSeen);
+    this.addEventListener('approval-response', this._onApprovalResponse);
 
     // Clear badge and notifications when app is focused or becomes visible
     window.addEventListener('focus', () => this._clearBadgeAndNotifications());
@@ -608,6 +616,24 @@ export class AppShell extends LitElement {
     if (id) markSeen(id);
   }
 
+  _onApprovalResponse(e) {
+    const { approvalId, decision } = e.detail;
+    console.log(`[AppShell] Approval response: ${decision} for ${approvalId}`);
+    
+    // Send response to gateway via WebSocket
+    wsClient.sendApprovalResponse(approvalId, decision);
+    
+    // Clear the pending approval
+    this._pendingApproval = null;
+    
+    // Show notification based on decision
+    if (decision === 'allow-once' || decision === 'allow-always') {
+      this._notify('APPROVAL GRANTED');
+    } else if (decision === 'deny') {
+      this._notify('EXEC DENIED', 'error');
+    }
+  }
+
   _setupViewport() {
     if (window.visualViewport) {
       const handleResize = () => {
@@ -664,6 +690,11 @@ export class AppShell extends LitElement {
 
     wsClient.addEventListener('disconnected', () => {
       this.connected = false;
+      this.streaming = false;
+      this.thinking = false;
+      clearTimeout(this._clearThinkingTimeout);
+      // Remove in-flight streaming messages — final will recreate via replay
+      this.messages = this.messages.filter(m => !m.streaming);
     });
 
     wsClient.addEventListener('auth-failed', (e) => {
@@ -731,6 +762,8 @@ export class AppShell extends LitElement {
 
   async _handleMessage(msg) {
     if (msg.type === 'res' && msg.ok && msg.payload?.status === 'started') {
+      clearTimeout(this._clearThinkingTimeout);
+      this._agentStatus = 'Thinking';
       this.thinking = true;
       const lastSending = this.messages.findLastIndex(m => m.role === 'user' && m.status === 'sending');
       if (lastSending !== -1) {
@@ -756,6 +789,62 @@ export class AppShell extends LitElement {
       console.log('[AppShell] Universal session reset received, clearing chat data');
       this.messages = this.messages.filter(m => m.category !== 'chat' && m.role !== 'user');
       clearByCategory('chat').catch(err => console.error('Failed to clear chat store:', err));
+      return;
+    }
+
+    // Handle exec approval requests
+    if (msg.type === 'event' && msg.event === 'exec.approval.requested') {
+      console.log('[AppShell] Received approval request:', msg.payload);
+      const { approvalId, command, agentId, host, timeoutMs } = msg.payload || {};
+      this._pendingApproval = {
+        approvalId,
+        command,
+        agentId,
+        host,
+        timeoutMs: timeoutMs || 60000,
+      };
+      return;
+    }
+
+    // Definitive run completion signal from relay server
+    if (msg.type === 'event' && msg.event === 'run.complete') {
+      clearTimeout(this._clearThinkingTimeout);
+      this._agentStatus = 'Thinking';
+      this.thinking = false;
+      return;
+    }
+
+    // Agent stream events — update thinking label
+    if (msg.type === 'event' && msg.event === 'agent') {
+      const { stream, data } = msg.payload || {};
+      if (stream === 'lifecycle' && data?.phase === 'start') {
+        this._agentStatus = 'Initializing';
+      } else if (stream === 'thinking') {
+        this._agentStatus = 'Reasoning';
+        clearTimeout(this._clearThinkingTimeout);
+        this.thinking = true;
+      } else if (stream === 'tool_call') {
+        const name = data?.toolName || 'tool';
+        this._agentStatus = `Tool: ${name}`;
+        clearTimeout(this._clearThinkingTimeout);
+        this.thinking = true;
+      } else if (stream === 'tool_result') {
+        this._agentStatus = 'Processing';
+        clearTimeout(this._clearThinkingTimeout);
+        this.thinking = true;
+      } else if (stream === 'subagent' && data?.action === 'spawn') {
+        this._agentStatus = `Spawning: ${data?.agentId || 'agent'}`;
+        clearTimeout(this._clearThinkingTimeout);
+        this.thinking = true;
+      } else if (stream === 'subagent' && data?.action === 'complete') {
+        this._agentStatus = 'Processing';
+        clearTimeout(this._clearThinkingTimeout);
+        this.thinking = true;
+      } else if (stream === 'shell') {
+        this._agentStatus = 'Running shell';
+        clearTimeout(this._clearThinkingTimeout);
+        this.thinking = true;
+      }
       return;
     }
 
@@ -792,6 +881,9 @@ export class AppShell extends LitElement {
     console.log(`[AppShell] Recv Chat: state=${state} runId=${runId} seq=${msg.seq} text="${text.substring(0, 30)}..." replayed=${!!msg._replayed}`);
 
     if (state === 'delta') {
+      // Skip replayed delta if a final for this runId is already in memory
+      if (runId && this.messages.some(m => m.runId === runId && m.streaming === false)) return;
+      clearTimeout(this._clearThinkingTimeout);
       this.thinking = false;
       this.streaming = true;
       const existingIdx = this.messages.findIndex(m => m.runId === runId && m.streaming);
@@ -803,8 +895,12 @@ export class AppShell extends LitElement {
         this.messages = [...this.messages, { role, text, category, timestamp: Date.now(), streaming: true, runId }];
       }
     } else if (state === 'final') {
-      this.thinking = false;
       this.streaming = false;
+      // Re-show thinking indicator — agent may continue to next step.
+      // run.complete (from relay) will clear it deterministically; 30s is a safety net.
+      this.thinking = true;
+      clearTimeout(this._clearThinkingTimeout);
+      this._clearThinkingTimeout = setTimeout(() => { this.thinking = false; }, 30000);
       const existingIdx = this.messages.findIndex(m => m.runId === runId && m.streaming);
 
       const finalMsg = { role, text, category, timestamp: Date.now(), streaming: false, runId, seq: msg.seq, seen: false, attachment };
@@ -820,9 +916,14 @@ export class AppShell extends LitElement {
 
       // 2. In-memory Deduplication (runId only — seq resets on server restart)
       const isDuplicate = this.messages.some(m =>
-        (runId && m.runId === runId && !m.streaming)
+        (runId && m.runId === runId && m.streaming === false)
       );
       if (isDuplicate) {
+        // Belt-and-suspenders: clean up stale streaming bubble that leaked through
+        const staleStreamIdx = this.messages.findIndex(m => m.runId === runId && m.streaming);
+        if (staleStreamIdx !== -1) {
+          this.messages = this.messages.filter((_, i) => i !== staleStreamIdx);
+        }
         console.log(`[AppShell] Ignoring duplicate: seq=${msg.seq} runId=${runId}`);
         return;
       }
@@ -980,6 +1081,17 @@ export class AppShell extends LitElement {
 
   render() {
     return html`
+      ${this._pendingApproval ? html`
+        <approval-dialog
+          .approvalId=${this._pendingApproval.approvalId}
+          .command=${this._pendingApproval.command}
+          .agentId=${this._pendingApproval.agentId}
+          .host=${this._pendingApproval.host}
+          .timeoutMs=${this._pendingApproval.timeoutMs}
+          @approval-response=${this._onApprovalResponse}
+        ></approval-dialog>
+      ` : ''}
+
       <div class="app-wrapper" ?ui-hidden=${this.uiHidden}>
         ${this._notification.visible ? html`
           <div class="feedback-banner visible ${this._notification.type === 'error' ? 'error' : ''}">
@@ -1033,6 +1145,7 @@ export class AppShell extends LitElement {
                   .messages=${this.messages}
                   .thinking=${this.thinking}
                   .streaming=${this.streaming}
+                  .agentStatus=${this._agentStatus}
                   .uiHidden=${this.uiHidden}
                   .loading=${this._loadingStore}
                 ></chat-view>

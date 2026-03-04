@@ -1,6 +1,6 @@
 // Service Worker for Jarvis PWA
 
-const CACHE_NAME = 'openclaw-pwa-v218';
+const CACHE_NAME = 'openclaw-pwa-v220';
 const SHELL_FILES = ['/pwa/', '/pwa/index.html'];
 
 // Handle SKIP_WAITING to force immediate takeover
@@ -118,14 +118,29 @@ self.addEventListener('push', (event) => {
       }
 
       console.log('[SW] App in background, showing notification');
-      return self.registration.showNotification(data.title, {
+      
+      // Build notification options
+      const notifOptions = {
         body: data.body,
         icon: '/pwa/icons/icon-192.png',
         badge: '/pwa/icons/icon-192.png',
-        tag,
-        data: { url: data.url || '/pwa/' },
-        vibrate: [100, 50, 100],
-      });
+        tag: data.tag || tag,
+        data: data.data || { url: data.url || '/pwa/' },
+        vibrate: data.requireInteraction ? [200, 100, 200, 100, 200] : [100, 50, 100],
+        requireInteraction: data.requireInteraction || false,
+        actions: data.actions || [],
+        priority: data.requireInteraction ? 'high' : 'default',
+      };
+      
+      // For approval notifications, add approve/deny actions
+      if (data.data?.category === 'approval') {
+        notifOptions.actions = [
+          { action: 'approve', title: 'Approve' },
+          { action: 'deny', title: 'Deny' },
+        ];
+      }
+      
+      return self.registration.showNotification(data.title, notifOptions);
     })
   );
 });
@@ -134,6 +149,7 @@ self.addEventListener('push', (event) => {
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
   const url = event.notification.data?.url || '/pwa/';
+  const action = event.action;
 
   event.waitUntil(
     (async () => {
@@ -142,6 +158,23 @@ self.addEventListener('notificationclick', (event) => {
       await setStoredBadgeCount(0);
       if (self.navigator && self.navigator.clearAppBadge) {
         try { await self.navigator.clearAppBadge(); } catch {}
+      }
+
+      // Handle approval actions from notification
+      if (action === 'approve' || action === 'deny') {
+        // Try to post message to client to handle the approval
+        const clients = await self.clients.matchAll({ type: 'window' });
+        const pwaClient = clients.find(c => c.url.includes('/pwa/'));
+        if (pwaClient) {
+          pwaClient.postMessage({
+            type: 'notification-action',
+            action: action,
+            data: event.notification.data,
+          });
+          if ('focus' in pwaClient) {
+            return pwaClient.focus();
+          }
+        }
       }
 
       const clients = await self.clients.matchAll({ type: 'window' });

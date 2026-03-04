@@ -23,6 +23,7 @@ const localHealth = new LocalHealthChecker(gatewayClient);
 // Track connected PWA clients and their visibility
 const pwaClients = new Map(); // id -> { ws, isVisible }
 const pendingRequests = new Map(); // requestId -> clientId
+let runCompleteTimer = null;
 
 // Express app
 const app = express();
@@ -237,14 +238,64 @@ gatewayClient.on('event', (event) => {
     }
   }
 
-  if (event.event === 'chat' && event.payload?.state === 'final') {
-    if (visibleCount > 0) return;
-    const text = extractText(event);
-    if (text.trim()) {
-      const category = categorize(event);
-      const truncated = text.length > 200 ? text.substring(0, 197) + '...' : text;
-      let title = category === 'alert' ? 'Jarvis Alert' : (category === 'report' ? 'Jarvis Report' : 'Jarvis');
-      pushManager.sendToAll({ title, body: truncated, category, url: '/pwa/' });
+  // Handle exec approval requests - also send push notification if no visible clients
+  if (event.event === 'exec.approval.requested') {
+    console.log(`[Relay] Approval request received: ${event.payload?.approvalId}`);
+    if (visibleCount === 0) {
+      // App is in background - send push notification
+      const { command, agentId, approvalId } = event.payload || {};
+      const truncated = command && command.length > 100 ? command.substring(0, 97) + '...' : (command || 'Unknown command');
+      pushManager.sendToAll({
+        title: 'Jarvis: Approval Required',
+        body: `Agent "${agentId}" requests exec: ${truncated}`,
+        category: 'approval',
+        tag: `approval-${approvalId}`,
+        url: '/pwa/',
+        requireInteraction: true,
+        data: {
+          approvalId,
+          command,
+          agentId,
+          category: 'approval',
+        },
+      });
+    }
+    return;
+  }
+
+  // Agent action events mean the run is still active — cancel pending run.complete
+  if (event.event === 'agent') {
+    const stream = event.payload?.stream;
+    if (stream === 'tool_call' || stream === 'tool_result' || stream === 'subagent' || stream === 'shell' || stream === 'thinking') {
+      clearTimeout(runCompleteTimer);
+    }
+  }
+
+  if (event.event === 'chat') {
+    // Cancel any pending run.complete — agent is still active
+    clearTimeout(runCompleteTimer);
+    if (event.payload?.state === 'final') {
+      const runId = event.payload?.runId;
+      // 500ms debounce: if no new chat event arrives, broadcast run.complete
+      runCompleteTimer = setTimeout(() => {
+        console.log(`[Relay] run.complete firing for runId=${runId}`);
+        const completeMsg = JSON.stringify({ type: 'event', event: 'run.complete', payload: { runId } });
+        for (const [id, client] of pwaClients) {
+          if (client.ws.readyState === WebSocket.OPEN) {
+            try { client.ws.send(completeMsg); } catch {}
+          }
+        }
+      }, 500);
+
+      // Push notification when app is in background
+      if (visibleCount > 0) return;
+      const text = extractText(event);
+      if (text.trim()) {
+        const category = categorize(event);
+        const truncated = text.length > 200 ? text.substring(0, 197) + '...' : text;
+        const title = category === 'alert' ? 'Jarvis Alert' : (category === 'report' ? 'Jarvis Report' : 'Jarvis');
+        pushManager.sendToAll({ title, body: truncated, category, url: '/pwa/' });
+      }
     }
   }
 });

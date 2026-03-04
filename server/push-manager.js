@@ -34,7 +34,22 @@ export default class PushManager {
     if (entries.length === 0) return;
 
     console.log('[Push] Sending to', entries.length, 'subscriptions');
-    const payload = JSON.stringify(notification);
+    
+    // Build payload with proper notification options
+    const payload = JSON.stringify({
+      title: notification.title || 'Jarvis',
+      body: notification.body || '',
+      icon: '/icon-192.png',
+      badge: '/icon-72.png',
+      tag: notification.tag || 'jarvis-notification',
+      requireInteraction: notification.requireInteraction || false,
+      actions: notification.actions || [],
+      data: {
+        url: notification.url || '/pwa/',
+        category: notification.category || 'chat',
+        ...notification.data,
+      },
+    });
 
     for (const [clientId, sub] of entries) {
       try {
