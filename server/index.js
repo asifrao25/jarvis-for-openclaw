@@ -49,19 +49,23 @@ function apiRoutes(router) {
 
   // Proxy balance fetch to keep API keys secure (client-side removed hardcoded key)
   router.get('/api/balance', async (req, res) => {
-    const apiKey = process.env.MOONSHOT_API_KEY;
+    const apiKey = process.env.DEEPSEEK_API_KEY;
     if (!apiKey) {
-      return res.status(503).json({ error: 'MOONSHOT_API_KEY not configured' });
+      return res.status(503).json({ error: 'DEEPSEEK_API_KEY not configured' });
     }
     try {
-      const response = await fetch('https://api.moonshot.ai/v1/users/me/balance', {
+      const response = await fetch('https://api.deepseek.com/user/balance', {
         headers: { 'Authorization': `Bearer ${apiKey}` }
       });
       if (!response.ok) {
         return res.status(response.status).json({ error: 'Upstream API error' });
       }
       const data = await response.json();
-      res.json({ balance: data?.data?.available_balance });
+      // DeepSeek returns balance in balance_infos array
+      // Format: {"is_available":true,"balance_infos":[{"currency":"USD","total_balance":"24.72",...}]}
+      const balanceInfo = data?.balance_infos?.[0];
+      const balance = balanceInfo ? parseFloat(balanceInfo.total_balance) : 0;
+      res.json({ balance });
     } catch (err) {
       console.error('[API] Balance fetch failed:', err.message);
       res.status(500).json({ error: 'Failed to fetch balance' });
@@ -149,6 +153,7 @@ wss.on('connection', (ws, req) => {
           pwaClients.set(clientId, { ws, isVisible });
           ws.send(JSON.stringify({ type: 'auth', ok: true }));
           console.log(`[WS] ${clientId} authenticated`);
+          sendGatewayStatusTo(ws);
 
           // Replay missed events
           const stats = eventBuffer.getStats();
@@ -197,7 +202,7 @@ wss.on('connection', (ws, req) => {
   ws.on('close', () => {
     console.log(`[WS] ${clientId} disconnected`);
     pwaClients.delete(clientId);
-    eventBuffer.clearRateLimit(clientId);
+    // Rate limit data will expire naturally based on window
     for (const [reqId, cId] of pendingRequests) {
       if (cId === clientId) pendingRequests.delete(reqId);
     }
@@ -342,6 +347,23 @@ gatewayClient.on('response', (msg) => {
 server.listen(config.port, () => {
   console.log(`[Relay] Server running on port ${config.port}`);
 });
+
+function broadcastGatewayStatus(connected) {
+  const msg = JSON.stringify({ type: 'gateway-status', connected });
+  for (const [id, client] of pwaClients) {
+    if (client.ws.readyState === WebSocket.OPEN) {
+      try { client.ws.send(msg); } catch {}
+    }
+  }
+}
+
+gatewayClient.on('authenticated', () => broadcastGatewayStatus(true));
+gatewayClient.on('disconnected', () => broadcastGatewayStatus(false));
+
+// Also send current gateway status to a newly connected PWA client
+function sendGatewayStatusTo(ws) {
+  try { ws.send(JSON.stringify({ type: 'gateway-status', connected: gatewayClient.isReady() })); } catch {}
+}
 
 gatewayClient.connect();
 setTimeout(() => localHealth.start(), 5000); // allow gateway connection to begin

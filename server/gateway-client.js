@@ -47,6 +47,7 @@ export default class GatewayClient extends EventEmitter {
       console.log('[Gateway] Disconnected code=' + code);
       this.connected = false;
       this.authenticated = false;
+      this.emit('disconnected');
       this._scheduleReconnect();
     });
 

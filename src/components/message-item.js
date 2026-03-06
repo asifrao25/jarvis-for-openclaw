@@ -33,6 +33,22 @@ export class MessageItem extends LitElement {
       overflow-wrap: break-word;
       word-break: break-word;
     }
+
+    .streaming-cursor {
+      display: inline-block;
+      width: 2px;
+      height: 1em;
+      background: var(--c-primary);
+      margin-left: 2px;
+      vertical-align: text-bottom;
+      box-shadow: 0 0 6px var(--c-primary);
+      animation: blink-cursor 1s step-end infinite;
+    }
+
+    @keyframes blink-cursor {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0; }
+    }
     
     .role-user {
       align-self: flex-end;
@@ -280,6 +296,7 @@ export class MessageItem extends LitElement {
     timestamp: { type: Number },
     seen: { type: Boolean },
     attachment: { type: Object },
+    streaming: { type: Boolean },
     _menuOpen: { type: Boolean, state: true },
     _menuX: { type: Number, state: true },
     _menuY: { type: Number, state: true },
@@ -298,6 +315,7 @@ export class MessageItem extends LitElement {
     this._toastText = 'COPIED';
     this._isDeleteToast = false;
     this._observer = null;
+    this.streaming = false;
   }
 
   firstUpdated() {
@@ -417,7 +435,7 @@ export class MessageItem extends LitElement {
           </div>
         ` : ''}
 
-        <div class="text">${this.text}</div>
+        <div class="text">${this.text}${this.streaming ? html`<span class="streaming-cursor"></span>` : ''}</div>
         ${this.role === 'user' ? html`<div class="meta">${fullDateTime}</div>` : ''}
 
         <div class="action-menu ${this._menuOpen ? 'visible' : ''}" 

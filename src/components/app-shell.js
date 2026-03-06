@@ -338,6 +338,7 @@ export class AppShell extends LitElement {
     view: { type: String },
     loggedIn: { type: Boolean },
     connected: { type: Boolean },
+    gatewayConnected: { type: Boolean },
     messages: { type: Array },
     thinking: { type: Boolean },
     streaming: { type: Boolean },
@@ -360,6 +361,7 @@ export class AppShell extends LitElement {
     this.view = 'chat';
     this.loggedIn = false;
     this.connected = false;
+    this.gatewayConnected = false;
     this.messages = [];
     this.thinking = false;
     this.streaming = false;
@@ -735,17 +737,18 @@ export class AppShell extends LitElement {
     try {
       const all = await getLatest(200);
       if (all.length > 0) {
-        // Merge with existing messages (like replayed ones) without duplicating
+        // Merge with existing messages (like replayed ones) without duplicating.
+        // Exclusion logic: skip stored message if ANY of its identifiers is already in memory.
         const currentIds = new Set(this.messages.map(m => m.id).filter(Boolean));
-        const currentSeqs = new Set(this.messages.map(m => m.seq).filter(Boolean));
+        const currentRunIds = new Set(this.messages.map(m => m.runId).filter(Boolean));
         const currentReqs = new Set(this.messages.map(m => m.requestId).filter(Boolean));
-        
-        const newOnes = all.filter(m => 
-          (m.id && !currentIds.has(m.id)) || 
-          (m.seq && !currentSeqs.has(m.seq)) ||
-          (m.requestId && !currentReqs.has(m.requestId)) ||
-          (!m.id && !m.seq && !m.requestId)
-        );
+
+        const newOnes = all.filter(m => {
+          if (m.id && currentIds.has(m.id)) return false;
+          if (m.runId && currentRunIds.has(m.runId)) return false;
+          if (m.requestId && currentReqs.has(m.requestId)) return false;
+          return true;
+        });
 
         if (this.messages.length === 0) {
           this.messages = all;
@@ -761,6 +764,11 @@ export class AppShell extends LitElement {
   }
 
   async _handleMessage(msg) {
+    if (msg.type === 'gateway-status') {
+      this.gatewayConnected = msg.connected;
+      return;
+    }
+
     if (msg.type === 'res' && msg.ok && msg.payload?.status === 'started') {
       clearTimeout(this._clearThinkingTimeout);
       this._agentStatus = 'Thinking';
@@ -815,35 +823,40 @@ export class AppShell extends LitElement {
     }
 
     // Agent stream events — update thinking label
+    // Only act on live events for the current PWA session (not replayed, not background cron/heartbeat)
     if (msg.type === 'event' && msg.event === 'agent') {
-      const { stream, data } = msg.payload || {};
-      if (stream === 'lifecycle' && data?.phase === 'start') {
-        this._agentStatus = 'Initializing';
-      } else if (stream === 'thinking') {
-        this._agentStatus = 'Reasoning';
-        clearTimeout(this._clearThinkingTimeout);
-        this.thinking = true;
-      } else if (stream === 'tool_call') {
-        const name = data?.toolName || 'tool';
-        this._agentStatus = `Tool: ${name}`;
-        clearTimeout(this._clearThinkingTimeout);
-        this.thinking = true;
-      } else if (stream === 'tool_result') {
-        this._agentStatus = 'Processing';
-        clearTimeout(this._clearThinkingTimeout);
-        this.thinking = true;
-      } else if (stream === 'subagent' && data?.action === 'spawn') {
-        this._agentStatus = `Spawning: ${data?.agentId || 'agent'}`;
-        clearTimeout(this._clearThinkingTimeout);
-        this.thinking = true;
-      } else if (stream === 'subagent' && data?.action === 'complete') {
-        this._agentStatus = 'Processing';
-        clearTimeout(this._clearThinkingTimeout);
-        this.thinking = true;
-      } else if (stream === 'shell') {
-        this._agentStatus = 'Running shell';
-        clearTimeout(this._clearThinkingTimeout);
-        this.thinking = true;
+      const { stream, data, sessionKey: agentSessionKey } = msg.payload || {};
+      const isCurrentSession = agentSessionKey === wsClient.sessionKey;
+      const isLive = !msg._replayed;
+      if (isCurrentSession && isLive) {
+        if (stream === 'lifecycle' && data?.phase === 'start') {
+          this._agentStatus = 'Initializing';
+        } else if (stream === 'thinking') {
+          this._agentStatus = 'Reasoning';
+          clearTimeout(this._clearThinkingTimeout);
+          this.thinking = true;
+        } else if (stream === 'tool_call') {
+          const name = data?.toolName || 'tool';
+          this._agentStatus = `Tool: ${name}`;
+          clearTimeout(this._clearThinkingTimeout);
+          this.thinking = true;
+        } else if (stream === 'tool_result') {
+          this._agentStatus = 'Processing';
+          clearTimeout(this._clearThinkingTimeout);
+          this.thinking = true;
+        } else if (stream === 'subagent' && data?.action === 'spawn') {
+          this._agentStatus = `Spawning: ${data?.agentId || 'agent'}`;
+          clearTimeout(this._clearThinkingTimeout);
+          this.thinking = true;
+        } else if (stream === 'subagent' && data?.action === 'complete') {
+          this._agentStatus = 'Processing';
+          clearTimeout(this._clearThinkingTimeout);
+          this.thinking = true;
+        } else if (stream === 'shell') {
+          this._agentStatus = 'Running shell';
+          clearTimeout(this._clearThinkingTimeout);
+          this.thinking = true;
+        }
       }
       return;
     }
@@ -896,11 +909,13 @@ export class AppShell extends LitElement {
       }
     } else if (state === 'final') {
       this.streaming = false;
-      // Re-show thinking indicator — agent may continue to next step.
+      // Re-show thinking indicator only for the active PWA session (not cron/background agents)
       // run.complete (from relay) will clear it deterministically; 30s is a safety net.
-      this.thinking = true;
-      clearTimeout(this._clearThinkingTimeout);
-      this._clearThinkingTimeout = setTimeout(() => { this.thinking = false; }, 30000);
+      if (sessionKey === wsClient.sessionKey && !msg._replayed) {
+        this.thinking = true;
+        clearTimeout(this._clearThinkingTimeout);
+        this._clearThinkingTimeout = setTimeout(() => { this.thinking = false; }, 30000);
+      }
       const existingIdx = this.messages.findIndex(m => m.runId === runId && m.streaming);
 
       const finalMsg = { role, text, category, timestamp: Date.now(), streaming: false, runId, seq: msg.seq, seen: false, attachment };
@@ -940,7 +955,11 @@ export class AppShell extends LitElement {
       try {
         const id = await addMessage(finalMsg);
         if (id) {
-           this.messages = this.messages.map(m => m.timestamp === finalMsg.timestamp ? { ...m, id } : m);
+          // Match by runId (stable UUID) — timestamp can collide if two messages arrive same ms
+          const matchFn = runId
+            ? m => m.runId === runId && m.streaming === false
+            : m => m.timestamp === finalMsg.timestamp;
+          this.messages = this.messages.map(m => matchFn(m) ? { ...m, id } : m);
         }
       } catch (err) {
         console.error('Failed to store message:', err);
@@ -1115,10 +1134,10 @@ export class AppShell extends LitElement {
               <div class="strm-badge">
                 STRM: ${this.messages.length.toString().padStart(3, '0')}
               </div>
-              <span style="font-size: 9px; letter-spacing: 1px; color: ${this.connected ? 'var(--c-primary)' : 'var(--c-alert)'}; opacity: 0.8;">
-                ${this.connected ? 'ONLINE' : (this.loggedIn ? 'CONNECTING' : 'OFFLINE')}
+              <span style="font-size: 9px; letter-spacing: 1px; color: ${!this.connected ? 'var(--c-alert)' : !this.gatewayConnected ? '#FF9900' : 'var(--c-primary)'}; opacity: 0.8;">
+                ${!this.connected ? (this.loggedIn ? 'CONNECTING' : 'OFFLINE') : !this.gatewayConnected ? 'NO GATEWAY' : 'ONLINE'}
               </span>
-              <div class="status-dot ${this.connected ? 'online' : 'connecting'}"></div>
+              <div class="status-dot ${!this.connected ? 'connecting' : !this.gatewayConnected ? 'connecting' : 'online'}" style="${!this.connected ? '' : !this.gatewayConnected ? 'background:#FF9900;box-shadow:0 0 8px #FF9900;' : ''}"></div>
             </div>
           </div>
 

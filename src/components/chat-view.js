@@ -283,10 +283,8 @@ export class ChatView extends LitElement {
   updated(changed) {
     if (changed.has('messages')) {
       const oldMessages = changed.get('messages') || [];
-      if (this.messages.length > oldMessages.length) {
+      if (this.messages.length > oldMessages.length || this.streaming) {
         this.scrollToBottom(false);
-        setTimeout(() => this.scrollToBottom(false), 100);
-        setTimeout(() => this.scrollToBottom(false), 300);
       }
     }
     if ((changed.has('thinking') && this.thinking) || (changed.has('streaming') && this.streaming)) {
@@ -341,13 +339,14 @@ export class ChatView extends LitElement {
         ` : ''}
         
         ${this.messages.map(m => html`
-          <message-item 
-            .msgId=${m.id} 
-            .role=${m.role} 
-            .text=${m.text} 
+          <message-item
+            .msgId=${m.id}
+            .role=${m.role}
+            .text=${m.text}
             .timestamp=${m.timestamp}
             .seen=${m.seen}
             .attachment=${m.attachment}
+            .streaming=${m.streaming === true}
           ></message-item>
         `)}
       </div>
