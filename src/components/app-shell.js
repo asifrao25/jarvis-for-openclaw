@@ -816,9 +816,13 @@ export class AppShell extends LitElement {
 
     // Definitive run completion signal from relay server
     if (msg.type === 'event' && msg.event === 'run.complete') {
-      clearTimeout(this._clearThinkingTimeout);
-      this._agentStatus = 'Thinking';
-      this.thinking = false;
+      const msgSessionKey = msg.payload?.sessionKey;
+      // Only clear thinking if this is our session (or no sessionKey = legacy)
+      if (!msgSessionKey || msgSessionKey === wsClient.sessionKey) {
+        clearTimeout(this._clearThinkingTimeout);
+        this._agentStatus = 'Thinking';
+        this.thinking = false;
+      }
       return;
     }
 

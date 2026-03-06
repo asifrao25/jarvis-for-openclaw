@@ -281,10 +281,11 @@ gatewayClient.on('event', (event) => {
     clearTimeout(runCompleteTimer);
     if (event.payload?.state === 'final') {
       const runId = event.payload?.runId;
+      const sessionKey = event.payload?.sessionKey;
       // 500ms debounce: if no new chat event arrives, broadcast run.complete
       runCompleteTimer = setTimeout(() => {
         console.log(`[Relay] run.complete firing for runId=${runId}`);
-        const completeMsg = JSON.stringify({ type: 'event', event: 'run.complete', payload: { runId } });
+        const completeMsg = JSON.stringify({ type: 'event', event: 'run.complete', payload: { runId, sessionKey } });
         for (const [id, client] of pwaClients) {
           if (client.ws.readyState === WebSocket.OPEN) {
             try { client.ws.send(completeMsg); } catch {}
@@ -299,7 +300,7 @@ gatewayClient.on('event', (event) => {
         const category = categorize(event);
         const truncated = text.length > 200 ? text.substring(0, 197) + '...' : text;
         const title = category === 'alert' ? 'Jarvis Alert' : (category === 'report' ? 'Jarvis Report' : 'Jarvis');
-        pushManager.sendToAll({ title, body: truncated, category, url: '/pwa/' });
+        pushManager.sendToAll({ title, body: truncated, category, tag: category, url: '/pwa/' });
       }
     }
   }
