@@ -13,7 +13,6 @@ import './nav-bar.js';
 import './approval-dialog.js';
 
 const AGENT_SESSION = 'agent:main:main';
-const AGENT_SESSION_PREFIX = 'agent:main:';
 
 function categorize(text) {
   if (text.startsWith('[ALERT]')) return 'alert';
@@ -889,7 +888,7 @@ export class AppShell extends LitElement {
 
     // Ignore chat events for other sessions to ensure independence
     // BUT allow reports/alerts from main session (cron jobs, heartbeats)
-    const isFromMainSession = sessionKey === AGENT_SESSION || sessionKey.startsWith(AGENT_SESSION_PREFIX);
+    const isFromMainSession = sessionKey === AGENT_SESSION;
 
     if (sessionKey !== wsClient.sessionKey && !isFromMainSession) {
       console.log(`[AppShell] Ignoring event for unrelated session: ${sessionKey}`);
