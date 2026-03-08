@@ -12,13 +12,15 @@ export class NavBar extends LitElement {
       background: #000;
       border-top: 1px solid rgba(0, 255, 255, 0.15);
       z-index: 1100;
-      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      transition: transform 0.38s cubic-bezier(0.4, 0, 0.2, 1),
+                  opacity 0.38s cubic-bezier(0.4, 0, 0.2, 1);
+      will-change: transform, opacity;
       box-sizing: border-box;
-      pointer-events: auto; /* CRITICAL: Ensure clicks are captured */
+      pointer-events: auto;
     }
 
     :host([ui-hidden]) {
-      transform: translateY(100px);
+      transform: translateY(110%);
       opacity: 0;
       pointer-events: none;
     }

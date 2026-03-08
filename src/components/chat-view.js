@@ -21,33 +21,34 @@ export class ChatView extends LitElement {
       overflow-x: hidden;
       -webkit-overflow-scrolling: touch;
       padding: 15px 20px;
-      padding-bottom: calc(148px + env(safe-area-inset-bottom, 0px));
+      padding-bottom: calc(132px + env(safe-area-inset-bottom, 0px));
       display: flex;
       flex-direction: column;
       gap: 12px;
       min-height: 0;
       touch-action: pan-y;
-      transition: padding 0.3s ease;
       width: 100%;
       box-sizing: border-box;
-    }
-    
-    :host([ui-hidden]) .messages {
-      padding-bottom: 10px;
     }
 
     .messages::-webkit-scrollbar { width: 4px; }
     .messages::-webkit-scrollbar-thumb { background: rgba(0, 255, 255, 0.2); border-radius: 2px; }
 
     .input-area-container {
-      flex-shrink: 0;
+      position: fixed;
+      left: 0;
+      right: 0;
+      bottom: calc(84px + env(safe-area-inset-bottom, 0px));
       background: #000;
       border-top: 1px solid rgba(0, 255, 255, 0.15);
-      z-index: 1000;
+      z-index: 1050;
       display: flex;
       flex-direction: column;
-      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-      padding-bottom: calc(88px + env(safe-area-inset-bottom, 0px));
+      transform: translateY(0);
+      opacity: 1;
+      transition: transform 0.38s cubic-bezier(0.4, 0, 0.2, 1),
+                  opacity 0.38s cubic-bezier(0.4, 0, 0.2, 1);
+      will-change: transform, opacity;
     }
 
     .input-area {
@@ -86,13 +87,9 @@ export class ChatView extends LitElement {
     }
 
     :host([ui-hidden]) .input-area-container {
-      height: 0;
-      min-height: 0;
-      padding: 0;
+      transform: translateY(200%);
       opacity: 0;
-      overflow: hidden;
       pointer-events: none;
-      border-top-color: transparent;
     }
 
     input[type="text"] {
@@ -245,6 +242,7 @@ export class ChatView extends LitElement {
     this._isPulling = false;
     this.loading = false;
     this._lastScrollTop = 0;
+    this._uiToggleLocked = false;
   }
 
   firstUpdated() {
@@ -260,13 +258,16 @@ export class ChatView extends LitElement {
       this._showScrollBtn = distFromBottom > 300;
 
       const delta = st - this._lastScrollTop;
-      if (Math.abs(delta) > 4) {
-        // delta < 0 = finger slides down = content scrolls up (older msgs) = hide UI
-        // delta > 0 = finger slides up = content scrolls down (newer msgs) = show UI
-        const hide = delta < 0 && distFromBottom > 80;
-        this.dispatchEvent(new CustomEvent('ui-toggle', { detail: hide, bubbles: true, composed: true }));
-        this._lastScrollTop = st;
-      }
+      this._lastScrollTop = st;
+
+      if (this._uiToggleLocked || Math.abs(delta) < 6) return;
+
+      // delta < 0 = finger slides down = content scrolls up (older msgs) = hide UI
+      // delta > 0 = finger slides up = content scrolls down (newer msgs) = show UI
+      const hide = delta < 0 && distFromBottom > 80;
+      this._uiToggleLocked = true;
+      this.dispatchEvent(new CustomEvent('ui-toggle', { detail: hide, bubbles: true, composed: true }));
+      setTimeout(() => { this._uiToggleLocked = false; }, 420);
     }, { passive: true });
 
     el.addEventListener('touchstart', (e) => {
@@ -335,8 +336,9 @@ export class ChatView extends LitElement {
         this._lastScrollTop = el.scrollTop;
       }
       this._showScrollBtn = false;
+      this._uiToggleLocked = false;
       this._isAutoScrolling = false;
-    }, 320);
+    }, 420);
   }
 
   async _send(e) {

@@ -57,15 +57,15 @@ export class AppShell extends LitElement {
       background: #000;
       z-index: 50;
       flex-shrink: 0;
-      transition: all 0.3s ease;
+      transition: transform 0.38s cubic-bezier(0.4, 0, 0.2, 1),
+                  opacity 0.38s cubic-bezier(0.4, 0, 0.2, 1);
+      will-change: transform, opacity;
     }
 
     :host([ui-hidden]) .header {
-      height: 0;
-      padding-top: 0;
+      transform: translateY(-110%);
       opacity: 0;
-      border-bottom: none;
-      overflow: hidden;
+      pointer-events: none;
     }
 
     .header h1 {
@@ -126,13 +126,15 @@ export class AppShell extends LitElement {
       z-index: 1000;
       overflow: hidden;
       border-top: 1px solid rgba(0, 255, 255, 0.08);
-      transition: opacity 0.3s, transform 0.3s;
+      transition: transform 0.38s cubic-bezier(0.4, 0, 0.2, 1),
+                  opacity 0.38s cubic-bezier(0.4, 0, 0.2, 1);
+      will-change: transform, opacity;
       flex-shrink: 0;
       box-sizing: border-box;
     }
 
     .balance-bar.hidden {
-      transform: translateY(calc(20px + env(safe-area-inset-bottom, 0px)));
+      transform: translateY(110%);
       opacity: 0;
       pointer-events: none;
     }
