@@ -179,7 +179,6 @@ export async function deleteMessage(id, timestamp = null) {
       if (msg) {
         // Record tombstone using multiple potential identifiers
         const keys = [];
-        if (msg.seq) keys.push(`seq:${msg.seq}`);
         if (msg.runId) keys.push(`run:${msg.runId}`);
         keys.push(`ts:${msg.timestamp}`);
 
@@ -219,7 +218,6 @@ export async function clearByCategory(category) {
     
     const tombstone = (msg) => {
       const keys = [];
-      if (msg.seq) keys.push(`seq:${msg.seq}`);
       if (msg.runId) keys.push(`run:${msg.runId}`);
       keys.push(`ts:${msg.timestamp}`);
       keys.forEach(key => tStore.put({ key, timestamp: Date.now() }));

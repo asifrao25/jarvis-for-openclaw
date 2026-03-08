@@ -23,7 +23,7 @@ const localHealth = new LocalHealthChecker(gatewayClient);
 // Track connected PWA clients and their visibility
 const pwaClients = new Map(); // id -> { ws, isVisible }
 const pendingRequests = new Map(); // requestId -> clientId
-let runCompleteTimer = null;
+const runCompleteTimers = new Map();
 
 // Express app
 const app = express();
@@ -268,22 +268,26 @@ gatewayClient.on('event', (event) => {
     return;
   }
 
-  // Agent action events mean the run is still active — cancel pending run.complete
+  // Agent action events mean the run is still active — cancel pending run.complete for this run only
   if (event.event === 'agent') {
     const stream = event.payload?.stream;
-    if (stream === 'tool_call' || stream === 'tool_result' || stream === 'subagent' || stream === 'shell' || stream === 'thinking') {
-      clearTimeout(runCompleteTimer);
+    const runId = event.payload?.runId;
+    if ((stream === 'tool_call' || stream === 'tool_result' || stream === 'subagent' || stream === 'shell' || stream === 'thinking') && runId) {
+      clearTimeout(runCompleteTimers.get(runId));
+      runCompleteTimers.delete(runId);
     }
   }
 
   if (event.event === 'chat') {
-    // Cancel any pending run.complete — agent is still active
-    clearTimeout(runCompleteTimer);
+    const runId = event.payload?.runId;
+    // Cancel any pending run.complete for this runId — agent is still active
+    clearTimeout(runCompleteTimers.get(runId));
+    runCompleteTimers.delete(runId);
     if (event.payload?.state === 'final') {
-      const runId = event.payload?.runId;
       const sessionKey = event.payload?.sessionKey;
       // 500ms debounce: if no new chat event arrives, broadcast run.complete
-      runCompleteTimer = setTimeout(() => {
+      runCompleteTimers.set(runId, setTimeout(() => {
+        runCompleteTimers.delete(runId);
         console.log(`[Relay] run.complete firing for runId=${runId}`);
         const completeMsg = JSON.stringify({ type: 'event', event: 'run.complete', payload: { runId, sessionKey } });
         for (const [id, client] of pwaClients) {
@@ -291,7 +295,7 @@ gatewayClient.on('event', (event) => {
             try { client.ws.send(completeMsg); } catch {}
           }
         }
-      }, 500);
+      }, 500));
 
       // Push notification when app is in background
       if (visibleCount > 0) return;

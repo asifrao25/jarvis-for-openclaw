@@ -12,6 +12,9 @@ import './settings-view.js';
 import './nav-bar.js';
 import './approval-dialog.js';
 
+const AGENT_SESSION = 'agent:main:main';
+const AGENT_SESSION_PREFIX = 'agent:main:';
+
 function categorize(text) {
   if (text.startsWith('[ALERT]')) return 'alert';
   if (text.startsWith('[REPORT]')) return 'report';
@@ -385,6 +388,7 @@ export class AppShell extends LitElement {
     this._pendingApproval = null;
     this._clearThinkingTimeout = null;
     this._agentStatus = 'Thinking';
+    this._streamingIndex = new Map();
 
     // Explicitly bind listeners to ensure 'this' context is preserved on all platforms
     this._onNavigate = this._onNavigate.bind(this);
@@ -678,6 +682,8 @@ export class AppShell extends LitElement {
   _setupWebSocket() {
     wsClient.addEventListener('authenticated', async () => {
       this.connected = true;
+      // Report actual visibility so server doesn't assume visible (default) and skip push notifications
+      wsClient.sendVisibility(document.visibilityState === 'visible');
       await resyncPush();
       this._fetchBalance();
     });
@@ -693,10 +699,10 @@ export class AppShell extends LitElement {
     wsClient.addEventListener('disconnected', () => {
       this.connected = false;
       this.streaming = false;
-      this.thinking = false;
-      clearTimeout(this._clearThinkingTimeout);
+      this._clearThinking();
       // Remove in-flight streaming messages — final will recreate via replay
       this.messages = this.messages.filter(m => !m.streaming);
+      this._rebuildStreamingIndex();
     });
 
     wsClient.addEventListener('auth-failed', (e) => {
@@ -756,23 +762,51 @@ export class AppShell extends LitElement {
           this.messages = [...newOnes, ...this.messages].sort((a, b) => a.timestamp - b.timestamp);
         }
       }
-    } catch (err) { 
-      console.error('Failed to load stored messages:', err); 
+    } catch (err) {
+      console.error('Failed to load stored messages:', err);
     } finally {
+      this._rebuildStreamingIndex();
       setTimeout(() => { this._loadingStore = false; }, 400);
     }
   }
 
-  async _handleMessage(msg) {
-    if (msg.type === 'gateway-status') {
-      this.gatewayConnected = msg.connected;
-      return;
-    }
+  _setThinking(status = 'Thinking') {
+    clearTimeout(this._clearThinkingTimeout);
+    this._agentStatus = status;
+    this.thinking = true;
+  }
 
-    if (msg.type === 'res' && msg.ok && msg.payload?.status === 'started') {
-      clearTimeout(this._clearThinkingTimeout);
-      this._agentStatus = 'Thinking';
-      this.thinking = true;
+  _clearThinking() {
+    clearTimeout(this._clearThinkingTimeout);
+    this._clearThinkingTimeout = null;
+    this._agentStatus = 'Thinking';
+    this.thinking = false;
+  }
+
+  _rebuildStreamingIndex() {
+    this._streamingIndex.clear();
+    this.messages.forEach((m, i) => {
+      if (m.streaming && m.runId) this._streamingIndex.set(m.runId, i);
+    });
+  }
+
+  _handleMessage(msg) {
+    if (msg.type === 'gateway-status') return this._handleGatewayStatus(msg);
+    if (msg.type === 'res') return this._handleRes(msg);
+    if (msg.type !== 'event') return;
+    if (msg.event === 'exec.approval.requested') return this._handleApprovalRequest(msg);
+    if (msg.event === 'run.complete') return this._handleRunComplete(msg);
+    if (msg.event === 'agent') return this._handleAgentEvent(msg);
+    if (msg.event === 'chat') return this._handleChatEvent(msg);
+  }
+
+  _handleGatewayStatus(msg) {
+    this.gatewayConnected = msg.connected;
+  }
+
+  _handleRes(msg) {
+    if (msg.ok && msg.payload?.status === 'started') {
+      this._setThinking();
       const lastSending = this.messages.findLastIndex(m => m.role === 'user' && m.status === 'sending');
       if (lastSending !== -1) {
         const updated = [...this.messages];
@@ -782,7 +816,7 @@ export class AppShell extends LitElement {
       return;
     }
 
-    if (msg.type === 'res' && msg.ok === false) {
+    if (msg.ok === false) {
       const lastSending = this.messages.findLastIndex(m => m.role === 'user' && (m.status === 'sending' || m.status === 'received'));
       if (lastSending !== -1) {
         const updated = [...this.messages];
@@ -793,82 +827,60 @@ export class AppShell extends LitElement {
     }
 
     // Handle universal clear
-    if (msg.type === 'res' && msg.ok && msg.method === 'sessions.reset') {
+    if (msg.ok && msg.method === 'sessions.reset') {
       console.log('[AppShell] Universal session reset received, clearing chat data');
       this.messages = this.messages.filter(m => m.category !== 'chat' && m.role !== 'user');
       clearByCategory('chat').catch(err => console.error('Failed to clear chat store:', err));
-      return;
     }
+  }
 
-    // Handle exec approval requests
-    if (msg.type === 'event' && msg.event === 'exec.approval.requested') {
-      console.log('[AppShell] Received approval request:', msg.payload);
-      const { approvalId, command, agentId, host, timeoutMs } = msg.payload || {};
-      this._pendingApproval = {
-        approvalId,
-        command,
-        agentId,
-        host,
-        timeoutMs: timeoutMs || 60000,
-      };
-      return;
+  _handleApprovalRequest(msg) {
+    console.log('[AppShell] Received approval request:', msg.payload);
+    const { approvalId, command, agentId, host, timeoutMs } = msg.payload || {};
+    this._pendingApproval = {
+      approvalId,
+      command,
+      agentId,
+      host,
+      timeoutMs: timeoutMs || 60000,
+    };
+  }
+
+  _handleRunComplete(msg) {
+    const msgSessionKey = msg.payload?.sessionKey;
+    // Only clear thinking if this is our session (or no sessionKey = legacy)
+    if (!msgSessionKey || msgSessionKey === AGENT_SESSION) {
+      this._clearThinking();
     }
+  }
 
-    // Definitive run completion signal from relay server
-    if (msg.type === 'event' && msg.event === 'run.complete') {
-      const msgSessionKey = msg.payload?.sessionKey;
-      // Only clear thinking if this is our session (or no sessionKey = legacy)
-      if (!msgSessionKey || msgSessionKey === wsClient.sessionKey) {
-        clearTimeout(this._clearThinkingTimeout);
-        this._agentStatus = 'Thinking';
-        this.thinking = false;
+  _handleAgentEvent(msg) {
+    const { stream, data, sessionKey: agentSessionKey } = msg.payload || {};
+    const isCurrentSession = !agentSessionKey || agentSessionKey === AGENT_SESSION;
+    const isLive = !msg._replayed;
+    if (isCurrentSession && isLive) {
+      if (stream === 'lifecycle' && data?.phase === 'start') {
+        this._agentStatus = 'Initializing';
+      } else if (stream === 'thinking') {
+        this._setThinking('Reasoning');
+      } else if (stream === 'tool_call') {
+        const name = data?.toolName || 'tool';
+        this._setThinking(`Tool: ${name}`);
+      } else if (stream === 'tool_result') {
+        this._setThinking('Processing');
+      } else if (stream === 'subagent' && data?.action === 'spawn') {
+        this._setThinking(`Spawning: ${data?.agentId || 'agent'}`);
+      } else if (stream === 'subagent' && data?.action === 'complete') {
+        this._setThinking('Processing');
+      } else if (stream === 'shell') {
+        this._setThinking('Running shell');
       }
-      return;
     }
+  }
 
-    // Agent stream events — update thinking label
-    // Only act on live events for the current PWA session (not replayed, not background cron/heartbeat)
-    if (msg.type === 'event' && msg.event === 'agent') {
-      const { stream, data, sessionKey: agentSessionKey } = msg.payload || {};
-      const isCurrentSession = agentSessionKey === wsClient.sessionKey;
-      const isLive = !msg._replayed;
-      if (isCurrentSession && isLive) {
-        if (stream === 'lifecycle' && data?.phase === 'start') {
-          this._agentStatus = 'Initializing';
-        } else if (stream === 'thinking') {
-          this._agentStatus = 'Reasoning';
-          clearTimeout(this._clearThinkingTimeout);
-          this.thinking = true;
-        } else if (stream === 'tool_call') {
-          const name = data?.toolName || 'tool';
-          this._agentStatus = `Tool: ${name}`;
-          clearTimeout(this._clearThinkingTimeout);
-          this.thinking = true;
-        } else if (stream === 'tool_result') {
-          this._agentStatus = 'Processing';
-          clearTimeout(this._clearThinkingTimeout);
-          this.thinking = true;
-        } else if (stream === 'subagent' && data?.action === 'spawn') {
-          this._agentStatus = `Spawning: ${data?.agentId || 'agent'}`;
-          clearTimeout(this._clearThinkingTimeout);
-          this.thinking = true;
-        } else if (stream === 'subagent' && data?.action === 'complete') {
-          this._agentStatus = 'Processing';
-          clearTimeout(this._clearThinkingTimeout);
-          this.thinking = true;
-        } else if (stream === 'shell') {
-          this._agentStatus = 'Running shell';
-          clearTimeout(this._clearThinkingTimeout);
-          this.thinking = true;
-        }
-      }
-      return;
-    }
-
-    if (msg.type !== 'event' || msg.event !== 'chat') return;
-
+  async _handleChatEvent(msg) {
     const payload = msg.payload || {};
-    const sessionKey = payload.sessionKey || 'agent:main:main';
+    const sessionKey = payload.sessionKey || AGENT_SESSION;
     const state = payload.state;
     const runId = payload.runId;
     const role = payload.message?.role || 'assistant';
@@ -877,7 +889,7 @@ export class AppShell extends LitElement {
 
     // Ignore chat events for other sessions to ensure independence
     // BUT allow reports/alerts from main session (cron jobs, heartbeats)
-    const isFromMainSession = sessionKey === 'agent:main:main' || sessionKey.startsWith('agent:main:');
+    const isFromMainSession = sessionKey === AGENT_SESSION || sessionKey.startsWith(AGENT_SESSION_PREFIX);
 
     if (sessionKey !== wsClient.sessionKey && !isFromMainSession) {
       console.log(`[AppShell] Ignoring event for unrelated session: ${sessionKey}`);
@@ -900,27 +912,26 @@ export class AppShell extends LitElement {
     if (state === 'delta') {
       // Skip replayed delta if a final for this runId is already in memory
       if (runId && this.messages.some(m => m.runId === runId && m.streaming === false)) return;
-      clearTimeout(this._clearThinkingTimeout);
-      this.thinking = false;
+      this._clearThinking();
       this.streaming = true;
-      const existingIdx = this.messages.findIndex(m => m.runId === runId && m.streaming);
+      const existingIdx = this._streamingIndex.has(runId) ? this._streamingIndex.get(runId) : -1;
       if (existingIdx !== -1) {
         const updated = [...this.messages];
         updated[existingIdx] = { ...updated[existingIdx], text, streaming: true };
         this.messages = updated;
       } else {
         this.messages = [...this.messages, { role, text, category, timestamp: Date.now(), streaming: true, runId }];
+        this._streamingIndex.set(runId, this.messages.length - 1);
       }
     } else if (state === 'final') {
       this.streaming = false;
       // Re-show thinking indicator only for the active PWA session (not cron/background agents)
-      // run.complete (from relay) will clear it deterministically; 30s is a safety net.
-      if (sessionKey === wsClient.sessionKey && !msg._replayed) {
-        this.thinking = true;
-        clearTimeout(this._clearThinkingTimeout);
-        this._clearThinkingTimeout = setTimeout(() => { this.thinking = false; }, 30000);
+      // run.complete (from relay) will clear it deterministically; 8s is a safety net.
+      if ((sessionKey === AGENT_SESSION || !sessionKey) && !msg._replayed) {
+        this._setThinking();
+        this._clearThinkingTimeout = setTimeout(() => this._clearThinking(), 8000);
       }
-      const existingIdx = this.messages.findIndex(m => m.runId === runId && m.streaming);
+      const existingIdx = this._streamingIndex.has(runId) ? this._streamingIndex.get(runId) : -1;
 
       const finalMsg = { role, text, category, timestamp: Date.now(), streaming: false, runId, seq: msg.seq, seen: false, attachment };
 
@@ -929,6 +940,7 @@ export class AppShell extends LitElement {
         console.log(`[AppShell] Ignoring tombstoned message: seq=${msg.seq} runId=${runId}`);
         if (existingIdx !== -1) {
           this.messages = this.messages.filter((_, i) => i !== existingIdx);
+          this._streamingIndex.delete(runId);
         }
         return;
       }
@@ -939,9 +951,10 @@ export class AppShell extends LitElement {
       );
       if (isDuplicate) {
         // Belt-and-suspenders: clean up stale streaming bubble that leaked through
-        const staleStreamIdx = this.messages.findIndex(m => m.runId === runId && m.streaming);
+        const staleStreamIdx = this._streamingIndex.has(runId) ? this._streamingIndex.get(runId) : -1;
         if (staleStreamIdx !== -1) {
           this.messages = this.messages.filter((_, i) => i !== staleStreamIdx);
+          this._streamingIndex.delete(runId);
         }
         console.log(`[AppShell] Ignoring duplicate: seq=${msg.seq} runId=${runId}`);
         return;
@@ -954,6 +967,7 @@ export class AppShell extends LitElement {
       } else {
         this.messages = [...this.messages, finalMsg];
       }
+      this._streamingIndex.delete(runId);
 
       // 3. Persist
       try {
