@@ -21,7 +21,7 @@ export class ChatView extends LitElement {
       overflow-x: hidden;
       -webkit-overflow-scrolling: touch;
       padding: 15px 20px;
-      padding-bottom: 74px;
+      padding-bottom: calc(148px + env(safe-area-inset-bottom, 0px));
       display: flex;
       flex-direction: column;
       gap: 12px;
@@ -43,11 +43,11 @@ export class ChatView extends LitElement {
       flex-shrink: 0;
       background: #000;
       border-top: 1px solid rgba(0, 255, 255, 0.15);
-      z-index: 30;
+      z-index: 1000;
       display: flex;
       flex-direction: column;
       transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-      padding-bottom: 30px;
+      padding-bottom: calc(88px + env(safe-area-inset-bottom, 0px));
     }
 
     .input-area {
@@ -63,7 +63,7 @@ export class ChatView extends LitElement {
     @media (min-width: 1024px) {
       .input-area-container {
         position: fixed;
-        bottom: 80px;
+        bottom: 110px;
         left: 0;
         right: 0;
         padding: 0 60px;
@@ -78,17 +78,19 @@ export class ChatView extends LitElement {
         height: 60px;
       }
       .indicator-container {
-        bottom: 140px !important;
+        bottom: 190px !important;
       }
       .messages {
-        padding-bottom: 160px !important;
+        padding-bottom: 210px !important;
       }
     }
 
     :host([ui-hidden]) .input-area-container {
       height: 0;
       min-height: 0;
+      padding: 0;
       opacity: 0;
+      overflow: hidden;
       pointer-events: none;
       border-top-color: transparent;
     }
@@ -140,7 +142,7 @@ export class ChatView extends LitElement {
 
     .scroll-bottom-btn {
       position: absolute;
-      bottom: 86px;
+      bottom: calc(134px + env(safe-area-inset-bottom, 0px));
       left: 50%;
       transform: translateX(-50%);
       background: rgba(0, 30, 40, 0.9);
@@ -158,7 +160,7 @@ export class ChatView extends LitElement {
       z-index: 40;
       backdrop-filter: blur(15px);
       box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
-      transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      transition: bottom 0.3s ease, opacity 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275), transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
       opacity: 0;
       pointer-events: none;
       transform: translate(-50%, 15px) scale(0.9);
@@ -170,9 +172,13 @@ export class ChatView extends LitElement {
       transform: translate(-50%, 0) scale(1);
     }
 
+    :host([ui-hidden]) .scroll-bottom-btn {
+      bottom: calc(6px + env(safe-area-inset-bottom, 0px));
+    }
+
     .indicator-container {
       position: absolute;
-      bottom: 74px;
+      bottom: calc(148px + env(safe-area-inset-bottom, 0px));
       left: 0;
       width: 100%;
       z-index: 25;
@@ -238,6 +244,7 @@ export class ChatView extends LitElement {
     this._showScrollBtn = false;
     this._isPulling = false;
     this.loading = false;
+    this._lastScrollTop = 0;
   }
 
   firstUpdated() {
@@ -245,11 +252,21 @@ export class ChatView extends LitElement {
     setTimeout(() => this.scrollToBottom(false), 50);
     setTimeout(() => this.scrollToBottom(false), 200);
 
+    this._lastScrollTop = el.scrollTop;
     el.addEventListener('scroll', () => {
       if (this._isAutoScrolling) return;
       const st = el.scrollTop;
       const distFromBottom = el.scrollHeight - st - el.clientHeight;
       this._showScrollBtn = distFromBottom > 300;
+
+      const delta = st - this._lastScrollTop;
+      if (Math.abs(delta) > 4) {
+        // delta < 0 = finger slides down = content scrolls up (older msgs) = hide UI
+        // delta > 0 = finger slides up = content scrolls down (newer msgs) = show UI
+        const hide = delta < 0 && distFromBottom > 80;
+        this.dispatchEvent(new CustomEvent('ui-toggle', { detail: hide, bubbles: true, composed: true }));
+        this._lastScrollTop = st;
+      }
     }, { passive: true });
 
     el.addEventListener('touchstart', (e) => {
@@ -305,6 +322,23 @@ export class ChatView extends LitElement {
     }
   }
 
+  _restoreAndScrollToBottom() {
+    // Block scroll listener immediately so it can't re-hide during transition
+    this._isAutoScrolling = true;
+    // Restore UI bars
+    this.dispatchEvent(new CustomEvent('ui-toggle', { detail: false, bubbles: true, composed: true }));
+    // Wait for CSS transitions (300ms) to settle before snapping to bottom
+    setTimeout(() => {
+      const el = this.shadowRoot.querySelector('.messages');
+      if (el) {
+        el.scrollTop = el.scrollHeight;
+        this._lastScrollTop = el.scrollTop;
+      }
+      this._showScrollBtn = false;
+      this._isAutoScrolling = false;
+    }, 320);
+  }
+
   async _send(e) {
     e.preventDefault();
     const input = this.shadowRoot.querySelector('input[type="text"]');
@@ -357,7 +391,7 @@ export class ChatView extends LitElement {
         </div>
       ` : ''}
 
-      <div class="scroll-bottom-btn ${this._showScrollBtn ? 'visible' : ''}" @click=${() => { hapticMedium(); this.scrollToBottom(true); }}>
+      <div class="scroll-bottom-btn ${this._showScrollBtn ? 'visible' : ''}" @click=${() => { hapticMedium(); this._restoreAndScrollToBottom(); }}>
         <svg viewBox="0 0 24 24"><path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6 1.41-1.41z"/></svg>
         <span>NEW MESSAGES BELOW</span>
       </div>

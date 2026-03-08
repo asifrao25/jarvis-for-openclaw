@@ -78,7 +78,8 @@ export class WSClient extends EventTarget {
           return;
         }
 
-        // Track seq
+        // Track seq in-memory for the current session's replay buffer alignment.
+        // PERSISTENCE is handled by AppShell via commitSeq() after DB storage.
         if (typeof msg.seq === 'number') {
           // Detect sequence reset (server restarted)
           if (msg.seq < this.lastSeq - 1000) {
@@ -87,7 +88,6 @@ export class WSClient extends EventTarget {
           } else {
             this.lastSeq = Math.max(this.lastSeq, msg.seq);
           }
-          localStorage.setItem('openclaw-lastSeq', String(this.lastSeq));
         }
 
         // Dispatch event
@@ -113,6 +113,14 @@ export class WSClient extends EventTarget {
     this.ws.onerror = (err) => {
       console.error('[WS] Error:', err);
     };
+  }
+
+  commitSeq(seq) {
+    if (typeof seq === 'number') {
+      // In-memory update already happened in onmessage, but we confirm it here
+      this.lastSeq = Math.max(this.lastSeq, seq);
+      localStorage.setItem('openclaw-lastSeq', String(this.lastSeq));
+    }
   }
 
   send(msg) {
@@ -147,7 +155,7 @@ export class WSClient extends EventTarget {
       id,
       method: 'sessions.reset',
       params: {
-        sessionKey
+        key: sessionKey
       },
     });
     return id;

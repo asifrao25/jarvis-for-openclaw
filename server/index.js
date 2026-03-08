@@ -162,7 +162,8 @@ wss.on('connection', (ws, req) => {
             ws.send(JSON.stringify({ type: 'buffer-reset', newestSeq: stats.newestSeq }));
           }
 
-          if (lastSeq > 0 || (lastSeq > stats.newestSeq)) {
+          // Replay if client is behind OR if we just sent a reset (since getEventsSince handles the reset case)
+          if (lastSeq !== stats.newestSeq) {
             const missed = eventBuffer.getEventsSince(lastSeq, clientId);
             console.log(`[WS] Replaying ${missed.length} events for ${clientId}`);
             for (const event of missed) {
@@ -304,7 +305,17 @@ gatewayClient.on('event', (event) => {
         const category = categorize(event);
         const truncated = text.length > 200 ? text.substring(0, 197) + '...' : text;
         const title = category === 'alert' ? 'Jarvis Alert' : (category === 'report' ? 'Jarvis Report' : 'Jarvis');
-        pushManager.sendToAll({ title, body: truncated, category, tag: category, url: '/pwa/' });
+        pushManager.sendToAll({ 
+          title, 
+          body: truncated, 
+          category, 
+          tag: category, 
+          url: '/pwa/', 
+          data: { 
+            event: enrichedEvent, // Full event for PWA reconstruction
+            category,
+          } 
+        });
       }
     }
   }

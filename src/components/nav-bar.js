@@ -5,176 +5,132 @@ export class NavBar extends LitElement {
   static styles = css`
     :host {
       position: fixed;
+      left: 0;
       right: 0;
-      bottom: 30px;
-      width: 50px;
-      height: 44px;
+      bottom: calc(20px + env(safe-area-inset-bottom, 0px)); /* Sit right above the dynamic balance bar */
+      height: 64px;
       background: #000;
-      z-index: 100;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      pointer-events: none;
+      border-top: 1px solid rgba(0, 255, 255, 0.15);
+      z-index: 1100;
       transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
       box-sizing: border-box;
-      border-top: 1px solid rgba(0, 255, 255, 0.15);
+      pointer-events: auto; /* CRITICAL: Ensure clicks are captured */
     }
 
     :host([ui-hidden]) {
       transform: translateY(100px);
       opacity: 0;
-    }
-
-    .menu-container {
-      position: absolute;
-      bottom: 52px;
-      right: 10px;
-      z-index: 2;
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-      opacity: 0;
-      transform: translateY(20px) scale(0.9);
       pointer-events: none;
-      transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-      background: rgba(0, 15, 20, 0.98);
-      border: 1px solid var(--c-primary);
-      border-radius: 12px;
-      padding: 8px;
-      box-shadow: 0 0 30px rgba(0, 255, 255, 0.3);
-      backdrop-filter: blur(20px);
-      -webkit-backdrop-filter: blur(20px);
     }
 
-    .menu-container.open {
-      opacity: 1;
-      transform: translateY(0) scale(1);
-      pointer-events: auto;
+    .nav-container {
+      display: flex;
+      width: 100%;
+      height: 100%;
+      align-items: center;
+      justify-content: space-evenly;
+      padding: 0 10px;
+      box-sizing: border-box;
     }
 
     .nav-item {
-      width: 140px;
-      padding: 12px;
-      border-radius: 8px;
-      background: rgba(0, 255, 255, 0.05);
-      border: 1px solid rgba(0, 255, 255, 0.1);
-      color: var(--c-primary);
+      flex: 1;
       display: flex;
+      flex-direction: column;
       align-items: center;
-      gap: 10px;
+      justify-content: center;
+      gap: 4px;
+      color: rgba(0, 255, 255, 0.5);
       cursor: pointer;
       transition: all 0.2s;
+      position: relative;
+      height: 100%;
+      background: transparent;
+      border: none;
+      padding: 0;
+      -webkit-tap-highlight-color: transparent;
     }
 
     .nav-item:active {
-      background: rgba(0, 255, 255, 0.2);
-      transform: scale(0.96);
+      background: rgba(0, 255, 255, 0.1);
+    }
+
+    .nav-item.active {
+      color: var(--c-primary);
+      text-shadow: 0 0 10px var(--c-primary-dim);
+    }
+
+    .nav-item.active::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 30px;
+      height: 2px;
+      background: var(--c-primary);
+      box-shadow: 0 0 10px var(--c-primary);
     }
 
     .nav-item svg {
-      width: 18px; height: 18px;
+      width: 22px;
+      height: 22px;
       fill: currentColor;
+      pointer-events: none;
     }
 
     .nav-item .label {
       font-family: var(--f-mono);
-      font-size: 11px;
+      font-size: 9px;
       text-transform: uppercase;
       letter-spacing: 1px;
-    }
-
-    .fab-main {
-      width: 40px;
-      height: 40px;
-      border-radius: 8px;
-      background: rgba(0, 30, 40, 0.9);
-      border: 1px solid var(--c-primary);
-      color: var(--c-primary);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      cursor: pointer;
-      box-shadow: 0 0 15px rgba(0, 255, 255, 0.2);
-      pointer-events: auto;
-      transition: all 0.3s ease;
-      position: relative;
-      padding: 0;
-      backdrop-filter: blur(10px);
-    }
-
-    .fab-main.open {
-      background: var(--c-primary);
-      color: #000;
-    }
-
-    .fab-main svg {
-      width: 20px; height: 20px;
-      fill: currentColor;
-      transition: transform 0.3s ease;
+      pointer-events: none;
     }
 
     .badge {
       position: absolute;
-      top: -8px;
-      right: -8px;
+      top: 8px;
+      right: calc(50% - 24px);
       background: var(--c-alert);
       color: white;
-      font-size: 10px;
+      font-size: 9px;
       font-weight: 900;
-      min-width: 18px;
-      height: 18px;
+      min-width: 16px;
+      height: 16px;
       display: flex;
       align-items: center;
       justify-content: center;
       border-radius: 50%;
-      box-shadow: 0 0 10px var(--c-alert);
+      box-shadow: 0 0 8px var(--c-alert);
       font-family: var(--f-mono);
       border: 1px solid rgba(255,255,255,0.4);
-      z-index: 5;
-    }
-
-    .nav-item .badge {
-      position: static;
-      margin-left: auto;
+      pointer-events: none;
     }
 
     .refresh-btn {
-      position: absolute;
-      bottom: 48px;
-      right: 9px;
-      width: 32px;
-      height: 32px;
-      border-radius: 8px;
-      background: rgba(0, 30, 40, 0.9);
-      border: 1px solid rgba(0, 255, 255, 0.35);
-      color: var(--c-primary);
+      width: 50px;
+      height: 100%;
       display: flex;
       align-items: center;
       justify-content: center;
-      cursor: pointer;
-      pointer-events: auto;
+      color: var(--c-primary);
+      background: transparent;
+      border: none;
       padding: 0;
-      backdrop-filter: blur(10px);
-      transition: background 0.2s, border-color 0.2s, box-shadow 0.2s;
-      z-index: 1;
+      cursor: pointer;
+      opacity: 0.6;
+      transition: opacity 0.2s;
     }
 
     .refresh-btn:active {
-      background: rgba(0, 255, 255, 0.15);
-      transform: scale(0.92);
-    }
-
-    .refresh-btn.done {
-      border-color: var(--c-primary);
-      box-shadow: 0 0 12px rgba(0, 255, 255, 0.3);
+      opacity: 1;
+      background: rgba(0, 255, 255, 0.1);
     }
 
     .refresh-btn svg {
-      width: 16px;
-      height: 16px;
+      width: 18px;
+      height: 18px;
       fill: currentColor;
-      transition: transform 0.3s ease;
     }
 
     .refresh-btn.spinning svg {
@@ -185,78 +141,24 @@ export class NavBar extends LitElement {
       to { transform: rotate(360deg); }
     }
 
-    /* Desktop Horizontal Nav Bar */
     @media (min-width: 1024px) {
       :host {
-        width: 100%;
         height: 80px;
-        bottom: 0;
-        flex-direction: row;
-        padding: 0 40px;
-        gap: 20px;
-        pointer-events: auto;
-        background: rgba(0, 5, 10, 0.95);
-        backdrop-filter: blur(20px);
-        left: 0;
-        right: 0;
+        bottom: 30px;
       }
-
-      .fab-main {
-        display: none;
-      }
-
-      .refresh-btn {
-        display: none;
-      }
-
-      .menu-container {
-        position: relative;
-        bottom: auto;
-        right: auto;
-        display: flex;
-        flex-direction: row;
-        opacity: 1;
-        transform: none;
-        pointer-events: auto;
-        background: transparent;
-        border: none;
-        box-shadow: none;
-        backdrop-filter: none;
-        gap: 30px;
-        width: 100%;
-        justify-content: center;
-      }
-
       .nav-item {
-        width: auto;
-        min-width: 160px;
-        padding: 12px 24px;
-        background: rgba(0, 255, 255, 0.03);
-        border-color: rgba(0, 255, 255, 0.1);
-        justify-content: center;
+        gap: 6px;
       }
-
-      .nav-item.active {
-        background: rgba(0, 255, 255, 0.15);
-        border-color: var(--c-primary);
-        box-shadow: 0 0 20px rgba(0, 255, 255, 0.1);
-      }
-
       .nav-item svg {
-        width: 24px;
-        height: 24px;
+        width: 26px;
+        height: 26px;
       }
-
       .nav-item .label {
-        font-size: 14px;
-        font-weight: bold;
+        font-size: 11px;
       }
-
-      .nav-item .badge {
-        margin-left: 10px;
-        font-size: 12px;
-        min-width: 22px;
-        height: 22px;
+      .badge {
+        top: 12px;
+        right: calc(50% - 30px);
       }
     }
   `;
@@ -265,7 +167,6 @@ export class NavBar extends LitElement {
     active: { type: String },
     alertCount: { type: Number },
     reportCount: { type: Number },
-    open: { type: Boolean, state: true },
     uiHidden: { type: Boolean, reflect: true, attribute: 'ui-hidden' },
     keyboardOpen: { type: Boolean, reflect: true, attribute: 'keyboard-open' },
     _refreshing: { type: Boolean, state: true },
@@ -274,15 +175,9 @@ export class NavBar extends LitElement {
 
   constructor() {
     super();
-    this.open = false;
     this.uiHidden = false;
     this._refreshing = false;
     this._refreshDone = false;
-  }
-
-  _toggle() {
-    this.open = !this.open;
-    hapticMedium();
   }
 
   async _checkForUpdate() {
@@ -295,7 +190,6 @@ export class NavBar extends LitElement {
       if ('serviceWorker' in navigator) {
         const reg = await navigator.serviceWorker.getRegistration();
         if (reg) {
-          // Listen for a new SW taking control — if it fires, reload to load new bundles
           let reloading = false;
           const onControllerChange = () => {
             if (reloading) return;
@@ -303,22 +197,16 @@ export class NavBar extends LitElement {
             window.location.reload();
           };
           navigator.serviceWorker.addEventListener('controllerchange', onControllerChange, { once: true });
-
           await reg.update();
-
-          // Give the SW 2s to install/activate; if no controllerchange, do soft refresh
           await new Promise(resolve => setTimeout(resolve, 2000));
-
           if (!reloading) {
             navigator.serviceWorker.removeEventListener('controllerchange', onControllerChange);
-            // No new version — soft refresh: reload messages from store
             this.dispatchEvent(new CustomEvent('refresh', { bubbles: true, composed: true }));
             this._refreshing = false;
             this._refreshDone = true;
             hapticSuccess();
             setTimeout(() => { this._refreshDone = false; }, 1500);
           }
-          // If reloading, the page will reload and this code won't continue
           return;
         }
       }
@@ -326,7 +214,6 @@ export class NavBar extends LitElement {
       console.error('[Nav] Update check failed:', e);
     }
 
-    // Fallback: soft refresh
     this.dispatchEvent(new CustomEvent('refresh', { bubbles: true, composed: true }));
     this._refreshing = false;
     this._refreshDone = true;
@@ -336,18 +223,19 @@ export class NavBar extends LitElement {
 
   _nav(view) {
     this.dispatchEvent(new CustomEvent('navigate', { detail: view, bubbles: true, composed: true }));
-    this.open = false;
     hapticLight();
   }
 
   render() {
-    const totalUnread = (this.alertCount || 0) + (this.reportCount || 0);
-
     return html`
-      <div class="menu-container ${this.open ? 'open' : ''}">
+      <div class="nav-container">
+        <button class="refresh-btn ${this._refreshing ? 'spinning' : ''}" @click=${this._checkForUpdate} aria-label="Refresh">
+          <svg viewBox="0 0 24 24"><path d="M17.65 6.35A7.958 7.958 0 0 0 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08A5.99 5.99 0 0 1 12 18c-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/></svg>
+        </button>
+
         <div class="nav-item ${this.active === 'chat' ? 'active' : ''}" @click=${() => this._nav('chat')}>
           <svg viewBox="0 0 24 24"><path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"/></svg>
-          <span class="label">Interface</span>
+          <span class="label">Chat</span>
         </div>
 
         <div class="nav-item ${this.active === 'alert' ? 'active' : ''}" @click=${() => this._nav('alert')}>
@@ -367,19 +255,6 @@ export class NavBar extends LitElement {
           <span class="label">Settings</span>
         </div>
       </div>
-
-      <button class="refresh-btn ${this._refreshing ? 'spinning' : ''} ${this._refreshDone ? 'done' : ''}" @click=${this._checkForUpdate} aria-label="Refresh">
-        <svg viewBox="0 0 24 24"><path d="M17.65 6.35A7.958 7.958 0 0 0 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08A5.99 5.99 0 0 1 12 18c-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/></svg>
-      </button>
-
-      <button class="fab-main ${this.open ? 'open' : ''}" @click=${this._toggle} aria-label="Toggle Menu">
-        ${!this.open && totalUnread > 0 ? html`<span class="badge">${totalUnread}</span>` : ''}
-        ${this.open ? html`
-          <svg viewBox="0 0 24 24"><path d="M16.59 8.59L12 13.17 7.41 8.59 6 10l6 6 6-6z"/></svg>
-        ` : html`
-          <svg viewBox="0 0 24 24"><path d="M12 8l-6 6 1.41 1.41L12 10.83l4.59 4.58L18 14z"/></svg>
-        `}
-      </button>
     `;
   }
 }

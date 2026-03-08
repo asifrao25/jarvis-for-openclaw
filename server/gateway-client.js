@@ -11,6 +11,8 @@ export default class GatewayClient extends EventEmitter {
     this.connected = false;
     this.authenticated = false;
     this.reconnectTimer = null;
+    this.reconnectDelay = 5000;
+    this.maxReconnectDelay = 30000;
     this.pendingConnectId = null;
     this._lastEventAt = null;
     this._errorCount = 0;
@@ -32,6 +34,7 @@ export default class GatewayClient extends EventEmitter {
     this.ws.on('open', () => {
       console.log('[Gateway] Connected, waiting for challenge...');
       this.connected = true;
+      this.reconnectDelay = 5000;
     });
 
     this.ws.on('message', (data) => {
@@ -136,11 +139,12 @@ export default class GatewayClient extends EventEmitter {
   _scheduleReconnect() {
     if (this.reconnectTimer) return;
     this._reconnectCount++;
-    console.log('[Gateway] Reconnecting in 10s...');
+    console.log(`[Gateway] Reconnecting in ${this.reconnectDelay / 1000}s...`);
     this.reconnectTimer = setTimeout(() => {
       this.reconnectTimer = null;
       this.connect();
-    }, 10000);
+    }, this.reconnectDelay);
+    this.reconnectDelay = Math.min(this.reconnectDelay * 2, this.maxReconnectDelay);
   }
 
   isReady() {

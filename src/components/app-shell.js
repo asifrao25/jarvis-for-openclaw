@@ -120,15 +120,19 @@ export class AppShell extends LitElement {
       left: 0;
       right: 0;
       bottom: 0;
-      height: 30px;
+      height: calc(20px + env(safe-area-inset-bottom, 0px));
+      padding-bottom: env(safe-area-inset-bottom, 0px);
       background: #000;
-      z-index: 100;
+      z-index: 1000;
       overflow: hidden;
       border-top: 1px solid rgba(0, 255, 255, 0.08);
-      transition: opacity 0.3s;
+      transition: opacity 0.3s, transform 0.3s;
+      flex-shrink: 0;
+      box-sizing: border-box;
     }
 
     .balance-bar.hidden {
+      transform: translateY(calc(20px + env(safe-area-inset-bottom, 0px)));
       opacity: 0;
       pointer-events: none;
     }
@@ -956,6 +960,8 @@ export class AppShell extends LitElement {
           this._streamingIndex.delete(runId);
         }
         console.log(`[AppShell] Ignoring duplicate: seq=${msg.seq} runId=${runId}`);
+        // Commit seq for duplicates too, so they aren't re-requested on next connect
+        if (typeof msg.seq === 'number') wsClient.commitSeq(msg.seq);
         return;
       }
 
@@ -971,6 +977,9 @@ export class AppShell extends LitElement {
       // 3. Persist
       try {
         const id = await addMessage(finalMsg);
+        // Commit seq even if id is null (duplicate in DB)
+        if (typeof msg.seq === 'number') wsClient.commitSeq(msg.seq);
+
         if (id) {
           // Match by runId (stable UUID) — timestamp can collide if two messages arrive same ms
           const matchFn = runId
@@ -1205,6 +1214,7 @@ export class AppShell extends LitElement {
             .uiHidden=${this.uiHidden}
             ?keyboard-open=${this._keyboardOpen}
           ></nav-bar>
+
           <div class="balance-bar ${this.uiHidden ? 'hidden' : ''}">
             <div class="balance-bar-fill" style="width: ${this._balance !== null ? Math.min(this._balance / 15 * 100, 100).toFixed(1) : 0}%"></div>
             <div class="balance-bar-text">
