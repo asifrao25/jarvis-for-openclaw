@@ -95,7 +95,7 @@ function apiRoutes(router) {
     res.json({
       chat: primary,
       heartbeatCron:   jobModels['MCP Heartbeat Hourly']         || primary,
-      heartbeatScript: config.ollamaModel,
+      heartbeatScript: config.ollamaModel, // PWA relay local health checker (Ollama), not the heartbeat Python script
       watchdog:        jobModels['MCP Server Watchdog']           || primary,
       newsBot:         jobModels['Daily AI & Tech News Curator']  || primary,
       proxmoxReport:   jobModels['Enhanced Proxmox Daily Report'] || primary,

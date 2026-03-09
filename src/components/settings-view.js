@@ -484,7 +484,7 @@ export class SettingsView extends LitElement {
         ${[
           { key: 'chat',            label: 'Chat (Primary)' },
           { key: 'heartbeatCron',   label: 'Heartbeat Cron' },
-          { key: 'heartbeatScript', label: 'Heartbeat Script' },
+          { key: 'heartbeatScript', label: 'PWA Health Check' },
           { key: 'watchdog',        label: 'MCP Watchdog' },
           { key: 'newsBot',         label: 'News Curator' },
           { key: 'proxmoxReport',   label: 'Proxmox Report' },
