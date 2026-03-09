@@ -65,4 +65,9 @@ export default {
   ollamaModel: process.env.OLLAMA_MODEL || 'qwen2.5:1.5b',
   healthCheckIntervalMs: parseInt(process.env.HEALTH_CHECK_INTERVAL_MS || '60000', 10),
   healthCheckTimeoutMs: parseInt(process.env.HEALTH_CHECK_TIMEOUT_MS || '10000', 10),
+
+  // Agent model config (set via env vars or ~/.openclaw/agent-models.json)
+  chatModel: process.env.CHAT_MODEL || null,
+  heartbeatModel: process.env.HEARTBEAT_MODEL || null,
+  proxmoxModel: process.env.PROXMOX_MODEL || null,
 };

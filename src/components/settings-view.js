@@ -124,6 +124,67 @@ export class SettingsView extends LitElement {
     .status-enabled { background: rgba(0, 255, 0, 0.2); color: #00FF00; }
     .status-disabled { background: rgba(255, 0, 0, 0.2); color: #FF3333; }
 
+    .model-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 8px 0;
+      border-bottom: 1px solid rgba(0, 255, 255, 0.06);
+    }
+
+    .model-row:last-of-type {
+      border-bottom: none;
+    }
+
+    .model-label {
+      font-size: 12px;
+      opacity: 0.6;
+      font-family: var(--f-mono);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .model-name {
+      font-size: 11px;
+      font-family: var(--f-mono);
+      color: rgba(0, 255, 255, 0.9);
+      background: rgba(0, 255, 255, 0.08);
+      border: 1px solid rgba(0, 255, 255, 0.15);
+      border-radius: 4px;
+      padding: 3px 8px;
+      max-width: 60%;
+      text-align: right;
+      word-break: break-all;
+    }
+
+    .model-name.unknown {
+      color: rgba(255, 255, 255, 0.3);
+      background: rgba(255, 255, 255, 0.04);
+      border-color: rgba(255, 255, 255, 0.1);
+    }
+
+    .models-meta {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 12px;
+    }
+
+    .models-refresh {
+      font-size: 10px;
+      font-family: var(--f-mono);
+      color: rgba(0, 255, 255, 0.5);
+      background: none;
+      border: 1px solid rgba(0, 255, 255, 0.2);
+      border-radius: 4px;
+      padding: 3px 8px;
+      cursor: pointer;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .models-refresh:active { opacity: 0.5; }
+
     /* Custom Confirmation Modal */
     .modal-overlay {
       position: fixed;
@@ -222,7 +283,9 @@ export class SettingsView extends LitElement {
     _confirmTitle: { type: String, state: true },
     _confirmText: { type: String, state: true },
     _confirmAction: { type: Object, state: true },
-    _pendingCategory: { type: String, state: true }
+    _pendingCategory: { type: String, state: true },
+    _models: { type: Object, state: true },
+    _modelsLoading: { type: Boolean, state: true },
   };
 
   constructor() {
@@ -236,15 +299,38 @@ export class SettingsView extends LitElement {
     this._confirmText = '';
     this._confirmAction = null;
     this._pendingCategory = '';
-    
+    this._models = null;
+    this._modelsLoading = false;
+    this._modelsTimer = null;
+
     // Explicit binding for all platforms
     this._handleConfirm = this._handleConfirm.bind(this);
     this._handleCancel = this._handleCancel.bind(this);
     this._clear = this._clear.bind(this);
     this._logout = this._logout.bind(this);
     this._forceReset = this._forceReset.bind(this);
-    
+
     this._applySettings();
+  }
+
+  connectedCallback() {
+    super.connectedCallback();
+    this._fetchModels();
+    this._modelsTimer = setInterval(() => this._fetchModels(), 30000);
+  }
+
+  disconnectedCallback() {
+    super.disconnectedCallback();
+    clearInterval(this._modelsTimer);
+  }
+
+  async _fetchModels() {
+    this._modelsLoading = true;
+    try {
+      const res = await fetch('/pwa/api/models');
+      if (res.ok) this._models = await res.json();
+    } catch {}
+    this._modelsLoading = false;
   }
 
   _forceReset() {
@@ -390,6 +476,34 @@ export class SettingsView extends LitElement {
           ` : html`
             <div class="hint">Notifications are active for this device</div>
           `}
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-title">Models</div>
+        ${[
+          { key: 'chat',            label: 'Chat (Primary)' },
+          { key: 'heartbeatCron',   label: 'Heartbeat Cron' },
+          { key: 'heartbeatScript', label: 'Heartbeat Script' },
+          { key: 'watchdog',        label: 'MCP Watchdog' },
+          { key: 'newsBot',         label: 'News Curator' },
+          { key: 'proxmoxReport',   label: 'Proxmox Report' },
+          { key: 'orderMonitor',    label: 'Order Monitor' },
+          { key: 'proxmoxSecurity', label: 'Proxmox Security' },
+        ].map(({ key, label }) => {
+          const name = this._models?.[key] ?? '…';
+          const isUnknown = !this._models || name === 'unknown';
+          return html`
+            <div class="model-row">
+              <span class="model-label">${label}</span>
+              <span class="model-name ${isUnknown ? 'unknown' : ''}">${name}</span>
+            </div>`;
+        })}
+        <div class="models-meta">
+          <span class="hint">// live from agent config</span>
+          <button class="models-refresh" @click=${() => { hapticLight(); this._fetchModels(); }}>
+            ${this._modelsLoading ? '...' : 'refresh'}
+          </button>
         </div>
       </div>
 

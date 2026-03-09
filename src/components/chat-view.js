@@ -79,7 +79,7 @@ export class ChatView extends LitElement {
         height: 60px;
       }
       .indicator-container {
-        bottom: 190px !important;
+        bottom: 170px !important;
       }
       .messages {
         padding-bottom: 210px !important;
@@ -175,7 +175,7 @@ export class ChatView extends LitElement {
 
     .indicator-container {
       position: absolute;
-      bottom: calc(148px + env(safe-area-inset-bottom, 0px));
+      bottom: calc(128px + env(safe-area-inset-bottom, 0px));
       left: 0;
       width: 100%;
       z-index: 25;

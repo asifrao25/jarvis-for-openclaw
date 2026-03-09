@@ -2,6 +2,7 @@ import express from 'express';
 import { createServer } from 'http';
 import { WebSocketServer, WebSocket } from 'ws';
 import crypto from 'crypto';
+import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import config from './config.js';
@@ -70,6 +71,38 @@ function apiRoutes(router) {
       console.error('[API] Balance fetch failed:', err.message);
       res.status(500).json({ error: 'Failed to fetch balance' });
     }
+  });
+
+  router.get('/api/models', (req, res) => {
+    // Read primary model from openclaw.json
+    let primary = 'unknown';
+    try {
+      const oc = JSON.parse(fs.readFileSync(path.join(config.openclawDir, 'openclaw.json'), 'utf-8'));
+      primary = oc?.agents?.defaults?.model?.primary || 'unknown';
+    } catch {}
+
+    // Read per-job models from cron/jobs.json
+    const jobModels = {};
+    try {
+      const jobs = JSON.parse(fs.readFileSync(path.join(config.openclawDir, 'cron', 'jobs.json'), 'utf-8'));
+      const list = Array.isArray(jobs) ? jobs : (jobs.jobs || []);
+      for (const job of list) {
+        const model = job?.payload?.model || primary;
+        jobModels[job.name] = model;
+      }
+    } catch {}
+
+    res.json({
+      chat: primary,
+      heartbeatCron:   jobModels['MCP Heartbeat Hourly']         || primary,
+      heartbeatScript: config.ollamaModel,
+      watchdog:        jobModels['MCP Server Watchdog']           || primary,
+      newsBot:         jobModels['Daily AI & Tech News Curator']  || primary,
+      proxmoxReport:   jobModels['Enhanced Proxmox Daily Report'] || primary,
+      orderMonitor:    jobModels['Daily Order Monitoring']        || primary,
+      proxmoxSecurity: jobModels['Proxmox Security Updates']      || primary,
+      source: 'live',
+    });
   });
 
   router.post('/api/push/subscribe', (req, res) => {
