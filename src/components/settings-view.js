@@ -488,7 +488,7 @@ export class SettingsView extends LitElement {
           { key: 'watchdog',        label: 'MCP Watchdog' },
           { key: 'newsBot',         label: 'News Curator' },
           { key: 'proxmoxReport',   label: 'Proxmox Report' },
-          { key: 'orderMonitor',    label: 'Order Monitor' },
+          { key: 'orderMonitor',    label: 'Daily Reminders' },
           { key: 'proxmoxSecurity', label: 'Proxmox Security' },
         ].map(({ key, label }) => {
           const name = this._models?.[key] ?? '…';

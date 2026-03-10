@@ -117,9 +117,10 @@ export class WSClient extends EventTarget {
 
   commitSeq(seq) {
     if (typeof seq === 'number') {
-      // In-memory update already happened in onmessage, but we confirm it here
-      this.lastSeq = Math.max(this.lastSeq, seq);
-      localStorage.setItem('openclaw-lastSeq', String(this.lastSeq));
+      const stored = parseInt(localStorage.getItem('openclaw-lastSeq') || '0', 10);
+      const newSeq = Math.max(stored, seq);
+      this.lastSeq = Math.max(this.lastSeq, newSeq);
+      localStorage.setItem('openclaw-lastSeq', String(newSeq));
     }
   }
 

@@ -173,6 +173,10 @@ export class ChatView extends LitElement {
       bottom: calc(6px + env(safe-area-inset-bottom, 0px));
     }
 
+    :host([ui-hidden]) .indicator-container {
+      bottom: calc(8px + env(safe-area-inset-bottom, 0px));
+    }
+
     .indicator-container {
       position: absolute;
       bottom: calc(128px + env(safe-area-inset-bottom, 0px));
@@ -180,6 +184,7 @@ export class ChatView extends LitElement {
       width: 100%;
       z-index: 25;
       pointer-events: none;
+      transition: bottom 0.38s cubic-bezier(0.4, 0, 0.2, 1);
     }
 
     .skeleton-message {
@@ -248,7 +253,8 @@ export class ChatView extends LitElement {
   firstUpdated() {
     const el = this.shadowRoot.querySelector('.messages');
     setTimeout(() => this.scrollToBottom(false), 50);
-    setTimeout(() => this.scrollToBottom(false), 200);
+    setTimeout(() => this.scrollToBottom(false), 300);
+    setTimeout(() => this.scrollToBottom(false), 700);
 
     this._lastScrollTop = el.scrollTop;
     el.addEventListener('scroll', () => {
@@ -308,6 +314,10 @@ export class ChatView extends LitElement {
     if ((changed.has('thinking') && this.thinking) || (changed.has('streaming') && this.streaming)) {
       this.scrollToBottom(false);
     }
+    // Scroll when loading finishes (skeletons removed, real messages now sole content)
+    if (changed.has('loading') && !this.loading) {
+      this.scrollToBottom(false);
+    }
   }
 
   scrollToBottom(smooth = false) {
@@ -324,21 +334,19 @@ export class ChatView extends LitElement {
   }
 
   _restoreAndScrollToBottom() {
-    // Block scroll listener immediately so it can't re-hide during transition
+    // Block scroll listener so it can't interfere during snap
     this._isAutoScrolling = true;
+    this._uiToggleLocked = false;
     // Restore UI bars
     this.dispatchEvent(new CustomEvent('ui-toggle', { detail: false, bubbles: true, composed: true }));
-    // Wait for CSS transitions (300ms) to settle before snapping to bottom
-    setTimeout(() => {
-      const el = this.shadowRoot.querySelector('.messages');
-      if (el) {
-        el.scrollTop = el.scrollHeight;
-        this._lastScrollTop = el.scrollTop;
-      }
-      this._showScrollBtn = false;
-      this._uiToggleLocked = false;
-      this._isAutoScrolling = false;
-    }, 420);
+    // Scroll immediately — input bar is position:fixed so scrollHeight is unaffected by UI transitions
+    const el = this.shadowRoot.querySelector('.messages');
+    if (el) {
+      el.scrollTop = el.scrollHeight;
+      this._lastScrollTop = el.scrollTop;
+    }
+    this._showScrollBtn = false;
+    setTimeout(() => { this._isAutoScrolling = false; }, 150);
   }
 
   async _send(e) {

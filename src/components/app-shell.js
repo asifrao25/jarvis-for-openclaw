@@ -893,10 +893,12 @@ export class AppShell extends LitElement {
     const category = categorize(text);
 
     // Ignore chat events for other sessions to ensure independence
-    // BUT allow reports/alerts from main session (cron jobs, heartbeats)
-    const isFromMainSession = sessionKey === AGENT_SESSION;
+    // BUT allow reports/alerts from main session, heartbeat session, and cron sessions
+    // (any agent:main:* except another PWA session like agent:main:pwa-XXXX)
+    const isAgentMainSession = sessionKey.startsWith('agent:main:') &&
+      !sessionKey.startsWith('agent:main:pwa-');
 
-    if (sessionKey !== wsClient.sessionKey && !isFromMainSession) {
+    if (sessionKey !== wsClient.sessionKey && !isAgentMainSession) {
       console.log(`[AppShell] Ignoring event for unrelated session: ${sessionKey}`);
       return;
     }

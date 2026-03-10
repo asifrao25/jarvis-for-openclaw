@@ -94,12 +94,12 @@ function apiRoutes(router) {
 
     res.json({
       chat: primary,
-      heartbeatCron:   jobModels['MCP Heartbeat Hourly']         || primary,
+      heartbeatCron:   jobModels['Hourly Heartbeat']              || primary,
       heartbeatScript: config.ollamaModel, // PWA relay local health checker (Ollama), not the heartbeat Python script
       watchdog:        jobModels['MCP Server Watchdog']           || primary,
-      newsBot:         jobModels['Daily AI & Tech News Curator']  || primary,
-      proxmoxReport:   jobModels['Enhanced Proxmox Daily Report'] || primary,
-      orderMonitor:    jobModels['Daily Order Monitoring']        || primary,
+      newsBot:         jobModels['Daily AI & Tech News']          || primary,
+      proxmoxReport:   jobModels['Proxmox Daily Report']          || primary,
+      orderMonitor:    jobModels['Daily Reminders']               || primary, // Using Daily Reminders as fallback
       proxmoxSecurity: jobModels['Proxmox Security Updates']      || primary,
       source: 'live',
     });
