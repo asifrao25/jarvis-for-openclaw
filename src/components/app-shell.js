@@ -1220,9 +1220,9 @@ export class AppShell extends LitElement {
           ></nav-bar>
 
           <div class="balance-bar ${this.uiHidden ? 'hidden' : ''}">
-            <div class="balance-bar-fill" style="width: ${this._balance !== null ? Math.min(this._balance / 15 * 100, 100).toFixed(1) : 0}%"></div>
+            <div class="balance-bar-fill" style="width: ${this._balance !== null ? Math.min(this._balance / 50 * 100, 100).toFixed(1) : 0}%"></div>
             <div class="balance-bar-text">
-              ${this._balance !== null ? `API Balance: $${this._balance.toFixed(2)} / $15.00` : 'API Balance: ...'}
+              ${this._balance !== null ? `Kimi Balance: $${this._balance.toFixed(2)}` : 'Kimi Balance: ...'}
             </div>
           </div>
         `}

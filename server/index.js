@@ -48,24 +48,26 @@ function apiRoutes(router) {
     res.json({ publicKey: pushManager.getPublicKey() });
   });
 
-  // Proxy balance fetch to keep API keys secure (client-side removed hardcoded key)
+  // Proxy balance fetch — reads Moonshot API key from openclaw.json
   router.get('/api/balance', async (req, res) => {
-    const apiKey = process.env.DEEPSEEK_API_KEY;
+    let apiKey = null;
+    try {
+      const oc = JSON.parse(fs.readFileSync(path.join(config.openclawDir, 'openclaw.json'), 'utf-8'));
+      apiKey = oc?.models?.providers?.moonshot?.apiKey || null;
+    } catch {}
     if (!apiKey) {
-      return res.status(503).json({ error: 'DEEPSEEK_API_KEY not configured' });
+      return res.status(503).json({ error: 'Moonshot API key not configured' });
     }
     try {
-      const response = await fetch('https://api.deepseek.com/user/balance', {
+      const response = await fetch('https://api.moonshot.ai/v1/users/me/balance', {
         headers: { 'Authorization': `Bearer ${apiKey}` }
       });
       if (!response.ok) {
         return res.status(response.status).json({ error: 'Upstream API error' });
       }
       const data = await response.json();
-      // DeepSeek returns balance in balance_infos array
-      // Format: {"is_available":true,"balance_infos":[{"currency":"USD","total_balance":"24.72",...}]}
-      const balanceInfo = data?.balance_infos?.[0];
-      const balance = balanceInfo ? parseFloat(balanceInfo.total_balance) : 0;
+      // Moonshot: {"code":0,"data":{"available_balance":22.96,"voucher_balance":0,"cash_balance":22.96}}
+      const balance = data?.data?.available_balance ?? null;
       res.json({ balance });
     } catch (err) {
       console.error('[API] Balance fetch failed:', err.message);
@@ -74,12 +76,22 @@ function apiRoutes(router) {
   });
 
   router.get('/api/models', (req, res) => {
-    // Read primary model from openclaw.json
+    // Read openclaw.json for primary model + model name lookup table
     let primary = 'unknown';
+    const nameMap = {}; // "provider/model-id" -> friendly name
     try {
       const oc = JSON.parse(fs.readFileSync(path.join(config.openclawDir, 'openclaw.json'), 'utf-8'));
       primary = oc?.agents?.defaults?.model?.primary || 'unknown';
+      // Build name map from all configured providers
+      const providers = oc?.models?.providers || {};
+      for (const [providerKey, provider] of Object.entries(providers)) {
+        for (const m of (provider.models || [])) {
+          if (m.id && m.name) nameMap[`${providerKey}/${m.id}`] = m.name;
+        }
+      }
     } catch {}
+
+    const resolveName = (modelId) => nameMap[modelId] || modelId;
 
     // Read per-job models from cron/jobs.json
     const jobModels = {};
@@ -92,15 +104,17 @@ function apiRoutes(router) {
       }
     } catch {}
 
+    const resolve = (modelId) => resolveName(modelId || primary);
+
     res.json({
-      chat: primary,
-      heartbeatCron:   jobModels['Hourly Heartbeat']              || primary,
-      heartbeatScript: config.ollamaModel, // PWA relay local health checker (Ollama), not the heartbeat Python script
-      watchdog:        jobModels['MCP Server Watchdog']           || primary,
-      newsBot:         jobModels['Daily AI & Tech News']          || primary,
-      proxmoxReport:   jobModels['Proxmox Daily Report']          || primary,
-      orderMonitor:    jobModels['Daily Reminders']               || primary, // Using Daily Reminders as fallback
-      proxmoxSecurity: jobModels['Proxmox Security Updates']      || primary,
+      chat:            resolve(primary),
+      heartbeatCron:   resolve(jobModels['Hourly Heartbeat']),
+      heartbeatScript: config.ollamaModel, // PWA relay local health checker (Ollama)
+      watchdog:        resolve(jobModels['MCP Server Watchdog']),
+      newsBot:         resolve(jobModels['Daily AI & Tech News']),
+      proxmoxReport:   resolve(jobModels['Proxmox Daily Report']),
+      orderMonitor:    resolve(jobModels['Daily Reminders']),
+      proxmoxSecurity: resolve(jobModels['Proxmox Security Updates']),
       source: 'live',
     });
   });
