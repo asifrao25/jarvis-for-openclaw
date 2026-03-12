@@ -203,11 +203,7 @@ export class NavBar extends LitElement {
           await new Promise(resolve => setTimeout(resolve, 2000));
           if (!reloading) {
             navigator.serviceWorker.removeEventListener('controllerchange', onControllerChange);
-            this.dispatchEvent(new CustomEvent('refresh', { bubbles: true, composed: true }));
-            this._refreshing = false;
-            this._refreshDone = true;
-            hapticSuccess();
-            setTimeout(() => { this._refreshDone = false; }, 1500);
+            window.location.reload();
           }
           return;
         }
@@ -216,11 +212,7 @@ export class NavBar extends LitElement {
       console.error('[Nav] Update check failed:', e);
     }
 
-    this.dispatchEvent(new CustomEvent('refresh', { bubbles: true, composed: true }));
-    this._refreshing = false;
-    this._refreshDone = true;
-    hapticSuccess();
-    setTimeout(() => { this._refreshDone = false; }, 1500);
+    window.location.reload();
   }
 
   _nav(view) {

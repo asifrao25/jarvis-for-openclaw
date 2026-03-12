@@ -15,8 +15,9 @@ import './approval-dialog.js';
 const AGENT_SESSION = 'agent:main:main';
 
 function categorize(text) {
-  if (text.startsWith('[ALERT]')) return 'alert';
-  if (text.startsWith('[REPORT]')) return 'report';
+  const firstLine = text.trimStart().split('\n')[0];
+  if (/^[^\[]{0,10}\[ALERT\]/i.test(firstLine)) return 'alert';
+  if (/^[^\[]{0,10}\[REPORT\]/i.test(firstLine)) return 'report';
   return 'chat';
 }
 
@@ -794,7 +795,7 @@ export class AppShell extends LitElement {
     // Handle universal clear
     if (msg.ok && msg.method === 'sessions.reset') {
       console.log('[AppShell] Universal session reset received, clearing chat data');
-      this.messages = this.messages.filter(m => m.category !== 'chat' && m.role !== 'user');
+      this.messages = this.messages.filter(m => m.category === 'alert' || m.category === 'report');
       clearByCategory('chat').catch(err => console.error('Failed to clear chat store:', err));
     }
   }

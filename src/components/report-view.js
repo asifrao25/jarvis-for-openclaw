@@ -75,10 +75,13 @@ export class ReportView extends LitElement {
       min-height: 0;
       overflow-y: auto;
       -webkit-overflow-scrolling: touch;
-      padding: 8px 14px 16px;
+      padding: 8px 14px calc(80px + env(safe-area-inset-bottom, 0px));
       overscroll-behavior-y: contain;
+      display: flex;
+      flex-direction: column;
     }
     .entries::-webkit-scrollbar { display: none; }
+    .entries-spacer { flex: 1; }
 
     .entry {
       margin: 6px 0;
@@ -332,6 +335,15 @@ export class ReportView extends LitElement {
     }, { passive: true });
   }
 
+  updated(changed) {
+    if (changed.has('messages')) {
+      requestAnimationFrame(() => {
+        const el = this.shadowRoot.querySelector('.entries');
+        if (el) el.scrollTop = el.scrollHeight;
+      });
+    }
+  }
+
   _scrollToBottom() {
     hapticLight();
     requestAnimationFrame(() => {
@@ -385,12 +397,12 @@ export class ReportView extends LitElement {
   }
 
   _getSummary(text) {
-    const stripped = text.replace(/^\[REPORT\]\s*/, '');
+    const stripped = text.replace(/^[^\[]*\[REPORT\]\s*/i, '');
     const firstLine = stripped.split('\n')[0].trim();
     return firstLine.length > 80 ? firstLine.substring(0, 77) + '…' : firstLine;
   }
 
-  _getBody(text) { return text.replace(/^\[REPORT\]\s*/, ''); }
+  _getBody(text) { return text.replace(/^[^\[]*\[REPORT\]\s*/i, ''); }
 
   _formatTime(ts) {
     if (!ts) return '';
@@ -429,6 +441,7 @@ export class ReportView extends LitElement {
         </div>
       ` : ''}
       <div class="entries">
+        ${reports.length > 0 ? html`<div class="entries-spacer"></div>` : ''}
         ${reports.length === 0 ? html`
           <div class="empty">
             <div class="empty-icon">
