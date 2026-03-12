@@ -7,7 +7,7 @@ export class NavBar extends LitElement {
       position: fixed;
       left: 0;
       right: 0;
-      bottom: calc(20px + env(safe-area-inset-bottom, 0px)); /* Sit right above the dynamic balance bar */
+      bottom: 2px;
       height: 64px;
       background: #000;
       border-top: 1px solid rgba(0, 255, 255, 0.15);

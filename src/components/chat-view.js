@@ -21,7 +21,7 @@ export class ChatView extends LitElement {
       overflow-x: hidden;
       -webkit-overflow-scrolling: touch;
       padding: 15px 20px;
-      padding-bottom: calc(132px + env(safe-area-inset-bottom, 0px));
+      padding-bottom: 112px;
       display: flex;
       flex-direction: column;
       gap: 12px;
@@ -38,7 +38,7 @@ export class ChatView extends LitElement {
       position: fixed;
       left: 0;
       right: 0;
-      bottom: calc(84px + env(safe-area-inset-bottom, 0px));
+      bottom: 64px;
       background: #000;
       border-top: 1px solid rgba(0, 255, 255, 0.15);
       z-index: 1050;
@@ -52,13 +52,23 @@ export class ChatView extends LitElement {
     }
 
     .input-area {
-      padding: 0 50px 0 8px;
+      padding: 0 8px;
       display: flex;
       align-items: center;
       gap: 8px;
       height: 44px;
       min-height: 44px;
       box-sizing: border-box;
+    }
+
+    .balance-box {
+      flex-shrink: 0;
+      font-family: var(--f-mono);
+      font-size: 18px;
+      letter-spacing: 0.5px;
+      color: rgba(0, 255, 255, 0.65);
+      white-space: nowrap;
+      padding-right: 6px;
     }
 
     @media (min-width: 1024px) {
@@ -139,7 +149,7 @@ export class ChatView extends LitElement {
 
     .scroll-bottom-btn {
       position: absolute;
-      bottom: calc(134px + env(safe-area-inset-bottom, 0px));
+      bottom: 114px;
       left: 50%;
       transform: translateX(-50%);
       background: rgba(0, 30, 40, 0.9);
@@ -170,16 +180,16 @@ export class ChatView extends LitElement {
     }
 
     :host([ui-hidden]) .scroll-bottom-btn {
-      bottom: calc(6px + env(safe-area-inset-bottom, 0px));
+      bottom: 6px;
     }
 
     :host([ui-hidden]) .indicator-container {
-      bottom: calc(8px + env(safe-area-inset-bottom, 0px));
+      bottom: 8px;
     }
 
     .indicator-container {
       position: absolute;
-      bottom: calc(128px + env(safe-area-inset-bottom, 0px));
+      bottom: 108px;
       left: 0;
       width: 100%;
       z-index: 25;
@@ -230,6 +240,7 @@ export class ChatView extends LitElement {
     streaming: { type: Boolean },
     agentStatus: { type: String },
     loading: { type: Boolean },
+    balance: { type: Number },
     uiHidden: { type: Boolean, reflect: true, attribute: 'ui-hidden' },
     _showScrollBtn: { type: Boolean, state: true },
     _isPulling: { type: Boolean, state: true },
@@ -266,7 +277,7 @@ export class ChatView extends LitElement {
       const delta = st - this._lastScrollTop;
       this._lastScrollTop = st;
 
-      if (this._uiToggleLocked || Math.abs(delta) < 6) return;
+      if (this._uiToggleLocked || Math.abs(delta) < 1) return;
 
       // delta < 0 = finger slides down = content scrolls up (older msgs) = hide UI
       // delta > 0 = finger slides up = content scrolls down (newer msgs) = show UI
@@ -412,6 +423,9 @@ export class ChatView extends LitElement {
             this.uiHidden = false;
             this.dispatchEvent(new CustomEvent('ui-toggle', { detail: false, bubbles: true, composed: true }));
           }}>
+          ${this.balance !== null && this.balance !== undefined ? html`
+            <div class="balance-box">$${this.balance.toFixed(2)}</div>
+          ` : ''}
         </form>
       </div>
     `;

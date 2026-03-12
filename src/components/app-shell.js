@@ -115,57 +115,6 @@ export class AppShell extends LitElement {
     .status-dot.online { background: #00FF00; box-shadow: 0 0 8px #00FF00; }
     .status-dot.connecting { background: #FFFF00; box-shadow: 0 0 8px #FFFF00; }
 
-    .balance-bar {
-      position: fixed;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      height: calc(20px + env(safe-area-inset-bottom, 0px));
-      padding-bottom: env(safe-area-inset-bottom, 0px);
-      background: #000;
-      z-index: 1000;
-      overflow: hidden;
-      border-top: 1px solid rgba(0, 255, 255, 0.08);
-      transition: transform 0.38s cubic-bezier(0.4, 0, 0.2, 1),
-                  opacity 0.38s cubic-bezier(0.4, 0, 0.2, 1);
-      will-change: transform, opacity;
-      flex-shrink: 0;
-      box-sizing: border-box;
-    }
-
-    .balance-bar.hidden {
-      transform: translateY(110%);
-      opacity: 0;
-      pointer-events: none;
-    }
-
-    .balance-bar-fill {
-      position: absolute;
-      left: 0;
-      top: 0;
-      height: 100%;
-      background: linear-gradient(90deg, rgba(0, 255, 255, 0.18), rgba(0, 255, 255, 0.06));
-      transition: width 0.6s ease;
-    }
-
-    .balance-bar-text {
-      position: absolute;
-      inset: 0;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-family: var(--f-mono);
-      font-size: 20px;
-      letter-spacing: 0.5px;
-      text-transform: uppercase;
-      color: rgba(0, 255, 255, 0.6);
-      z-index: 1;
-    }
-
-    @media (min-width: 1024px) {
-      .balance-bar { display: none; }
-    }
-
     /* Desktop Enhancements */
     @media (min-width: 1024px) {
       .header {
@@ -649,35 +598,46 @@ export class AppShell extends LitElement {
     if (window.visualViewport) {
       const handleResize = () => {
         const vv = window.visualViewport;
-        const isKeyboard = (window.innerHeight - vv.height) > 150;
-        
-        if (isKeyboard) {
-          const wrapper = this.shadowRoot.querySelector('.app-wrapper');
-          if (wrapper) {
+        const keyboardHeight = window.innerHeight - vv.height - vv.offsetTop;
+        const isKeyboard = keyboardHeight > 150;
+
+        const wrapper = this.shadowRoot.querySelector('.app-wrapper');
+        if (wrapper) {
+          if (isKeyboard) {
             wrapper.style.height = `${vv.height}px`;
             wrapper.style.bottom = 'auto';
-          }
-        } else {
-          const wrapper = this.shadowRoot.querySelector('.app-wrapper');
-          if (wrapper) {
+          } else {
             wrapper.style.height = '';
             wrapper.style.bottom = '';
           }
         }
-        
+
+        // Reposition chat input bar above the keyboard so it's never hidden
+        const chatView = this.shadowRoot.querySelector('chat-view');
+        const inputBar = chatView?.shadowRoot?.querySelector('.input-area-container');
+        if (inputBar) {
+          if (isKeyboard) {
+            // Disable CSS transition during keyboard animation to keep bar in sync
+            inputBar.style.transition = 'none';
+            inputBar.style.bottom = `${keyboardHeight}px`;
+          } else {
+            inputBar.style.transition = '';
+            inputBar.style.bottom = '';
+          }
+        }
+
         if (isKeyboard !== this._keyboardOpen) {
           this._keyboardOpen = isKeyboard;
           if (isKeyboard) this.uiHidden = false;
-          
+
           if (isKeyboard && this.view === 'chat') {
              setTimeout(() => {
-               const chatView = this.shadowRoot.querySelector('chat-view');
                if(chatView) chatView.scrollToBottom();
              }, 100);
           }
         }
       };
-      
+
       window.visualViewport.addEventListener('resize', handleResize);
       window.visualViewport.addEventListener('scroll', handleResize);
       handleResize();
@@ -1191,12 +1151,13 @@ export class AppShell extends LitElement {
             <div class="view-container ${this._slideDir}">
               ${this.view === 'chat' ? html`
                 <chat-view
-                  .messages=${this.messages}
+                  .messages=${this.messages.filter(m => m.category === 'chat' || !m.category)}
                   .thinking=${this.thinking}
                   .streaming=${this.streaming}
                   .agentStatus=${this._agentStatus}
                   .uiHidden=${this.uiHidden}
                   .loading=${this._loadingStore}
+                  .balance=${this._balance}
                 ></chat-view>
               ` : ''}
               ${this.view === 'alert' ? html`
@@ -1219,12 +1180,6 @@ export class AppShell extends LitElement {
             ?keyboard-open=${this._keyboardOpen}
           ></nav-bar>
 
-          <div class="balance-bar ${this.uiHidden ? 'hidden' : ''}">
-            <div class="balance-bar-fill" style="width: ${this._balance !== null ? Math.min(this._balance / 50 * 100, 100).toFixed(1) : 0}%"></div>
-            <div class="balance-bar-text">
-              ${this._balance !== null ? `Kimi Balance: $${this._balance.toFixed(2)}` : 'Kimi Balance: ...'}
-            </div>
-          </div>
         `}
       </div>
     `;
