@@ -707,7 +707,10 @@ export class AppShell extends LitElement {
   async _loadStoredMessages() {
     this._loadingStore = true;
     try {
-      const all = await getLatest(200);
+      const raw = await getLatest(200);
+      // Filter out messages whose tombstone was created after they were stored (race condition)
+      const tombstoneChecks = await Promise.all(raw.map(m => isTombstoned(m)));
+      const all = raw.filter((_, i) => !tombstoneChecks[i]);
       if (all.length > 0) {
         // Merge with existing messages (like replayed ones) without duplicating.
         // Exclusion logic: skip stored message if ANY of its identifiers is already in memory.
@@ -880,6 +883,8 @@ export class AppShell extends LitElement {
     if (state === 'delta') {
       // Skip replayed delta if a final for this runId is already in memory
       if (runId && this.messages.some(m => m.runId === runId && m.streaming === false)) return;
+      // Skip tombstoned runs — prevents deleted messages flashing during replay
+      if (runId && await isTombstoned({ runId })) return;
       this._clearThinking();
       this.streaming = true;
       const existingIdx = this._streamingIndex.has(runId) ? this._streamingIndex.get(runId) : -1;
