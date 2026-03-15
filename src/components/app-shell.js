@@ -4,6 +4,7 @@ import { getAuth, saveAuth, clearAuth } from '../services/auth.js';
 import { registerPush, resyncPush } from '../services/push-registration.js';
 import { addMessage, getLatest, deleteMessage, markSeen, clearByCategory, clearAll, isTombstoned } from '../services/message-store.js';
 import { hapticLight, hapticMedium, hapticSuccess, hapticError } from '../services/haptics.js';
+import './splash-screen.js';
 import './login-screen.js';
 import './chat-view.js';
 import './alert-view.js';
@@ -312,6 +313,7 @@ export class AppShell extends LitElement {
     _notification: { type: Object, state: true },
     _pendingApproval: { type: Object, state: true },
     _agentStatus: { type: String, state: true },
+    _splashDone: { type: Boolean, state: true },
   };
 
   constructor() {
@@ -341,6 +343,7 @@ export class AppShell extends LitElement {
     this._wheelLatched = false;
     this._notification = { visible: false, message: '', type: 'success' };
     this._pendingApproval = null;
+    this._splashDone = false;
     this._clearThinkingTimeout = null;
     this._agentStatus = 'Thinking';
     this._streamingIndex = new Map();
@@ -367,6 +370,7 @@ export class AppShell extends LitElement {
 
   connectedCallback() {
     super.connectedCallback();
+    this._runSplash();
     this._setupViewport();
     this._setupWebSocket();
     this._checkLogin();
@@ -394,6 +398,15 @@ export class AppShell extends LitElement {
       }
     });
     this._clearBadgeAndNotifications();
+  }
+
+  _runSplash() {
+    // Start fade-out at 700ms, remove at 1050ms (after 350ms CSS transition)
+    setTimeout(() => {
+      const el = this.shadowRoot?.querySelector('splash-screen');
+      if (el) el.classList.add('hiding');
+    }, 700);
+    setTimeout(() => { this._splashDone = true; }, 1050);
   }
 
   _handleSharedData() {
@@ -1096,6 +1109,7 @@ export class AppShell extends LitElement {
 
   render() {
     return html`
+      ${!this._splashDone ? html`<splash-screen></splash-screen>` : ''}
       ${this._pendingApproval ? html`
         <approval-dialog
           .approvalId=${this._pendingApproval.approvalId}
