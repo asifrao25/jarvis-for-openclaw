@@ -127,9 +127,9 @@ export class ReportView extends LitElement {
     }
     .entry-time {
       font-family: 'JetBrains Mono', monospace;
-      font-size: 9.5px;
+      font-size: 11px;
       letter-spacing: .04em;
-      color: #2a3f50;
+      color: #6b8fa8;
       margin-top: 3px;
     }
 

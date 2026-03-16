@@ -71,6 +71,7 @@ export class ChatView extends LitElement {
       padding-right: 6px;
     }
 
+
     @media (min-width: 1024px) {
       .input-area-container {
         position: fixed;
@@ -268,10 +269,12 @@ export class ChatView extends LitElement {
 
     this._lastScrollTop = el.scrollTop;
     el.addEventListener('scroll', () => {
-      if (this._isAutoScrolling) return;
       const st = el.scrollTop;
       const distFromBottom = el.scrollHeight - st - el.clientHeight;
+      // Always update scroll button — even during auto-scroll, so user can escape
       this._showScrollBtn = distFromBottom > 300;
+
+      if (this._isAutoScrolling) return;
 
       const delta = st - this._lastScrollTop;
       this._lastScrollTop = st;

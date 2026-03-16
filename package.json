@@ -1,6 +1,6 @@
 {
   "name": "openclaw-pwa",
-  "version": "4.8.1",
+  "version": "4.8.12",
   "private": true,
   "type": "module",
   "scripts": {

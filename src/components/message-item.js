@@ -88,7 +88,7 @@ export class MessageItem extends LitElement {
     }
 
     .timestamp-bar {
-      font-size: calc(var(--chat-font-size, 14px) * 0.62);
+      font-size: calc(var(--chat-font-size, 14px) * 0.75);
       color: var(--c-primary, #00FFFF);
       font-family: 'Orbitron', sans-serif;
       font-weight: 600;
@@ -132,7 +132,7 @@ export class MessageItem extends LitElement {
     }
 
     .timestamp-bar .date-part {
-      color: rgba(0, 255, 255, 0.6);
+      color: rgba(0, 255, 255, 0.85);
       font-family: var(--f-mono);
       font-size: 0.9em;
       font-weight: 400;
@@ -201,13 +201,13 @@ export class MessageItem extends LitElement {
     }
 
     .meta {
-      font-size: calc(var(--chat-font-size, 14px) * 0.75);
+      font-size: calc(var(--chat-font-size, 14px) * 0.82);
       color: #FFFFFF;
       margin-top: 6px;
       text-align: right;
       font-family: var(--f-mono);
       font-weight: 500;
-      opacity: 0.5;
+      opacity: 0.72;
     }
 
     .action-menu {
@@ -408,8 +408,9 @@ export class MessageItem extends LitElement {
 
     const dateObj = new Date(this.timestamp);
     const timeString = dateObj.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    const isToday = dateObj.toDateString() === new Date().toDateString();
     const dateString = dateObj.toLocaleDateString([], { month: 'short', day: 'numeric' });
-    const fullDateTime = `${dateString} · ${timeString}`;
+    const fullDateTime = isToday ? timeString : `${dateString} · ${timeString}`;
 
     return html`
       <div class="${containerClasses.join(' ')}" @click=${this._handleMessageClick}>
@@ -417,7 +418,7 @@ export class MessageItem extends LitElement {
              style="left: ${this._menuX}px; top: ${this._menuY}px;">
           ${this._toastText}
         </div>
-        ${this.role === 'assistant' ? html`<div class="timestamp-bar"><span class="jarvis-label">Jarvis</span><span class="date-part">${dateString} · ${timeString}</span></div>` : ''}
+        ${this.role === 'assistant' ? html`<div class="timestamp-bar"><span class="jarvis-label">Jarvis</span><span class="date-part">${isToday ? timeString : `${dateString} · ${timeString}`}</span></div>` : ''}
         
         ${this.attachment ? html`
           <div class="attachment-zone">
