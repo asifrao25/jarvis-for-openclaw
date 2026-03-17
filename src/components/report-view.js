@@ -90,6 +90,7 @@ export class ReportView extends LitElement {
       border: 1px solid rgba(0,229,160,.12);
       border-left: 2px solid rgba(0,229,160,.55);
       overflow: hidden;
+      flex-shrink: 0;
     }
     .entry-header {
       display: flex;
@@ -138,11 +139,19 @@ export class ReportView extends LitElement {
     .entry.expanded .entry-chevron { transform: rotate(180deg); }
 
     .entry-body {
-      display: none;
-      padding: 2px 14px 14px;
-      border-top: 1px solid rgba(0,229,160,.10);
+      max-height: 0;
+      overflow: hidden;
+      padding: 0 14px;
+      border-top: 0px solid rgba(0,229,160,.10);
+      transition: max-height 0.28s cubic-bezier(0.4, 0, 0.2, 1),
+                  padding 0.28s cubic-bezier(0.4, 0, 0.2, 1),
+                  border-top-width 0.28s cubic-bezier(0.4, 0, 0.2, 1);
     }
-    .entry.expanded .entry-body { display: block; }
+    .entry.expanded .entry-body {
+      max-height: 600px;
+      padding: 2px 14px 14px;
+      border-top-width: 1px;
+    }
     .entry-text {
       font-family: 'Syne', sans-serif;
       font-size: 13px;
@@ -359,7 +368,22 @@ export class ReportView extends LitElement {
 
   _toggle(key) {
     hapticLight();
-    this._expanded = { ...this._expanded, [key]: !this._expanded[key] };
+    const isOpening = !this._expanded[key];
+    // Accordion: only one open at a time
+    this._expanded = isOpening ? { [key]: true } : {};
+
+    if (isOpening) {
+      setTimeout(() => {
+        const container = this.shadowRoot.querySelector('.entries');
+        const expanded = this.shadowRoot.querySelector('.entry.expanded');
+        if (!container || !expanded) return;
+        const visibleBottom = container.getBoundingClientRect().bottom - 64;
+        const entryRect = expanded.getBoundingClientRect();
+        if (entryRect.bottom > visibleBottom) {
+          container.scrollBy({ top: entryRect.bottom - visibleBottom + 8, behavior: 'smooth' });
+        }
+      }, 300);
+    }
   }
 
   async _copy(text) {
