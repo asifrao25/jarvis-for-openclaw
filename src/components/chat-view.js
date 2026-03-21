@@ -97,11 +97,7 @@ export class ChatView extends LitElement {
       }
     }
 
-    :host([ui-hidden]) .input-area-container {
-      transform: translateY(200%);
-      opacity: 0;
-      pointer-events: none;
-    }
+    
 
     input[type="text"] {
       flex: 1;
@@ -153,25 +149,33 @@ export class ChatView extends LitElement {
       bottom: 114px;
       left: 50%;
       transform: translateX(-50%);
-      background: rgba(0, 30, 40, 0.9);
-      border: 1px solid var(--c-primary-dim);
+      background: rgba(0, 30, 40, 0.92);
+      border: 1px solid var(--c-primary);
       color: var(--c-primary);
-      border-radius: 20px;
-      padding: 6px 14px;
+      border-radius: 24px;
+      padding: 12px 22px;
+      min-height: 44px;
+      box-sizing: border-box;
       font-family: var(--f-mono);
-      font-size: 10px;
-      letter-spacing: 1px;
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 1.5px;
       display: flex;
       align-items: center;
-      gap: 6px;
+      gap: 8px;
       cursor: pointer;
       z-index: 40;
       backdrop-filter: blur(15px);
-      box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+      box-shadow: 0 0 25px rgba(0, 255, 255, 0.25), 0 4px 12px rgba(0, 0, 0, 0.5);
       transition: bottom 0.3s ease, opacity 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275), transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
       opacity: 0;
       pointer-events: none;
       transform: translate(-50%, 15px) scale(0.9);
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .scroll-bottom-btn:active {
+      background: rgba(0, 255, 255, 0.15);
     }
 
     .scroll-bottom-btn.visible {
@@ -180,13 +184,7 @@ export class ChatView extends LitElement {
       transform: translate(-50%, 0) scale(1);
     }
 
-    :host([ui-hidden]) .scroll-bottom-btn {
-      bottom: 6px;
-    }
-
-    :host([ui-hidden]) .indicator-container {
-      bottom: 8px;
-    }
+    
 
     .indicator-container {
       position: absolute;
@@ -242,7 +240,6 @@ export class ChatView extends LitElement {
     agentStatus: { type: String },
     loading: { type: Boolean },
     balance: { type: Number },
-    uiHidden: { type: Boolean, reflect: true, attribute: 'ui-hidden' },
     _showScrollBtn: { type: Boolean, state: true },
     _isPulling: { type: Boolean, state: true },
   };
@@ -253,13 +250,10 @@ export class ChatView extends LitElement {
     this.streaming = false;
     this.agentStatus = 'Thinking';
     this._touchStartY = 0;
-    this.uiHidden = false;
     this._isAutoScrolling = false;
     this._showScrollBtn = false;
     this._isPulling = false;
     this.loading = false;
-    this._lastScrollTop = 0;
-    this._uiToggleLocked = false;
   }
 
   firstUpdated() {
@@ -267,26 +261,9 @@ export class ChatView extends LitElement {
     setTimeout(() => this.scrollToBottom(false), 50);
     setTimeout(() => this.scrollToBottom(false), 300);
 
-    this._lastScrollTop = el.scrollTop;
     el.addEventListener('scroll', () => {
-      const st = el.scrollTop;
-      const distFromBottom = el.scrollHeight - st - el.clientHeight;
-      // Always update scroll button — even during auto-scroll, so user can escape
+      const distFromBottom = el.scrollHeight - el.scrollTop - el.clientHeight;
       this._showScrollBtn = distFromBottom > 300;
-
-      if (this._isAutoScrolling) return;
-
-      const delta = st - this._lastScrollTop;
-      this._lastScrollTop = st;
-
-      if (this._uiToggleLocked || Math.abs(delta) < 1) return;
-
-      // delta < 0 = finger slides down = content scrolls up (older msgs) = hide UI
-      // delta > 0 = finger slides up = content scrolls down (newer msgs) = show UI
-      const hide = delta < 0 && distFromBottom > 80;
-      this._uiToggleLocked = true;
-      this.dispatchEvent(new CustomEvent('ui-toggle', { detail: hide, bubbles: true, composed: true }));
-      setTimeout(() => { this._uiToggleLocked = false; }, 420);
     }, { passive: true });
 
     el.addEventListener('touchstart', (e) => {
@@ -349,16 +326,10 @@ export class ChatView extends LitElement {
   }
 
   _restoreAndScrollToBottom() {
-    // Block scroll listener so it can't interfere during snap
     this._isAutoScrolling = true;
-    this._uiToggleLocked = false;
-    // Restore UI bars
-    this.dispatchEvent(new CustomEvent('ui-toggle', { detail: false, bubbles: true, composed: true }));
-    // Scroll immediately — input bar is position:fixed so scrollHeight is unaffected by UI transitions
     const el = this.shadowRoot.querySelector('.messages');
     if (el) {
       el.scrollTop = el.scrollHeight;
-      this._lastScrollTop = el.scrollTop;
     }
     this._showScrollBtn = false;
     setTimeout(() => { this._isAutoScrolling = false; }, 150);
@@ -418,16 +389,13 @@ export class ChatView extends LitElement {
       ` : ''}
 
       <div class="scroll-bottom-btn ${this._showScrollBtn ? 'visible' : ''}" @click=${() => { hapticMedium(); this._restoreAndScrollToBottom(); }}>
-        <svg viewBox="0 0 24 24"><path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6 1.41-1.41z"/></svg>
-        <span>NEW MESSAGES BELOW</span>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6 1.41-1.41z"/></svg>
+        <span>NEW MESSAGES</span>
       </div>
 
       <div class="input-area-container">
         <form class="input-area" @submit=${this._send}>
-          <input type="text" placeholder="ENTER COMMAND..." autocomplete="off" @focus=${() => {
-            this.uiHidden = false;
-            this.dispatchEvent(new CustomEvent('ui-toggle', { detail: false, bubbles: true, composed: true }));
-          }}>
+          <input type="text" placeholder="ENTER COMMAND..." autocomplete="off">
           ${this.balance !== null && this.balance !== undefined ? html`
             <div class="balance-box">$${this.balance.toFixed(2)}</div>
           ` : ''}

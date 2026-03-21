@@ -59,15 +59,6 @@ export class AppShell extends LitElement {
       background: #000;
       z-index: 50;
       flex-shrink: 0;
-      transition: transform 0.38s cubic-bezier(0.4, 0, 0.2, 1),
-                  opacity 0.38s cubic-bezier(0.4, 0, 0.2, 1);
-      will-change: transform, opacity;
-    }
-
-    :host([ui-hidden]) .header {
-      transform: translateY(-110%);
-      opacity: 0;
-      pointer-events: none;
     }
 
     .header h1 {
@@ -303,7 +294,6 @@ export class AppShell extends LitElement {
     streaming: { type: Boolean },
     alertCount: { type: Number },
     reportCount: { type: Number },
-    uiHidden: { type: Boolean, reflect: true, attribute: 'ui-hidden' },
     _keyboardOpen: { type: Boolean, reflect: true, attribute: 'keyboard-open' },
     _slideDir: { type: String, state: true },
     _swipeX: { type: Number, state: true },
@@ -327,7 +317,6 @@ export class AppShell extends LitElement {
     this.streaming = false;
     this.alertCount = 0;
     this.reportCount = 0;
-    this.uiHidden = false;
     this._keyboardOpen = false;
     this._slideDir = '';
     this._swipeX = 0;
@@ -384,7 +373,6 @@ export class AppShell extends LitElement {
     this.addEventListener('clear-category', this._onClearCategory);
     this.addEventListener('login', this._onLogin);
     this.addEventListener('logout', this._onLogout);
-    this.addEventListener('ui-toggle', (e) => { this.uiHidden = e.detail; });
     this.addEventListener('message-seen', this._onMessageSeen);
     this.addEventListener('approval-response', this._onApprovalResponse);
 
@@ -642,8 +630,6 @@ export class AppShell extends LitElement {
 
         if (isKeyboard !== this._keyboardOpen) {
           this._keyboardOpen = isKeyboard;
-          if (isKeyboard) this.uiHidden = false;
-
           if (isKeyboard && this.view === 'chat') {
              setTimeout(() => {
                if(chatView) chatView.scrollToBottom();
@@ -1030,7 +1016,6 @@ export class AppShell extends LitElement {
 
     if (this.view === 'alert') this.alertCount = 0;
     if (this.view === 'report') this.reportCount = 0;
-    this.uiHidden = false;
     hapticLight();
     if (this.view === 'chat') {
       setTimeout(() => {
@@ -1141,7 +1126,7 @@ export class AppShell extends LitElement {
         ></approval-dialog>
       ` : ''}
 
-      <div class="app-wrapper" ?ui-hidden=${this.uiHidden}>
+      <div class="app-wrapper">
         ${this._notification.visible ? html`
           <div class="feedback-banner visible ${this._notification.type === 'error' ? 'error' : ''}">
             <div class="feedback-icon">
@@ -1195,7 +1180,6 @@ export class AppShell extends LitElement {
                   .thinking=${this.thinking}
                   .streaming=${this.streaming}
                   .agentStatus=${this._agentStatus}
-                  .uiHidden=${this.uiHidden}
                   .loading=${this._loadingStore}
                   .balance=${this._balance}
                 ></chat-view>
@@ -1216,7 +1200,6 @@ export class AppShell extends LitElement {
             .active=${this.view}
             .alertCount=${this.alertCount}
             .reportCount=${this.reportCount}
-            .uiHidden=${this.uiHidden}
             ?keyboard-open=${this._keyboardOpen}
           ></nav-bar>
 

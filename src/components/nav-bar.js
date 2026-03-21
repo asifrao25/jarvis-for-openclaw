@@ -19,12 +19,6 @@ export class NavBar extends LitElement {
       pointer-events: auto;
     }
 
-    :host([ui-hidden]) {
-      transform: translateY(110%);
-      opacity: 0;
-      pointer-events: none;
-    }
-
     .nav-container {
       display: flex;
       width: 100%;
@@ -169,7 +163,6 @@ export class NavBar extends LitElement {
     active: { type: String },
     alertCount: { type: Number },
     reportCount: { type: Number },
-    uiHidden: { type: Boolean, reflect: true, attribute: 'ui-hidden' },
     keyboardOpen: { type: Boolean, reflect: true, attribute: 'keyboard-open' },
     _refreshing: { type: Boolean, state: true },
     _refreshDone: { type: Boolean, state: true },
@@ -177,7 +170,6 @@ export class NavBar extends LitElement {
 
   constructor() {
     super();
-    this.uiHidden = false;
     this._refreshing = false;
     this._refreshDone = false;
   }
