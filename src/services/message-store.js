@@ -4,7 +4,7 @@ import { encrypt, decrypt } from './encryption.js';
 const DB_NAME = 'openclaw-pwa';
 const STORE_NAME = 'messages';
 const TOMBSTONE_STORE = 'tombstones';
-const DB_VERSION = 2;
+const DB_VERSION = 3;
 
 function openDB() {
   return new Promise((resolve, reject) => {
@@ -16,15 +16,19 @@ function openDB() {
         store.createIndex('category', 'category', { unique: false });
         store.createIndex('timestamp', 'timestamp', { unique: false });
         store.createIndex('seq', 'seq', { unique: false });
+        store.createIndex('runId', 'runId', { unique: false });
       }
       if (!db.objectStoreNames.contains(TOMBSTONE_STORE)) {
         const tStore = db.createObjectStore(TOMBSTONE_STORE, { keyPath: 'key' });
         tStore.createIndex('timestamp', 'timestamp', { unique: false });
       }
-      
-      // Migrate from v1 if needed
-      if (e.oldVersion < 2 && !db.objectStoreNames.contains(TOMBSTONE_STORE)) {
-        // Handled by the check above
+
+      // v2 -> v3: add runId index to existing store
+      if (e.oldVersion >= 1 && e.oldVersion < 3) {
+        const store = e.target.transaction.objectStore(STORE_NAME);
+        if (!store.indexNames.contains('runId')) {
+          store.createIndex('runId', 'runId', { unique: false });
+        }
       }
     };
     req.onsuccess = () => resolve(req.result);
@@ -59,23 +63,26 @@ export async function addMessage(msg) {
   const isDuplicate = await new Promise((resolve) => {
     const tx = db.transaction(STORE_NAME, 'readonly');
     const store = tx.objectStore(STORE_NAME);
-    const req = store.openCursor(null, 'prev');
+
+    // Fast path: use runId index for O(1) lookup when available
+    if (msg.runId) {
+      const idx = store.index('runId');
+      const req = idx.get(msg.runId);
+      req.onsuccess = () => resolve(!!req.result);
+      req.onerror = () => resolve(false);
+      return;
+    }
+
+    // Fallback: timestamp+role scan for user messages (no runId)
+    const tsIdx = store.index('timestamp');
+    const req = tsIdx.openCursor(IDBKeyRange.only(msg.timestamp));
     req.onsuccess = () => {
       const cursor = req.result;
-      if (!cursor) {
-        resolve(false);
-        return;
-      }
-      const existing = cursor.value;
-      // Robust duplicate check
-      // Avoid seq-based dedup — seq resets on server restart, causing new messages to be
-      // falsely detected as duplicates of old stored records with the same seq number.
-      const match = (msg.runId && msg.runId === existing.runId) ||
-                    (msg.timestamp && msg.timestamp === existing.timestamp && msg.role === existing.role);
-      
-      if (match) resolve(true);
-      else cursor.continue();
+      if (!cursor) { resolve(false); return; }
+      if (cursor.value.role === msg.role) { resolve(true); return; }
+      cursor.continue();
     };
+    req.onerror = () => resolve(false);
   });
 
   if (isDuplicate) return null;

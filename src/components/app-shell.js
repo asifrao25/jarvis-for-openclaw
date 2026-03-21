@@ -419,7 +419,7 @@ export class AppShell extends LitElement {
       // Wait for app to be ready/connected before sending
       setTimeout(() => {
         if (this.loggedIn && command.trim()) {
-          this._onSendMessage({ detail: command.trim() });
+          this._onSendMessage({ detail: { text: command.trim() } });
           // Clear URL params without reloading
           window.history.replaceState({}, document.title, '/pwa/');
         }
@@ -723,7 +723,14 @@ export class AppShell extends LitElement {
       const raw = await getLatest(200);
       // Filter out messages whose tombstone was created after they were stored (race condition)
       const tombstoneChecks = await Promise.all(raw.map(m => isTombstoned(m)));
-      const all = raw.filter((_, i) => !tombstoneChecks[i]);
+      const STALE_THRESHOLD_MS = 30_000;
+      const now = Date.now();
+      const all = raw.filter((_, i) => !tombstoneChecks[i]).map(m => {
+        if (m.status === 'sending' && now - m.timestamp > STALE_THRESHOLD_MS) {
+          return { ...m, status: 'failed' };
+        }
+        return m;
+      });
       if (all.length > 0) {
         // Merge with existing messages (like replayed ones) without duplicating.
         // Exclusion logic: skip stored message if ANY of its identifiers is already in memory.
@@ -789,20 +796,24 @@ export class AppShell extends LitElement {
   _handleRes(msg) {
     if (msg.ok && msg.payload?.status === 'started') {
       this._setThinking();
-      const lastSending = this.messages.findLastIndex(m => m.role === 'user' && m.status === 'sending');
-      if (lastSending !== -1) {
+      const idx = msg.id
+        ? this.messages.findLastIndex(m => m.role === 'user' && m.requestId === msg.id)
+        : this.messages.findLastIndex(m => m.role === 'user' && m.status === 'sending');
+      if (idx !== -1) {
         const updated = [...this.messages];
-        updated[lastSending] = { ...updated[lastSending], status: 'received', runId: msg.payload?.runId };
+        updated[idx] = { ...updated[idx], status: 'received', runId: msg.payload?.runId };
         this.messages = updated;
       }
       return;
     }
 
     if (msg.ok === false) {
-      const lastSending = this.messages.findLastIndex(m => m.role === 'user' && (m.status === 'sending' || m.status === 'received'));
-      if (lastSending !== -1) {
+      const idx = msg.id
+        ? this.messages.findLastIndex(m => m.role === 'user' && m.requestId === msg.id)
+        : this.messages.findLastIndex(m => m.role === 'user' && (m.status === 'sending' || m.status === 'received'));
+      if (idx !== -1) {
         const updated = [...this.messages];
-        updated[lastSending] = { ...updated[lastSending], status: 'failed' };
+        updated[idx] = { ...updated[idx], status: 'failed' };
         this.messages = updated;
       }
       return;
@@ -900,8 +911,9 @@ export class AppShell extends LitElement {
       if (runId && await isTombstoned({ runId })) return;
       this._clearThinking();
       this.streaming = true;
+      // Re-lookup after await — array may have shifted
       const existingIdx = this._streamingIndex.has(runId) ? this._streamingIndex.get(runId) : -1;
-      if (existingIdx !== -1) {
+      if (existingIdx !== -1 && existingIdx < this.messages.length && this.messages[existingIdx]?.runId === runId) {
         const updated = [...this.messages];
         updated[existingIdx] = { ...updated[existingIdx], text, streaming: true };
         this.messages = updated;
@@ -917,19 +929,23 @@ export class AppShell extends LitElement {
         this._setThinking();
         this._clearThinkingTimeout = setTimeout(() => this._clearThinking(), 8000);
       }
-      const existingIdx = this._streamingIndex.has(runId) ? this._streamingIndex.get(runId) : -1;
 
       const finalMsg = { role, text, category, timestamp: Date.now(), streaming: false, runId, seq: msg.seq, seen: false, attachment };
 
       // 1. Tombstone check (ensure deleted messages don't reappear)
       if (await isTombstoned(finalMsg)) {
         console.log(`[AppShell] Ignoring tombstoned message: seq=${msg.seq} runId=${runId}`);
-        if (existingIdx !== -1) {
-          this.messages = this.messages.filter((_, i) => i !== existingIdx);
+        // Re-lookup after await
+        const tombstoneIdx = this._streamingIndex.has(runId) ? this._streamingIndex.get(runId) : -1;
+        if (tombstoneIdx !== -1) {
+          this.messages = this.messages.filter((_, i) => i !== tombstoneIdx);
           this._streamingIndex.delete(runId);
         }
         return;
       }
+
+      // Re-lookup streaming index after await — array may have shifted
+      const existingIdx = this._streamingIndex.has(runId) ? this._streamingIndex.get(runId) : -1;
 
       // 2. In-memory Deduplication (runId only — seq resets on server restart)
       const isDuplicate = this.messages.some(m =>
@@ -943,12 +959,11 @@ export class AppShell extends LitElement {
           this._streamingIndex.delete(runId);
         }
         console.log(`[AppShell] Ignoring duplicate: seq=${msg.seq} runId=${runId}`);
-        // Commit seq for duplicates too, so they aren't re-requested on next connect
         if (typeof msg.seq === 'number') wsClient.commitSeq(msg.seq);
         return;
       }
 
-      if (existingIdx !== -1) {
+      if (existingIdx !== -1 && existingIdx < this.messages.length && this.messages[existingIdx]?.runId === runId) {
         const updated = [...this.messages];
         updated[existingIdx] = finalMsg;
         this.messages = updated;
@@ -1029,23 +1044,27 @@ export class AppShell extends LitElement {
     const { text, attachment, skipWebSocket } = e.detail;
     
     let requestId = null;
+    let sendFailed = false;
     if (!skipWebSocket) {
       requestId = wsClient.sendChat(text, attachment);
+      if (requestId === null) sendFailed = true;
     }
 
+    const status = skipWebSocket ? 'received' : (sendFailed ? 'failed' : 'sending');
     const userMsg = { 
       role: 'user', 
       text, 
       category: 'chat', 
       timestamp: Date.now(), 
       requestId, 
-      status: skipWebSocket ? 'received' : 'sending', 
+      status, 
       seen: true,
-      attachment // Store locally for rendering
+      attachment,
     };
     this.messages = [...this.messages, userMsg];
     addMessage(userMsg).catch(err => console.error('Failed to store message:', err));
-    hapticMedium();
+    if (sendFailed) hapticError();
+    else hapticMedium();
   }
 
   async _fetchBalance() {
@@ -1080,6 +1099,7 @@ export class AppShell extends LitElement {
     // Always call deleteMessage, it handles missing ID by using timestamp for tombstoning
     await deleteMessage(id, timestamp).catch(err => console.error('Failed to delete message:', err));
     
+    this._rebuildStreamingIndex();
     this._notify('MESSAGE DELETED');
     hapticLight();
   }

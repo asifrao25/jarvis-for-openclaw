@@ -127,7 +127,9 @@ export class WSClient extends EventTarget {
   send(msg) {
     if (this.ws && this.ws.readyState === WebSocket.OPEN) {
       this.ws.send(typeof msg === 'string' ? msg : JSON.stringify(msg));
+      return true;
     }
+    return false;
   }
 
   sendChat(message, attachment = null, sessionKey = this.sessionKey) {
@@ -139,13 +141,13 @@ export class WSClient extends EventTarget {
     };
     if (attachment) params.attachment = attachment;
 
-    this.send({
+    const sent = this.send({
       type: 'req',
       id,
       method: 'chat.send',
       params,
     });
-    return id;
+    return sent ? id : null;
   }
 
 

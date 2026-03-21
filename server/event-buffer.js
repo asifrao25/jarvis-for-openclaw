@@ -21,6 +21,14 @@ export default class EventBuffer {
       payload: event.payload,
     };
 
+    // Preserve res-specific fields so replayed responses aren't stripped
+    if (event.type === 'res') {
+      if (event.id !== undefined) bufferedEvent.id = event.id;
+      if (event.ok !== undefined) bufferedEvent.ok = event.ok;
+      if (event.method !== undefined) bufferedEvent.method = event.method;
+      if (event.error !== undefined) bufferedEvent.error = event.error;
+    }
+
     // Attach bufferSeq to the original event for immediate use by GatewayClient listeners
     event.bufferSeq = bufferSeq;
 
@@ -82,6 +90,7 @@ export default class EventBuffer {
   clear() {
     console.log('[EventBuffer] Clearing all events from buffer');
     this.buffer = [];
+    this.nextSeq = 1;
     this.clientReplayCounts.clear();
   }
 

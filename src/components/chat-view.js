@@ -406,6 +406,7 @@ export class ChatView extends LitElement {
             .seen=${m.seen}
             .attachment=${m.attachment}
             .streaming=${m.streaming === true}
+            .status=${m.status || null}
           ></message-item>
         `)}
       </div>

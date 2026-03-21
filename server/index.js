@@ -214,13 +214,21 @@ wss.on('connection', (ws, req) => {
             const missed = eventBuffer.getEventsSince(lastSeq, clientId);
             console.log(`[WS] Replaying ${missed.length} events for ${clientId}`);
             for (const event of missed) {
-              ws.send(JSON.stringify({
+              const replayMsg = {
                 type: event.type,
                 event: event.event,
-                seq: event.bufferSeq, // Use stable bufferSeq for PWA clients
+                seq: event.bufferSeq,
                 payload: event.payload,
                 _replayed: true,
-              }));
+              };
+              // Preserve res-specific fields for proper client-side handling
+              if (event.type === 'res') {
+                if (event.id !== undefined) replayMsg.id = event.id;
+                if (event.ok !== undefined) replayMsg.ok = event.ok;
+                if (event.method !== undefined) replayMsg.method = event.method;
+                if (event.error !== undefined) replayMsg.error = event.error;
+              }
+              ws.send(JSON.stringify(replayMsg));
             }
           }
         } else {

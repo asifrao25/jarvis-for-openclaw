@@ -1,7 +1,12 @@
 export function categorize(chatEvent) {
   const text = extractText(chatEvent);
-  if (text.startsWith('[ALERT]')) return 'alert';
-  if (text.startsWith('[REPORT]')) return 'report';
+  return categorizeText(text);
+}
+
+export function categorizeText(text) {
+  const firstLine = text.trimStart().split('\n')[0];
+  if (/^[^\[]{0,10}\[ALERT\]/i.test(firstLine)) return 'alert';
+  if (/^[^\[]{0,10}\[REPORT\]/i.test(firstLine)) return 'report';
   return 'chat';
 }
 

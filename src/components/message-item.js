@@ -287,6 +287,18 @@ export class MessageItem extends LitElement {
       color: #fff;
       box-shadow: 0 0 20px rgba(255, 51, 51, 0.4);
     }
+
+    .status-indicator {
+      font-family: var(--f-mono);
+      font-size: 9px;
+      letter-spacing: 1px;
+      margin-top: 4px;
+      text-align: right;
+      opacity: 0.7;
+    }
+
+    .status-sending { color: #FFFF00; }
+    .status-failed { color: var(--c-alert, #FF3333); font-weight: bold; opacity: 1; }
   `;
 
   static properties = {
@@ -297,6 +309,7 @@ export class MessageItem extends LitElement {
     seen: { type: Boolean },
     attachment: { type: Object },
     streaming: { type: Boolean },
+    status: { type: String },
     _menuOpen: { type: Boolean, state: true },
     _menuX: { type: Number, state: true },
     _menuY: { type: Number, state: true },
@@ -308,6 +321,7 @@ export class MessageItem extends LitElement {
   constructor() {
     super();
     this.seen = true;
+    this.status = null;
     this._menuOpen = false;
     this._menuX = 0;
     this._menuY = 0;
@@ -438,6 +452,8 @@ export class MessageItem extends LitElement {
 
         <div class="text">${this.text}${this.streaming ? html`<span class="streaming-cursor"></span>` : ''}</div>
         ${this.role === 'user' ? html`<div class="meta">${fullDateTime}</div>` : ''}
+        ${this.role === 'user' && this.status === 'sending' ? html`<div class="status-indicator status-sending">SENDING...</div>` : ''}
+        ${this.role === 'user' && this.status === 'failed' ? html`<div class="status-indicator status-failed">SEND FAILED</div>` : ''}
 
         <div class="action-menu ${this._menuOpen ? 'visible' : ''}" 
              style="left: ${this._menuX}px; top: ${this._menuY}px;"
