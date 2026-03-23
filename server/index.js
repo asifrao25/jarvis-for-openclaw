@@ -218,6 +218,7 @@ wss.on('connection', (ws, req) => {
                 type: event.type,
                 event: event.event,
                 seq: event.bufferSeq,
+                timestamp: event.timestamp,
                 payload: event.payload,
                 _replayed: true,
               };

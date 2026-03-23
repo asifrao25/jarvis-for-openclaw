@@ -865,6 +865,7 @@ export class AppShell extends LitElement {
     const role = payload.message?.role || 'assistant';
     const text = extractText(msg);
     const category = categorize(text);
+    const eventTimestamp = msg.timestamp || Date.now();
 
     // Ignore chat events for other sessions to ensure independence
     // BUT allow reports/alerts from main session, heartbeat session, and cron sessions
@@ -904,7 +905,7 @@ export class AppShell extends LitElement {
         updated[existingIdx] = { ...updated[existingIdx], text, streaming: true };
         this.messages = updated;
       } else {
-        this.messages = [...this.messages, { role, text, category, timestamp: Date.now(), streaming: true, runId }];
+        this.messages = [...this.messages, { role, text, category, timestamp: eventTimestamp, streaming: true, runId }];
         this._streamingIndex.set(runId, this.messages.length - 1);
       }
     } else if (state === 'final') {
@@ -916,7 +917,7 @@ export class AppShell extends LitElement {
         this._clearThinkingTimeout = setTimeout(() => this._clearThinking(), 8000);
       }
 
-      const finalMsg = { role, text, category, timestamp: Date.now(), streaming: false, runId, seq: msg.seq, seen: false, attachment };
+      const finalMsg = { role, text, category, timestamp: eventTimestamp, streaming: false, runId, seq: msg.seq, seen: false, attachment };
 
       // 1. Tombstone check (ensure deleted messages don't reappear)
       if (await isTombstoned(finalMsg)) {

@@ -29,8 +29,9 @@ export default class EventBuffer {
       if (event.error !== undefined) bufferedEvent.error = event.error;
     }
 
-    // Attach bufferSeq to the original event for immediate use by GatewayClient listeners
+    // Attach bufferSeq and timestamp to the original event for immediate use by GatewayClient listeners
     event.bufferSeq = bufferSeq;
+    event.timestamp = timestamp;
 
     this.buffer.push(bufferedEvent);
     this._cleanup();
